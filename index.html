@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roleta do Oscar 🎬</title>
+<meta name="description" content="Gire a roleta e descubra qual vencedor do Oscar de Melhor Filme você vai assistir hoje. Inclui o Top 100 do IMDb.">
+<style>
+  :root {
+    --bg: #0d0b14;
+    --bg-soft: #16131f;
+    --card: #1d1929;
+    --card-border: #2e2840;
+    --gold: #e6b53c;
+    --gold-soft: #f3d27e;
+    --gold-dim: #8a6d24;
+    --text: #f2eefb;
+    --text-dim: #a99fc0;
+    --red: #c0392b;
+    --shadow: 0 20px 60px rgba(0,0,0,.55);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background:
+      radial-gradient(1200px 600px at 50% -200px, #2a2140 0%, transparent 60%),
+      radial-gradient(900px 500px at 100% 100%, #1c1430 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    text-align: center;
+    padding: 56px 20px 24px;
+  }
+  .kicker {
+    display: inline-block;
+    letter-spacing: .35em;
+    text-transform: uppercase;
+    font-size: .72rem;
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+    border-radius: 999px;
+    padding: 8px 18px 8px 22px;
+    margin-bottom: 18px;
+    background: rgba(230,181,60,.06);
+  }
+  h1 {
+    font-size: clamp(2rem, 5.5vw, 3.4rem);
+    font-weight: 800;
+    letter-spacing: -.02em;
+    background: linear-gradient(180deg, var(--gold-soft), var(--gold) 55%, #b8892a);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 40px rgba(230,181,60,.18);
+  }
+  header p {
+    margin-top: 12px;
+    color: var(--text-dim);
+    font-size: 1.05rem;
+    max-width: 640px;
+    margin-inline: auto;
+  }
+
+  nav.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 28px auto 0;
+    flex-wrap: wrap;
+    padding: 0 16px;
+  }
+  .tab-btn {
+    background: var(--card);
+    color: var(--text-dim);
+    border: 1px solid var(--card-border);
+    border-radius: 999px;
+    padding: 12px 26px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .25s ease;
+  }
+  .tab-btn:hover { color: var(--text); border-color: var(--gold-dim); }
+  .tab-btn.active {
+    background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+    color: #201804;
+    border-color: transparent;
+    box-shadow: 0 6px 24px rgba(230,181,60,.35);
+  }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 36px 20px 80px; }
+  section.panel { display: none; }
+  section.panel.active { display: block; animation: fadeIn .4s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- ROLETA ---------- */
+  .roulette-layout {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .wheel-wrap {
+    position: relative;
+    width: min(440px, 90vw);
+    aspect-ratio: 1;
+    flex: 0 0 auto;
+  }
+  #wheel {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 50%;
+    box-shadow: var(--shadow), 0 0 0 10px #241d35, 0 0 0 12px var(--gold-dim), 0 0 90px rgba(230,181,60,.12);
+  }
+  .pointer {
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 16px solid transparent;
+    border-right: 16px solid transparent;
+    border-top: 30px solid var(--gold);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.6));
+    z-index: 3;
+  }
+  .hub {
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 21%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #f7dc90, var(--gold) 45%, #9a7420 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    box-shadow: 0 4px 18px rgba(0,0,0,.5), inset 0 -4px 10px rgba(0,0,0,.25);
+    z-index: 2;
+    user-select: none;
+  }
+
+  .spin-side {
+    flex: 1 1 320px;
+    max-width: 460px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+    text-align: center;
+  }
+  #spinBtn {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    padding: 18px 54px;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    color: #241a04;
+    background: linear-gradient(180deg, var(--gold-soft), var(--gold) 60%, #c8992d);
+    box-shadow: 0 10px 30px rgba(230,181,60,.35), inset 0 1px 0 rgba(255,255,255,.5);
+    transition: transform .15s ease, box-shadow .2s ease, filter .2s ease;
+  }
+  #spinBtn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(230,181,60,.45); }
+  #spinBtn:active:not(:disabled) { transform: translateY(1px); }
+  #spinBtn:disabled { filter: grayscale(.55) brightness(.75); cursor: wait; }
+
+  .result-card {
+    width: 100%;
+    background: linear-gradient(180deg, #241d38, var(--card));
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 28px 24px;
+    box-shadow: var(--shadow);
+    min-height: 170px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+  }
+  .result-card.reveal { animation: pop .45s cubic-bezier(.2, 1.4, .4, 1); border-color: var(--gold-dim); }
+  @keyframes pop { 0% { transform: scale(.92); opacity: .3; } 100% { transform: scale(1); opacity: 1; } }
+  .result-label {
+    font-size: .75rem;
+    letter-spacing: .3em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  #resultTitle {
+    font-size: clamp(1.3rem, 4vw, 1.9rem);
+    font-weight: 800;
+    color: var(--gold-soft);
+    line-height: 1.2;
+  }
+  #resultMeta { color: var(--text-dim); font-size: 1rem; }
+  .placeholder { color: var(--text-dim); font-size: 1.05rem; }
+
+  .winners-note {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: .9rem;
+    margin-top: 34px;
+  }
+
+  /* ---------- IMDB TOP 100 ---------- */
+  .imdb-card {
+    background: linear-gradient(180deg, #221c33, var(--card));
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .imdb-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    padding: 26px 28px;
+    border-bottom: 1px solid var(--card-border);
+    background: rgba(230,181,60,.04);
+  }
+  .imdb-head h2 {
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .imdb-badge {
+    background: #f5c518;
+    color: #171310;
+    font-weight: 900;
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: .95rem;
+    letter-spacing: .02em;
+  }
+  #search {
+    background: var(--bg-soft);
+    border: 1px solid var(--card-border);
+    color: var(--text);
+    border-radius: 999px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    width: min(320px, 100%);
+    outline: none;
+    transition: border-color .2s ease;
+  }
+  #search:focus { border-color: var(--gold-dim); }
+  #search::placeholder { color: var(--text-dim); }
+
+  .movie-list { list-style: none; max-height: 640px; overflow-y: auto; }
+  .movie-list::-webkit-scrollbar { width: 10px; }
+  .movie-list::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 8px; }
+  .movie-item {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 24px;
+    border-bottom: 1px solid rgba(46,40,64,.55);
+    transition: background .2s ease;
+  }
+  .movie-item:hover { background: rgba(230,181,60,.05); }
+  .rank {
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: var(--gold);
+    text-align: center;
+    background: rgba(230,181,60,.08);
+    border: 1px solid rgba(230,181,60,.2);
+    border-radius: 10px;
+    padding: 8px 0;
+  }
+  .movie-info .title { font-weight: 700; font-size: 1.02rem; }
+  .movie-info .year { color: var(--text-dim); font-size: .88rem; margin-top: 2px; }
+  .oscar-tag {
+    display: inline-block;
+    margin-left: 8px;
+    font-size: .72rem;
+    color: var(--gold);
+    border: 1px solid var(--gold-dim);
+    border-radius: 999px;
+    padding: 2px 9px;
+    vertical-align: 2px;
+    white-space: nowrap;
+  }
+  .rating {
+    font-weight: 800;
+    color: #f5c518;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .rating::before { content: "★"; font-size: .95rem; }
+  .no-results { padding: 40px; text-align: center; color: var(--text-dim); }
+
+  footer {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: .85rem;
+    padding: 26px 16px 44px;
+    border-top: 1px solid var(--card-border);
+  }
+  footer a { color: var(--gold); text-decoration: none; }
+
+  @media (max-width: 720px) {
+    .imdb-head { padding: 20px; }
+    .movie-item { padding: 12px 16px; grid-template-columns: 44px 1fr auto; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="kicker">🏆 Academy Awards</span>
+  <h1>Roleta do Oscar</h1>
+  <p>Não sabe o que assistir? Gire a roleta e deixe a sorte escolher um dos <strong>97 vencedores</strong> do Oscar de Melhor Filme — de <em>Wings</em> (1927) a <em>Anora</em> (2024).</p>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="roleta">🎡 Roleta do Oscar</button>
+    <button class="tab-btn" data-tab="imdb">⭐ Top 100 IMDb</button>
+  </nav>
+</header>
+
+<main>
+  <section id="roleta" class="panel active">
+    <div class="roulette-layout">
+      <div class="wheel-wrap">
+        <div class="pointer"></div>
+        <canvas id="wheel"></canvas>
+        <div class="hub">🎬</div>
+      </div>
+      <div class="spin-side">
+        <button id="spinBtn">GIRAR 🎲</button>
+        <div class="result-card" id="resultCard">
+          <span class="result-label">Filme sorteado</span>
+          <div id="resultTitle" class="placeholder">Clique em “Girar” para sortear seu filme da noite…</div>
+          <div id="resultMeta"></div>
+        </div>
+      </div>
+    </div>
+    <p class="winners-note">A roleta contém todos os vencedores do Oscar de Melhor Filme (1ª à 97ª cerimônia).</p>
+  </section>
+
+  <section id="imdb" class="panel">
+    <div class="imdb-card">
+      <div class="imdb-head">
+        <h2><span class="imdb-badge">IMDb</span> Top 100 Melhores Filmes</h2>
+        <input id="search" type="search" placeholder="Buscar filme ou ano…" aria-label="Buscar filme">
+      </div>
+      <ul class="movie-list" id="movieList"></ul>
+    </div>
+  </section>
+</main>
+
+<footer>
+  Feito com 🍿 — dados baseados nos vencedores de Melhor Filme do Oscar e no ranking Top 250 do <a href="https://www.imdb.com/chart/top/" target="_blank" rel="noopener">IMDb</a>.
+</footer>
+
+<script>
+// ---------- DADOS: vencedores de Melhor Filme (ano do filme) ----------
+const OSCAR_WINNERS = [
+  ["Wings", 1927], ["The Broadway Melody", 1929], ["All Quiet on the Western Front", 1930],
+  ["Cimarron", 1931], ["Grand Hotel", 1932], ["Cavalcade", 1933],
+  ["It Happened One Night", 1934], ["Mutiny on the Bounty", 1935], ["The Great Ziegfeld", 1936],
+  ["The Life of Emile Zola", 1937], ["You Can't Take It with You", 1938], ["Gone with the Wind", 1939],
+  ["Rebecca", 1940], ["How Green Was My Valley", 1941], ["Mrs. Miniver", 1942],
+  ["Casablanca", 1943], ["Going My Way", 1944], ["The Lost Weekend", 1945],
+  ["The Best Years of Our Lives", 1946], ["Gentleman's Agreement", 1947], ["Hamlet", 1948],
+  ["All the King's Men", 1949], ["All About Eve", 1950], ["An American in Paris", 1951],
+  ["The Greatest Show on Earth", 1952], ["From Here to Eternity", 1953], ["On the Waterfront", 1954],
+  ["Marty", 1955], ["Around the World in 80 Days", 1956], ["The Bridge on the River Kwai", 1957],
+  ["Gigi", 1958], ["Ben-Hur", 1959], ["The Apartment", 1960],
+  ["West Side Story", 1961], ["Lawrence of Arabia", 1962], ["Tom Jones", 1963],
+  ["My Fair Lady", 1964], ["The Sound of Music", 1965], ["A Man for All Seasons", 1966],
+  ["In the Heat of the Night", 1967], ["Oliver!", 1968], ["Midnight Cowboy", 1969],
+  ["Patton", 1970], ["The French Connection", 1971], ["The Godfather", 1972],
+  ["The Sting", 1973], ["The Godfather Part II", 1974], ["One Flew Over the Cuckoo's Nest", 1975],
+  ["Rocky", 1976], ["Annie Hall", 1977], ["The Deer Hunter", 1978],
+  ["Kramer vs. Kramer", 1979], ["Ordinary People", 1980], ["Chariots of Fire", 1981],
+  ["Gandhi", 1982], ["Terms of Endearment", 1983], ["Amadeus", 1984],
+  ["Out of Africa", 1985], ["Platoon", 1986], ["The Last Emperor", 1987],
+  ["Rain Man", 1988], ["Driving Miss Daisy", 1989], ["Dances with Wolves", 1990],
+  ["The Silence of the Lambs", 1991], ["Unforgiven", 1992], ["Schindler's List", 1993],
+  ["Forrest Gump", 1994], ["Braveheart", 1995], ["The English Patient", 1996],
+  ["Titanic", 1997], ["Shakespeare in Love", 1998], ["American Beauty", 1999],
+  ["Gladiator", 2000], ["A Beautiful Mind", 2001], ["Chicago", 2002],
+  ["The Lord of the Rings: The Return of the King", 2003], ["Million Dollar Baby", 2004], ["Crash", 2005],
+  ["The Departed", 2006], ["No Country for Old Men", 2007], ["Slumdog Millionaire", 2008],
+  ["The Hurt Locker", 2009], ["The King's Speech", 2010], ["The Artist", 2011],
+  ["Argo", 2012], ["12 Years a Slave", 2013], ["Birdman", 2014],
+  ["Spotlight", 2015], ["Moonlight", 2016], ["The Shape of Water", 2017],
+  ["Green Book", 2018], ["Parasite", 2019], ["Nomadland", 2020],
+  ["CODA", 2021], ["Everything Everywhere All at Once", 2022], ["Oppenheimer", 2023],
+  ["Anora", 2024]
+];
+
+// ---------- DADOS: Top 100 IMDb (baseado no Top 250) ----------
+const IMDB_TOP100 = [
+  ["The Shawshank Redemption", 1994, 9.3], ["The Godfather", 1972, 9.2], ["The Dark Knight", 2008, 9.0],
+  ["The Godfather Part II", 1974, 9.0], ["12 Angry Men", 1957, 9.0], ["The Lord of the Rings: The Return of the King", 2003, 9.0],
+  ["Schindler's List", 1993, 9.0], ["Pulp Fiction", 1994, 8.9], ["The Lord of the Rings: The Fellowship of the Ring", 2001, 8.9],
+  ["The Good, the Bad and the Ugly", 1966, 8.8], ["Forrest Gump", 1994, 8.8], ["The Lord of the Rings: The Two Towers", 2002, 8.8],
+  ["Fight Club", 1999, 8.8], ["Inception", 2010, 8.8], ["Star Wars: Episode V - The Empire Strikes Back", 1980, 8.7],
+  ["The Matrix", 1999, 8.7], ["Goodfellas", 1990, 8.7], ["Interstellar", 2014, 8.7],
+  ["One Flew Over the Cuckoo's Nest", 1975, 8.7], ["Se7en", 1995, 8.6], ["It's a Wonderful Life", 1946, 8.6],
+  ["The Silence of the Lambs", 1991, 8.6], ["Seven Samurai", 1954, 8.6], ["Saving Private Ryan", 1998, 8.6],
+  ["Cidade de Deus", 2002, 8.6], ["The Green Mile", 1999, 8.6], ["Life Is Beautiful", 1997, 8.6],
+  ["Terminator 2: Judgment Day", 1991, 8.6], ["Star Wars: Episode IV - A New Hope", 1977, 8.6], ["Back to the Future", 1985, 8.5],
+  ["Spirited Away", 2001, 8.5], ["The Pianist", 2002, 8.5], ["Psycho", 1960, 8.5],
+  ["Parasite", 2019, 8.5], ["Gladiator", 2000, 8.5], ["Léon: The Professional", 1994, 8.5],
+  ["The Lion King", 1994, 8.5], ["American History X", 1998, 8.5], ["The Departed", 2006, 8.5],
+  ["Whiplash", 2014, 8.5], ["The Prestige", 2006, 8.5], ["Grave of the Fireflies", 1988, 8.5],
+  ["The Usual Suspects", 1995, 8.5], ["Casablanca", 1942, 8.5], ["Harakiri", 1962, 8.5],
+  ["The Intouchables", 2011, 8.5], ["Modern Times", 1936, 8.5], ["Cinema Paradiso", 1988, 8.5],
+  ["Once Upon a Time in the West", 1968, 8.5], ["Rear Window", 1954, 8.5], ["Alien", 1979, 8.5],
+  ["City Lights", 1931, 8.5], ["Django Unchained", 2012, 8.5], ["Apocalypse Now", 1979, 8.4],
+  ["Memento", 2000, 8.4], ["Raiders of the Lost Ark", 1981, 8.4], ["WALL·E", 2008, 8.4],
+  ["The Lives of Others", 2006, 8.4], ["Sunset Boulevard", 1950, 8.4], ["Paths of Glory", 1957, 8.4],
+  ["The Shining", 1980, 8.4], ["The Great Dictator", 1940, 8.4], ["Avengers: Infinity War", 2018, 8.4],
+  ["Witness for the Prosecution", 1957, 8.4], ["Aliens", 1986, 8.4], ["American Beauty", 1999, 8.4],
+  ["Spider-Man: Into the Spider-Verse", 2018, 8.4], ["The Dark Knight Rises", 2012, 8.4], ["Dr. Strangelove", 1964, 8.4],
+  ["Oldboy", 2003, 8.4], ["Amadeus", 1984, 8.4], ["Coco", 2017, 8.4],
+  ["Das Boot", 1981, 8.4], ["Avengers: Endgame", 2019, 8.4], ["Joker", 2019, 8.4],
+  ["Your Name.", 2016, 8.4], ["3 Idiots", 2009, 8.4], ["High and Low", 1963, 8.4],
+  ["Capernaum", 2018, 8.4], ["Come and See", 1985, 8.4], ["Toy Story", 1995, 8.3],
+  ["Braveheart", 1995, 8.3], ["Princess Mononoke", 1997, 8.3], ["Good Will Hunting", 1997, 8.3],
+  ["Once Upon a Time in America", 1984, 8.3], ["Singin' in the Rain", 1952, 8.3], ["Requiem for a Dream", 2000, 8.3],
+  ["Toy Story 3", 2010, 8.3], ["Star Wars: Episode VI - Return of the Jedi", 1983, 8.3], ["Eternal Sunshine of the Spotless Mind", 2004, 8.3],
+  ["The Hunt", 2012, 8.3], ["Ikiru", 1952, 8.3], ["2001: A Space Odyssey", 1968, 8.3],
+  ["Reservoir Dogs", 1992, 8.3], ["Lawrence of Arabia", 1962, 8.3], ["The Apartment", 1960, 8.3],
+  ["Incendies", 2010, 8.3], ["Citizen Kane", 1941, 8.3], ["North by Northwest", 1959, 8.3],
+  ["Vertigo", 1958, 8.3]
+];
+
+// ---------- ABAS ----------
+document.querySelectorAll(".tab-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById(btn.dataset.tab).classList.add("active");
+  });
+});
+
+// ---------- ROLETA ----------
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const N = OSCAR_WINNERS.length;
+const SEG = (2 * Math.PI) / N;
+const COLORS = ["#3a2f5c", "#4b3a72", "#2c2547", "#5c4522", "#7a5c25"];
+let rotation = 0;
+let spinning = false;
+
+function sizeCanvas() {
+  const cssSize = canvas.parentElement.clientWidth;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = cssSize * dpr;
+  canvas.height = cssSize * dpr;
+  drawWheel();
+}
+
+function drawWheel() {
+  const size = canvas.width;
+  const c = size / 2;
+  const r = c - 4;
+  ctx.clearRect(0, 0, size, size);
+  ctx.save();
+  ctx.translate(c, c);
+  ctx.rotate(rotation);
+  for (let i = 0; i < N; i++) {
+    const a0 = i * SEG - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, r, a0, a0 + SEG);
+    ctx.closePath();
+    ctx.fillStyle = COLORS[i % COLORS.length];
+    ctx.fill();
+    ctx.strokeStyle = "rgba(13,11,20,.85)";
+    ctx.lineWidth = Math.max(1, size / 600);
+    ctx.stroke();
+    // tick dourado na borda
+    ctx.save();
+    ctx.rotate(a0 + SEG / 2);
+    ctx.fillStyle = "rgba(230,181,60,.8)";
+    ctx.beginPath();
+    ctx.arc(r * 0.94, 0, size / 240, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+function easeOutQuart(t) { return 1 - Math.pow(1 - t, 4); }
+
+function spin() {
+  if (spinning) return;
+  spinning = true;
+  const btn = document.getElementById("spinBtn");
+  btn.disabled = true;
+  document.getElementById("resultCard").classList.remove("reveal");
+
+  const winner = Math.floor(Math.random() * N);
+  // ângulo final: centro do segmento vencedor alinhado ao ponteiro (topo)
+  const target = -(winner * SEG + SEG / 2);
+  const current = rotation % (2 * Math.PI);
+  const extraTurns = 6 + Math.floor(Math.random() * 3);
+  const delta = extraTurns * 2 * Math.PI + ((target - current) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const start = rotation;
+  const duration = 5200;
+  let t0 = null;
+
+  function frame(ts) {
+    if (!t0) t0 = ts;
+    const p = Math.min((ts - t0) / duration, 1);
+    rotation = start + delta * easeOutQuart(p);
+    drawWheel();
+    if (p < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      spinning = false;
+      btn.disabled = false;
+      showResult(winner);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function showResult(i) {
+  const [title, year] = OSCAR_WINNERS[i];
+  const edition = i + 1;
+  const card = document.getElementById("resultCard");
+  const titleEl = document.getElementById("resultTitle");
+  titleEl.classList.remove("placeholder");
+  titleEl.textContent = `🎬 ${title}`;
+  document.getElementById("resultMeta").textContent =
+    `Filme de ${year} · Vencedor da ${edition}ª cerimônia do Oscar`;
+  card.classList.add("reveal");
+}
+
+document.getElementById("spinBtn").addEventListener("click", spin);
+window.addEventListener("resize", sizeCanvas);
+sizeCanvas();
+
+// ---------- TOP 100 IMDB ----------
+const oscarSet = new Set(OSCAR_WINNERS.map(([t, y]) => `${t}|${y}`));
+const listEl = document.getElementById("movieList");
+
+function renderList(filter = "") {
+  const q = filter.trim().toLowerCase();
+  const rows = IMDB_TOP100
+    .map((m, idx) => ({ rank: idx + 1, title: m[0], year: m[1], rating: m[2] }))
+    .filter(m => !q || m.title.toLowerCase().includes(q) || String(m.year).includes(q));
+
+  if (!rows.length) {
+    listEl.innerHTML = `<li class="no-results">Nenhum filme encontrado para “${filter}”.</li>`;
+    return;
+  }
+  listEl.innerHTML = rows.map(m => `
+    <li class="movie-item">
+      <span class="rank">${m.rank}</span>
+      <div class="movie-info">
+        <div class="title">${m.title}${oscarSet.has(`${m.title}|${m.year}`) ? '<span class="oscar-tag">🏆 Oscar</span>' : ""}</div>
+        <div class="year">${m.year}</div>
+      </div>
+      <span class="rating">${m.rating.toFixed(1)}</span>
+    </li>`).join("");
+}
+
+document.getElementById("search").addEventListener("input", e => renderList(e.target.value));
+renderList();
+</script>
+</body>
+</html>
