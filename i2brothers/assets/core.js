@@ -105,292 +105,46 @@ const I2 = (() => {
     ['azul pacífico', 'pacificblue', '#2d4d5c']
   ];
 
-  /* ---------- Mapa de imagens oficiais Apple ----------------------------
-     Slugs verificados no CDN da Apple. Chave: "familia|cor".
-     Fallback: imagem padrão da família -> render SVG gerado.        */
-  const CDN = 'https://store.storeimages.cdn-apple.com/8756/as-images.apple.com/is/';
+  /* ---------- Fotos dos aparelhos ---------------------------------------
+     O índice vem de assets/fotos.js (gerado por ferramentas/fotos.py):
+       familia -> { padrao: cor, cores: { cor: { base, lados } } }
+     Cada aparelho tem duas fotos, "<base>-verso.webp" e "<base>-frente.webp",
+     na mesma tela e no mesmo tamanho. Modelos em que a Apple só publica uma
+     vista aproveitável ficam com uma foto só.                              */
   const LOCAL = 'assets/iphones/';
-  // Imagem local (recortada a partir do material oficial da Apple); o CDN fica como reserva.
-  const IMG = (slug) => `${LOCAL}${slug}.webp`;
-  const IMG_CDN = (slug, w) => `${CDN}${slug}?wid=${w || 700}&hei=${w || 700}&fmt=png-alpha`;
+  const FOTOS = (typeof I2_FOTOS !== 'undefined') ? I2_FOTOS
+              : (typeof globalThis !== 'undefined' && globalThis.I2_FOTOS) ? globalThis.I2_FOTOS : {};
 
-  // familia -> { padrao: slug, cores: { cor: slug } }
-  const MODELOS_IMG = {
-    'iphone 18 pro max': {
-      padrao: 'iphone-18-pro-finish-select-black-202609',
-      cores: {
-        black: 'iphone-18-pro-finish-select-black-202609',
-        burgundy: 'iphone-18-pro-finish-select-burgundy-202609',
-        glacier: 'iphone-18-pro-finish-select-glacier-202609',
-        silver: 'iphone-18-pro-finish-select-silver-202609'
-      }
-    },
-    'iphone 18 pro': {
-      padrao: 'iphone-18-pro-finish-select-black-202609',
-      cores: {
-        black: 'iphone-18-pro-finish-select-black-202609',
-        burgundy: 'iphone-18-pro-finish-select-burgundy-202609',
-        glacier: 'iphone-18-pro-finish-select-glacier-202609',
-        silver: 'iphone-18-pro-finish-select-silver-202609'
-      }
-    },
-    'iphone 17e': {
-      padrao: 'iphone-17e-finish-select-black-202603',
-      cores: {
-        black: 'iphone-17e-finish-select-black-202603',
-        softpink: 'iphone-17e-finish-select-softpink-202603',
-        white: 'iphone-17e-finish-select-white-202603'
-      }
-    },
-    'iphone 17 pro max': {
-      padrao: 'iphone-17-pro-finish-select-deepblue-202509',
-      cores: {
-        deepblue: 'iphone-17-pro-finish-select-deepblue-202509',
-        cosmicorange: 'iphone-17-pro-finish-select-cosmicorange-202509',
-        silver: 'iphone-17-pro-finish-select-silver-202509'
-      }
-    },
-    'iphone 17 pro': {
-      padrao: 'iphone-17-pro-finish-select-deepblue-202509',
-      cores: {
-        deepblue: 'iphone-17-pro-finish-select-deepblue-202509',
-        cosmicorange: 'iphone-17-pro-finish-select-cosmicorange-202509',
-        silver: 'iphone-17-pro-finish-select-silver-202509'
-      }
-    },
-    'iphone air': {
-      padrao: 'iphone-air-finish-select-skyblue-202509',
-      cores: {
-        skyblue: 'iphone-air-finish-select-skyblue-202509',
-        cloudwhite: 'iphone-air-finish-select-cloudwhite-202509',
-        lightgold: 'iphone-air-finish-select-lightgold-202509',
-        spaceblack: 'iphone-air-finish-select-spaceblack-202509'
-      }
-    },
-    'iphone 17': {
-      padrao: 'iphone-17-finish-select-lavender-202509',
-      cores: {
-        lavender: 'iphone-17-finish-select-lavender-202509',
-        sage: 'iphone-17-finish-select-sage-202509',
-        mistblue: 'iphone-17-finish-select-mistblue-202509',
-        black: 'iphone-17-finish-select-black-202509',
-        white: 'iphone-17-finish-select-white-202509'
-      }
-    },
-    'iphone 16 pro max': {
-      padrao: 'iphone-16-pro-finish-select-202409-6-9inch-naturaltitanium',
-      cores: {
-        naturaltitanium: 'iphone-16-pro-finish-select-202409-6-9inch-naturaltitanium',
-        blacktitanium: 'iphone-16-pro-finish-select-202409-6-9inch-blacktitanium',
-        whitetitanium: 'iphone-16-pro-finish-select-202409-6-9inch-whitetitanium',
-        deserttitanium: 'iphone-16-pro-finish-select-202409-6-9inch-deserttitanium'
-      }
-    },
-    'iphone 16 pro': {
-      padrao: 'iphone-16-pro-finish-select-202409-6-3inch-naturaltitanium',
-      cores: {
-        naturaltitanium: 'iphone-16-pro-finish-select-202409-6-3inch-naturaltitanium',
-        blacktitanium: 'iphone-16-pro-finish-select-202409-6-3inch-blacktitanium',
-        whitetitanium: 'iphone-16-pro-finish-select-202409-6-3inch-whitetitanium',
-        deserttitanium: 'iphone-16-pro-finish-select-202409-6-3inch-deserttitanium'
-      }
-    },
-    'iphone 16 plus': {
-      padrao: 'iphone-16-finish-select-202409-6-7inch-ultramarine',
-      cores: {
-        ultramarine: 'iphone-16-finish-select-202409-6-7inch-ultramarine',
-        teal: 'iphone-16-finish-select-202409-6-7inch-teal',
-        pink: 'iphone-16-finish-select-202409-6-7inch-pink',
-        white: 'iphone-16-finish-select-202409-6-7inch-white',
-        black: 'iphone-16-finish-select-202409-6-7inch-black'
-      }
-    },
-    'iphone 16': {
-      padrao: 'iphone-16-finish-select-202409-6-1inch-ultramarine',
-      cores: {
-        ultramarine: 'iphone-16-finish-select-202409-6-1inch-ultramarine',
-        teal: 'iphone-16-finish-select-202409-6-1inch-teal',
-        pink: 'iphone-16-finish-select-202409-6-1inch-pink',
-        white: 'iphone-16-finish-select-202409-6-1inch-white',
-        black: 'iphone-16-finish-select-202409-6-1inch-black'
-      }
-    },
-    'iphone 15 pro max': {
-      padrao: 'iphone-15-pro-finish-select-202309-6-7inch-naturaltitanium',
-      cores: {
-        naturaltitanium: 'iphone-15-pro-finish-select-202309-6-7inch-naturaltitanium',
-        blacktitanium: 'iphone-15-pro-finish-select-202309-6-7inch-blacktitanium',
-        whitetitanium: 'iphone-15-pro-finish-select-202309-6-7inch-whitetitanium',
-        bluetitanium: 'iphone-15-pro-finish-select-202309-6-7inch-bluetitanium'
-      }
-    },
-    'iphone 15 pro': {
-      padrao: 'iphone-15-pro-finish-select-202309-6-1inch-naturaltitanium',
-      cores: {
-        naturaltitanium: 'iphone-15-pro-finish-select-202309-6-1inch-naturaltitanium',
-        blacktitanium: 'iphone-15-pro-finish-select-202309-6-1inch-blacktitanium',
-        whitetitanium: 'iphone-15-pro-finish-select-202309-6-1inch-whitetitanium',
-        bluetitanium: 'iphone-15-pro-finish-select-202309-6-1inch-bluetitanium'
-      }
-    },
-    'iphone 15 plus': {
-      padrao: 'iphone-15-finish-select-202309-6-7inch-blue',
-      cores: {
-        blue: 'iphone-15-finish-select-202309-6-7inch-blue',
-        pink: 'iphone-15-finish-select-202309-6-7inch-pink',
-        yellow: 'iphone-15-finish-select-202309-6-7inch-yellow',
-        green: 'iphone-15-finish-select-202309-6-7inch-green',
-        black: 'iphone-15-finish-select-202309-6-7inch-black'
-      }
-    },
-    'iphone 15': {
-      padrao: 'iphone-15-finish-select-202309-6-1inch-blue',
-      cores: {
-        blue: 'iphone-15-finish-select-202309-6-1inch-blue',
-        pink: 'iphone-15-finish-select-202309-6-1inch-pink',
-        yellow: 'iphone-15-finish-select-202309-6-1inch-yellow',
-        green: 'iphone-15-finish-select-202309-6-1inch-green',
-        black: 'iphone-15-finish-select-202309-6-1inch-black'
-      }
-    },
-    'iphone 14 pro max': {
-      padrao: 'iphone-14-pro-finish-select-202209-6-7inch-deeppurple',
-      cores: {
-        deeppurple: 'iphone-14-pro-finish-select-202209-6-7inch-deeppurple',
-        gold: 'iphone-14-pro-finish-select-202209-6-7inch-gold',
-        silver: 'iphone-14-pro-finish-select-202209-6-7inch-silver',
-        spaceblack: 'iphone-14-pro-finish-select-202209-6-7inch-spaceblack'
-      }
-    },
-    'iphone 14 pro': {
-      padrao: 'iphone-14-pro-finish-select-202209-6-1inch-deeppurple',
-      cores: {
-        deeppurple: 'iphone-14-pro-finish-select-202209-6-1inch-deeppurple',
-        gold: 'iphone-14-pro-finish-select-202209-6-1inch-gold',
-        silver: 'iphone-14-pro-finish-select-202209-6-1inch-silver',
-        spaceblack: 'iphone-14-pro-finish-select-202209-6-1inch-spaceblack'
-      }
-    },
-    'iphone 14 plus': {
-      padrao: 'iphone-14-finish-select-202209-6-7inch-blue',
-      cores: {
-        blue: 'iphone-14-finish-select-202209-6-7inch-blue',
-        purple: 'iphone-14-finish-select-202209-6-7inch-purple',
-        midnight: 'iphone-14-finish-select-202209-6-7inch-midnight',
-        starlight: 'iphone-14-finish-select-202209-6-7inch-starlight',
-        yellow: 'iphone-14-finish-select-202209-6-7inch-yellow'
-      }
-    },
-    'iphone 14': {
-      padrao: 'iphone-14-finish-select-202209-6-1inch-blue',
-      cores: {
-        blue: 'iphone-14-finish-select-202209-6-1inch-blue',
-        purple: 'iphone-14-finish-select-202209-6-1inch-purple',
-        midnight: 'iphone-14-finish-select-202209-6-1inch-midnight',
-        starlight: 'iphone-14-finish-select-202209-6-1inch-starlight',
-        yellow: 'iphone-14-finish-select-202209-6-1inch-yellow'
-      }
-    },
-    'iphone 13 pro max': {
-      padrao: 'iphone-13-pro-finish-select-202207-6-7inch-sierrablue',
-      cores: {
-        sierrablue: 'iphone-13-pro-finish-select-202207-6-7inch-sierrablue',
-        graphite: 'iphone-13-pro-finish-select-202207-6-7inch-graphite',
-        gold: 'iphone-13-pro-finish-select-202207-6-7inch-gold',
-        silver: 'iphone-13-pro-finish-select-202207-6-7inch-silver',
-        alpinegreen: 'iphone-13-pro-finish-select-202207-6-7inch-alpinegreen'
-      }
-    },
-    'iphone 13 pro': {
-      padrao: 'iphone-13-pro-finish-select-202207-6-1inch-sierrablue',
-      cores: {
-        sierrablue: 'iphone-13-pro-finish-select-202207-6-1inch-sierrablue',
-        graphite: 'iphone-13-pro-finish-select-202207-6-1inch-graphite',
-        gold: 'iphone-13-pro-finish-select-202207-6-1inch-gold',
-        silver: 'iphone-13-pro-finish-select-202207-6-1inch-silver',
-        alpinegreen: 'iphone-13-pro-finish-select-202207-6-1inch-alpinegreen'
-      }
-    },
-    'iphone 13 mini': {
-      padrao: 'iphone-13-finish-select-202207-5-4inch-blue',
-      cores: {
-        blue: 'iphone-13-finish-select-202207-5-4inch-blue',
-        midnight: 'iphone-13-finish-select-202207-5-4inch-midnight',
-        starlight: 'iphone-13-finish-select-202207-5-4inch-starlight',
-        pink: 'iphone-13-finish-select-202207-5-4inch-pink',
-        green: 'iphone-13-finish-select-202207-5-4inch-green'
-      }
-    },
-    'iphone 13': {
-      padrao: 'iphone-13-finish-select-202207-6-1inch-blue',
-      cores: {
-        blue: 'iphone-13-finish-select-202207-6-1inch-blue',
-        midnight: 'iphone-13-finish-select-202207-6-1inch-midnight',
-        starlight: 'iphone-13-finish-select-202207-6-1inch-starlight',
-        pink: 'iphone-13-finish-select-202207-6-1inch-pink',
-        green: 'iphone-13-finish-select-202207-6-1inch-green'
-      }
-    },
-    'iphone 12 mini': {
-      padrao: 'iphone-12-finish-select-202207-5-4inch-blue',
-      cores: {
-        blue: 'iphone-12-finish-select-202207-5-4inch-blue',
-        black: 'iphone-12-finish-select-202207-5-4inch-black',
-        white: 'iphone-12-finish-select-202207-5-4inch-white',
-        green: 'iphone-12-finish-select-202207-5-4inch-green',
-        purple: 'iphone-12-finish-select-202207-5-4inch-purple'
-      }
-    },
-    'iphone 12': {
-      padrao: 'iphone-12-finish-select-202207-6-1inch-blue',
-      cores: {
-        blue: 'iphone-12-finish-select-202207-6-1inch-blue',
-        black: 'iphone-12-finish-select-202207-6-1inch-black',
-        white: 'iphone-12-finish-select-202207-6-1inch-white',
-        green: 'iphone-12-finish-select-202207-6-1inch-green',
-        purple: 'iphone-12-finish-select-202207-6-1inch-purple'
-      }
-    },
-    // --- Modelos fora de linha: imagem única por família (material oficial da Apple) ---
-    'iphone 16e':          { padrao: 'fam-iphone-16e', cores: {} },
-    'iphone 12 pro max':   { padrao: 'fam-iphone-12-pro-max', cores: {} },
-    'iphone 12 pro':       { padrao: 'fam-iphone-12-pro', cores: {} },
-    'iphone 11 pro max':   { padrao: 'fam-iphone-11-pro-max', cores: {} },
-    'iphone 11 pro':       { padrao: 'fam-iphone-11-pro', cores: {} },
-    'iphone 11':           { padrao: 'fam-iphone-11', cores: {} },
-    'iphone xs max':       { padrao: 'fam-iphone-xs-max', cores: {} },
-    'iphone xs':           { padrao: 'fam-iphone-xs', cores: {} },
-    'iphone xr':           { padrao: 'fam-iphone-xr', cores: {} },
-    'iphone x':            { padrao: 'fam-iphone-x', cores: {} },
-    'iphone se 2':         { padrao: 'fam-iphone-se-2', cores: {} },
-    'iphone se 3':         { padrao: 'fam-iphone-se-3', cores: {} },
-    'iphone 8 plus':       { padrao: 'fam-iphone-8-plus', cores: {} },
-    'iphone 8':            { padrao: 'fam-iphone-8', cores: {} },
-    'iphone 7 plus':       { padrao: 'fam-iphone-7-plus', cores: {} },
-    'iphone 7':            { padrao: 'fam-iphone-7', cores: {} },
-    'iphone se': {
-      padrao: 'iphone-se-finish-select-202207-midnight',
-      cores: {
-        midnight: 'iphone-se-finish-select-202207-midnight',
-        starlight: 'iphone-se-finish-select-202207-starlight'
-      }
-    }
+  // Como o cliente escreve o modelo -> família do índice.
+  const APELIDOS = {
+    'iphone se': 'iphone se 3',
+    'iphone se 2a geracao': 'iphone se 2',
+    'iphone se 2 geracao': 'iphone se 2',
+    'iphone se 3a geracao': 'iphone se 3',
+    'iphone se 3 geracao': 'iphone se 3'
   };
 
-  // Ordem de busca: do nome mais específico para o mais genérico
-  const FAMILIAS = Object.keys(MODELOS_IMG).sort((a, b) => b.length - a.length);
+  // Ordem de busca: do nome mais específico para o mais genérico.
+  const FAMILIAS = Object.keys(FOTOS).concat(Object.keys(APELIDOS))
+    .sort((a, b) => b.length - a.length);
 
   /* ---------- Normalização ---------------------------------------------- */
   const semAcento = (s) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '');
   const norm = (s) => semAcento(String(s || '')).toLowerCase().replace(/\s+/g, ' ').trim();
 
-  function familiaDe(modelo) {
-    const m = norm(modelo).replace(/\bmax\b/g, 'max').replace(/\bplus\b/g, 'plus');
+  /** Trecho do texto que nomeia a família, como foi escrito na lista. */
+  function trechoFamilia(modelo) {
+    const m = norm(modelo);
     for (const f of FAMILIAS) {
       if (m.includes(norm(f))) return f;
     }
-    // "iphone 11 pro max" etc. não têm imagem mapeada — devolve null
     return null;
+  }
+
+  /** Família no índice de fotos (já resolvendo apelidos). */
+  function familiaDe(modelo) {
+    const f = trechoFamilia(modelo);
+    return f ? (APELIDOS[f] || f) : null;          // null: modelo sem foto
   }
 
   function corSlug(cor) {
@@ -437,23 +191,31 @@ const I2 = (() => {
     return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   }
 
-  /* ---------- Resolução de imagem --------------------------------------- */
-  function imagensDe(ap, largura) {
-    const svg = svgAparelho(ap.cor, true);
-    if (ap.imagem) return { principal: ap.imagem, alternativa: null, fallback: svg };
-
+  /* ---------- Resolução das fotos --------------------------------------- */
+  function entradaDe(ap) {
     const fam = familiaDe(ap.modelo);
-    const entrada = fam ? MODELOS_IMG[fam] : null;
-    if (!entrada) return { principal: svg, alternativa: null, fallback: svg };
-
-    const slugCor = corSlug(ap.cor);
-    const slug = (slugCor && entrada.cores[slugCor]) ? entrada.cores[slugCor] : entrada.padrao;
-    return {
-      principal: IMG(slug),                                          // arquivo local
-      alternativa: slug.startsWith('fam-') ? null : IMG_CDN(slug, largura), // reserva: CDN da Apple
-      fallback: svg                               // reserva final: desenho gerado
-    };
+    const familia = fam ? FOTOS[fam] : null;
+    if (!familia) return null;
+    const cor = corSlug(ap.cor);
+    return familia.cores[cor] || familia.cores[familia.padrao] || null;
   }
+
+  /** Fotos do aparelho, na ordem em que o catálogo mostra: traseira e tela. */
+  function fotosDe(ap) {
+    if (ap.imagem) return [{ lado: 'foto', src: ap.imagem }];
+    const entrada = entradaDe(ap);
+    if (!entrada) return [{ lado: 'ilustracao', src: svgAparelho(ap.cor, true) }];
+    return ['verso', 'frente']
+      .filter(lado => entrada.lados.indexOf(lado) >= 0)
+      .map(lado => ({ lado, src: LOCAL + entrada.base + '-' + lado + '.webp' }));
+  }
+
+  /** Foto principal — a que aparece no card e nas listagens. */
+  function fotoPrincipal(ap) {
+    return fotosDe(ap)[0].src;
+  }
+
+  const ROTULO_LADO = { verso: 'Traseira', frente: 'Tela', foto: 'Foto', ilustracao: 'Ilustração' };
 
   /* ---------- Formatação ------------------------------------------------- */
   const BRL = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -548,7 +310,7 @@ const I2 = (() => {
 
     // modelo: até o fim da família reconhecida; resto é cor
     const limpo = texto.replace(/\s+/g, ' ').trim();
-    const fam = familiaDe(limpo);
+    const fam = trechoFamilia(limpo);
     let modelo = limpo, cor = '';
 
     if (fam) {
@@ -692,9 +454,9 @@ const I2 = (() => {
   }
 
   return {
-    STORAGE_KEY, AUTH_KEY, TAXAS_PADRAO, CONFIG_PADRAO, MODELOS_IMG, CORES,
+    STORAGE_KEY, AUTH_KEY, TAXAS_PADRAO, CONFIG_PADRAO, CORES,
     catalogoVazio, mescla, salvarLocal, lerLocal, lerPublicado, baixarJSON,
-    imagensDe, svgAparelho, corHex, corSlug, familiaDe,
+    fotosDe, fotoPrincipal, ROTULO_LADO, svgAparelho, corHex, corSlug, familiaDe, FOTOS,
     money, pct, dataBR, hojeISO, uid, nomeCompleto, norm,
     precoAVista, simular, melhorParcela, aplicaTaxa,
     parseLista, parseLinha, parseValor

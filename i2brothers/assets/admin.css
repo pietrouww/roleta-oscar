@@ -119,7 +119,8 @@ textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; fon
 .taxas-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
 .taxas-grid label { margin: 0; }
 
-.preview-img { width: 46px; min-width: 46px; max-width: none; height: 52px; object-fit: contain; }
+.preview-img { width: 40px; min-width: 40px; max-width: none; height: 52px; object-fit: contain; }
+.col-fotos { display: flex; gap: 2px; align-items: center; min-width: 84px; }
 .tabela select { min-width: 104px; }
 
 @media (max-width: 735px) {
