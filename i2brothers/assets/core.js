@@ -21,7 +21,11 @@ const I2 = (() => {
     acrescimo: 500,
     modoJuros: 'repasse',           // 'repasse' (valor / (1 - taxa)) | 'acrescimo' (valor * (1 + taxa))
     maxParcelas: 12,
-    whatsapp: '',                   // ex.: 5541999999999
+    whatsapp: '5541992277477',      // número que recebe as consultas de disponibilidade
+    telefone: '4131522212',         // telefone fixo da loja
+    email: 'i2brothers@icloud.com',
+    endereco: 'Rua Lothário Boutin, 49 — Loja 5',
+    cidade: 'Pinheirinho, Curitiba — PR',
     loja: 'i2Brothers — Assistência Apple',
     atualizadoEm: '',               // ISO date (YYYY-MM-DD)
     garantiaNovo: '1 ano de garantia Apple',

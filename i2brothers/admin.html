@@ -198,7 +198,23 @@
     <div class="linha-campos">
       <label class="campo">
         <span>WhatsApp (só números, com DDI)</span>
-        <input type="text" id="cfg-whats" placeholder="5541999999999" inputmode="numeric">
+        <input type="text" id="cfg-whats" placeholder="5541992277477" inputmode="numeric">
+      </label>
+      <label class="campo">
+        <span>Telefone fixo</span>
+        <input type="text" id="cfg-fone" placeholder="4131522212" inputmode="numeric">
+      </label>
+      <label class="campo">
+        <span>E-mail</span>
+        <input type="text" id="cfg-email" placeholder="i2brothers@icloud.com">
+      </label>
+      <label class="campo">
+        <span>Endereço</span>
+        <input type="text" id="cfg-endereco" placeholder="Rua Lothário Boutin, 49 — Loja 5">
+      </label>
+      <label class="campo">
+        <span>Bairro, cidade e estado</span>
+        <input type="text" id="cfg-cidade" placeholder="Pinheirinho, Curitiba — PR">
       </label>
       <label class="campo">
         <span>Garantia — novos</span>
@@ -480,6 +496,10 @@
     el('cfg-maxparcelas').value = c.maxParcelas;
     el('cfg-data').value = c.atualizadoEm || I2.hojeISO();
     el('cfg-whats').value = c.whatsapp || '';
+    el('cfg-fone').value = c.telefone || '';
+    el('cfg-email').value = c.email || '';
+    el('cfg-endereco').value = c.endereco || '';
+    el('cfg-cidade').value = c.cidade || '';
     el('cfg-gar-novo').value = c.garantiaNovo;
     el('cfg-gar-seminovo').value = c.garantiaSeminovo;
     el('cfg-senha').value = c.senha;
@@ -509,6 +529,10 @@
   liga('cfg-maxparcelas', v => dados.config.maxParcelas = Math.min(12, Math.max(1, Number(v) || 12)));
   liga('cfg-data', v => dados.config.atualizadoEm = v);
   liga('cfg-whats', v => dados.config.whatsapp = String(v).replace(/\D/g, ''));
+  liga('cfg-fone', v => dados.config.telefone = String(v).replace(/\D/g, ''));
+  liga('cfg-email', v => dados.config.email = v.trim());
+  liga('cfg-endereco', v => dados.config.endereco = v.trim());
+  liga('cfg-cidade', v => dados.config.cidade = v.trim());
   liga('cfg-gar-novo', v => dados.config.garantiaNovo = v);
   liga('cfg-gar-seminovo', v => dados.config.garantiaSeminovo = v);
   liga('cfg-senha', v => dados.config.senha = v || I2.CONFIG_PADRAO.senha);
