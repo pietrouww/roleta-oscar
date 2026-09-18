@@ -197,6 +197,7 @@
   </div>
 </footer>
 
+<script src="assets/fotos.js"></script>
 <script src="assets/core.js"></script>
 <script>
 (() => {
@@ -353,17 +354,17 @@
     for (const ap of lista) grid.appendChild(card(ap));
   }
 
-  function imagem(ap, largura) {
-    const src = I2.imagensDe(ap, largura);
+  function imagem(ap, foto, preguicosa) {
     const img = document.createElement('img');
-    img.loading = 'lazy';
-    img.alt = I2.nomeCompleto(ap);
-    img.src = src.principal;
-    img.dataset.etapa = '0';
+    if (preguicosa !== false) img.loading = 'lazy';
+    img.alt = I2.nomeCompleto(ap) + (foto.lado === 'verso' ? ' — traseira'
+            : foto.lado === 'frente' ? ' — tela' : '');
+    img.src = foto.src;
     img.addEventListener('error', () => {
-      if (img.dataset.etapa === '0' && src.alternativa) { img.dataset.etapa = '1'; img.src = src.alternativa; }
-      else if (img.dataset.etapa !== '2') { img.dataset.etapa = '2'; img.src = src.fallback; }
-    });
+      if (img.dataset.reserva) return;
+      img.dataset.reserva = '1';
+      img.src = I2.svgAparelho(ap.cor, true);
+    }, { once: false });
     return img;
   }
 
@@ -379,7 +380,7 @@
 
     const fig = document.createElement('div');
     fig.className = 'card-figura';
-    fig.appendChild(imagem(ap, 460));
+    fig.appendChild(imagem(ap, I2.fotosDe(ap)[0]));
 
     const etiqueta = `<span class="card-etiqueta ${novo ? 'etiqueta-novo' : 'etiqueta-seminovo'}">${novo ? 'Novo · lacrado' : 'Seminovo'}</span>`;
     const bateria = ap.bateria ? `<span class="card-bateria">Bateria ${ap.bateria}%</span>` : '';
@@ -418,7 +419,7 @@
 
     const figura = document.createElement('div');
     figura.className = 'modal-figura';
-    figura.appendChild(imagem(ap, 720));
+    figura.appendChild(galeria(ap));
 
     const info = document.createElement('div');
     info.className = 'modal-info';
@@ -495,6 +496,40 @@
     el('modal-fundo').classList.add('aberto');
     document.body.style.overflow = 'hidden';
     el('modal-fechar').focus();
+  }
+
+  /* ---------------- galeria de fotos do aparelho ---------------- */
+  function galeria(ap) {
+    const fotos = I2.fotosDe(ap);
+    const caixa = document.createElement('div');
+    caixa.className = 'galeria';
+
+    const palco = document.createElement('div');
+    palco.className = 'galeria-palco';
+    palco.appendChild(imagem(ap, fotos[0], false));
+    caixa.appendChild(palco);
+
+    if (fotos.length < 2) return caixa;
+
+    const barra = document.createElement('div');
+    barra.className = 'galeria-miniaturas';
+    fotos.forEach((foto, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'miniatura';
+      b.setAttribute('aria-pressed', String(i === 0));
+      b.title = I2.ROTULO_LADO[foto.lado];
+      b.appendChild(imagem(ap, foto));
+      b.addEventListener('click', () => {
+        palco.innerHTML = '';
+        palco.appendChild(imagem(ap, foto, false));
+        barra.querySelectorAll('.miniatura').forEach((o, j) =>
+          o.setAttribute('aria-pressed', String(i === j)));
+      });
+      barra.appendChild(b);
+    });
+    caixa.appendChild(barra);
+    return caixa;
   }
 
   function fechaModal() {
