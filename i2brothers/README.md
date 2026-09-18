@@ -12,9 +12,14 @@ publicar o catálogo de iPhones **novos** e **seminovos** da i2Brothers — Assi
 
 - **Duas seções**: iPhones novos (lacrados · 1 ano de garantia Apple) e seminovos
   (revisados · 3 meses de garantia da loja).
-- **Fotos reais dos modelos**: 117 imagens oficiais da Apple já recortadas em
-  `assets/iphones/`, escolhidas automaticamente pelo modelo **e pela cor** do aparelho.
-  Modelo sem imagem cadastrada cai para uma ilustração gerada na hora.
+- **Fotos reais dos modelos**: 121 imagens oficiais da Apple em `assets/iphones/`,
+  escolhidas automaticamente pelo modelo **e pela cor** do aparelho. Do iPhone 7 ao
+  iPhone 18 Pro Max. Modelo sem imagem cadastrada cai para uma ilustração gerada na hora.
+- **Padrão único de imagem**: todas as fotos passam pelo mesmo tratamento — um único
+  aparelho, fundo transparente, mesma tela de 600 x 860 px e mesma altura de aparelho
+  (820 px). Assim todos os cards ficam alinhados, sem aparelho maior que o outro.
+  Nas linhas 17 Pro e 18 Pro a arte oficial só traz o verso inteiro (a frente aparece
+  parcialmente coberta), então esses modelos são exibidos pelo verso.
 - **Preço à vista** = valor da lista **+ R$ 500,00** por aparelho (o acréscimo é
   configurável, e pode ser ajustado aparelho a aparelho).
 - **Simulador de parcelamento** em até 12x com as taxas da maquineta, sempre
