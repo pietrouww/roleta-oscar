@@ -166,8 +166,12 @@
   <div class="wrap">
     <div class="cols">
       <div>
-        <h4>i2Brothers — Assistência Apple</h4>
-        <div id="rodape-contato">Fale com a loja para confirmar disponibilidade e valores.</div>
+        <h4>Contato</h4>
+        <ul class="contato" id="rodape-contato"></ul>
+      </div>
+      <div>
+        <h4>Endereço</h4>
+        <ul class="contato" id="rodape-endereco"></ul>
       </div>
       <div>
         <h4>Garantias</h4>
@@ -243,15 +247,48 @@
       const url = linkWhats('Olá! Vim pelo catálogo de iPhones e gostaria de consultar a disponibilidade.');
       const b = el('btn-topo-whats');
       b.href = url; b.target = '_blank'; b.rel = 'noopener';
-      el('rodape-contato').innerHTML =
-        'WhatsApp: <a href="' + url + '" target="_blank" rel="noopener">' + formataTel(c.whatsapp) + '</a>' +
-        '<br>Fale com a loja para confirmar disponibilidade e valores.';
     }
+    montaContato(c);
+  }
+
+  /* ---------------- contatos do rodapé ---------------- */
+  const ICONES = {
+    whatsapp: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+      '<path fill="#25D366" d="M12 2a9.9 9.9 0 0 0-8.5 15L2 22l5.2-1.4A9.9 9.9 0 1 0 12 2Zm0 1.8a8.1 8.1 0 1 1-4.1 15.1l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 0 1 12 3.8Zm-3.6 4c-.2 0-.5.1-.7.4-.2.3-.9.9-.9 2.1s.9 2.5 1 2.6c.1.2 1.7 2.7 4.2 3.7 2.1.8 2.5.7 3 .6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3l-1.8-.9c-.2-.1-.4-.1-.6.1l-.8 1c-.2.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.1-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-.8-1.8c-.2-.5-.4-.4-.5-.4h-.5Z"/></svg>',
+    telefone: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+      '<path fill="currentColor" d="M6.6 2.6a1.7 1.7 0 0 1 2.3.5l1.5 2.3c.4.6.3 1.4-.2 1.9l-1 1c-.2.2-.2.4-.1.6.5 1.1 2.1 3.6 4.6 4.9.2.1.5.1.6-.1l.9-1c.5-.5 1.2-.6 1.8-.3l2.4 1.4c.8.5 1 1.5.5 2.2l-1 1.4c-.6.9-1.7 1.3-2.8 1-2.2-.6-5-2.2-7.4-4.7C6.3 11 4.9 8.4 4.3 6.3c-.3-1 .1-2 .9-2.6l1.4-1.1Z"/></svg>',
+    email: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+      '<path fill="currentColor" d="M3 5.5h18c.3 0 .5.2.5.5v12c0 .3-.2.5-.5.5H3a.5.5 0 0 1-.5-.5V6c0-.3.2-.5.5-.5Zm1.6 1.7 7.4 5.3 7.4-5.3H4.6Zm15.1 1.4-7.3 5.2a.7.7 0 0 1-.8 0L4.3 8.6v8.2h15.4V8.6Z"/></svg>',
+    local: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+      '<path fill="currentColor" d="M12 2.5a6.5 6.5 0 0 0-6.5 6.5c0 4.6 5.6 11.4 5.9 11.7.3.4.9.4 1.2 0 .3-.3 5.9-7.1 5.9-11.7A6.5 6.5 0 0 0 12 2.5Zm0 9a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2Z"/></svg>'
+  };
+
+  function linhaContato(icone, texto, href, externo) {
+    if (!texto) return '';
+    const miolo = href
+      ? `<a href="${href}"${externo ? ' target="_blank" rel="noopener"' : ''}>${esc(texto)}</a>`
+      : esc(texto);
+    return `<li>${ICONES[icone]}<span>${miolo}</span></li>`;
+  }
+
+  function montaContato(c) {
+    const fone = String(c.telefone || '').replace(/\D/g, '');
+    el('rodape-contato').innerHTML =
+      linhaContato('whatsapp', formataTel(c.whatsapp),
+        linkWhats('Olá! Vim pelo catálogo de iPhones e gostaria de consultar a disponibilidade.'), true) +
+      linhaContato('telefone', formataTel(fone), fone ? 'tel:+55' + fone : '', false) +
+      linhaContato('email', c.email, c.email ? 'mailto:' + c.email : '', false);
+
+    const mapa = [c.endereco, c.cidade].filter(Boolean).join(', ');
+    el('rodape-endereco').innerHTML =
+      linhaContato('local', c.endereco,
+        mapa ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapa) : '', true) +
+      (c.cidade ? `<li class="sem-icone"><span>${esc(c.cidade)}</span></li>` : '');
   }
 
   function formataTel(n) {
-    const s = String(n).replace(/\D/g, '');
-    const m = s.match(/^55(\d{2})(\d{4,5})(\d{4})$/);
+    const s = String(n || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+    const m = s.match(/^(\d{2})(\d{4,5})(\d{4})$/);
     return m ? `(${m[1]}) ${m[2]}-${m[3]}` : s;
   }
 

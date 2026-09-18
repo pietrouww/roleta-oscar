@@ -297,6 +297,15 @@ select.chip { appearance: none; padding-right: 34px;
 .rodape .legal { color: var(--legal); line-height: 1.6; margin-top: 18px; }
 .rodape .cols { display: grid; gap: 30px; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .rodape .divisor { border-top: 1px solid var(--divider); margin: 24px 0 0; }
+.rodape .contato { list-style: none; padding: 0; margin: 0; }
+.rodape .contato li {
+  display: flex; align-items: flex-start; gap: 8px;
+  line-height: 1.7; padding: 2px 0;
+}
+.rodape .contato li svg { flex: 0 0 auto; margin-top: 5px; color: var(--legal); }
+.rodape .contato a { color: var(--ink); }
+.rodape .contato a:hover { color: var(--blue); }
+.rodape .contato li.sem-icone { padding-left: 23px; }
 
 /* ---------------- Responsivo ---------------- */
 @media (max-width: 1068px) {
