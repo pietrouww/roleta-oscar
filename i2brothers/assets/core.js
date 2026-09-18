@@ -86,6 +86,13 @@ const I2 = (() => {
     ['product red', 'red', '#ba3a35'],
     ['azul sierra', 'sierrablue', '#a7c1d9'],
     ['verde alpino', 'alpinegreen', '#54645a'],
+    ['bordo', 'burgundy', '#6f2c3e'],
+    ['bordô', 'burgundy', '#6f2c3e'],
+    ['vinho', 'burgundy', '#6f2c3e'],
+    ['glacial', 'glacier', '#dfe4e8'],
+    ['branco glacial', 'glacier', '#dfe4e8'],
+    ['rosa suave', 'softpink', '#f3dbe2'],
+    ['rosa claro', 'softpink', '#f3dbe2'],
     ['coral', 'coral', '#f08a7e'],
     ['cinza espacial', 'spacegray', '#4a4a4c'],
     ['ouro rosa', 'rosegold', '#e8c0b4'],
@@ -105,20 +112,46 @@ const I2 = (() => {
 
   // familia -> { padrao: slug, cores: { cor: slug } }
   const MODELOS_IMG = {
-    'iphone 17 pro max': {
-      padrao: 'iphone-17-pro-finish-select-202509-6-9inch-deepblue',
+    'iphone 18 pro max': {
+      padrao: 'iphone-18-pro-finish-select-black-202609',
       cores: {
-        deepblue: 'iphone-17-pro-finish-select-202509-6-9inch-deepblue',
-        cosmicorange: 'iphone-17-pro-finish-select-202509-6-9inch-cosmicorange',
-        silver: 'iphone-17-pro-finish-select-202509-6-9inch-silver'
+        black: 'iphone-18-pro-finish-select-black-202609',
+        burgundy: 'iphone-18-pro-finish-select-burgundy-202609',
+        glacier: 'iphone-18-pro-finish-select-glacier-202609',
+        silver: 'iphone-18-pro-finish-select-silver-202609'
+      }
+    },
+    'iphone 18 pro': {
+      padrao: 'iphone-18-pro-finish-select-black-202609',
+      cores: {
+        black: 'iphone-18-pro-finish-select-black-202609',
+        burgundy: 'iphone-18-pro-finish-select-burgundy-202609',
+        glacier: 'iphone-18-pro-finish-select-glacier-202609',
+        silver: 'iphone-18-pro-finish-select-silver-202609'
+      }
+    },
+    'iphone 17e': {
+      padrao: 'iphone-17e-finish-select-black-202603',
+      cores: {
+        black: 'iphone-17e-finish-select-black-202603',
+        softpink: 'iphone-17e-finish-select-softpink-202603',
+        white: 'iphone-17e-finish-select-white-202603'
+      }
+    },
+    'iphone 17 pro max': {
+      padrao: 'iphone-17-pro-finish-select-deepblue-202509',
+      cores: {
+        deepblue: 'iphone-17-pro-finish-select-deepblue-202509',
+        cosmicorange: 'iphone-17-pro-finish-select-cosmicorange-202509',
+        silver: 'iphone-17-pro-finish-select-silver-202509'
       }
     },
     'iphone 17 pro': {
-      padrao: 'iphone-17-pro-finish-select-202509-6-3inch-deepblue',
+      padrao: 'iphone-17-pro-finish-select-deepblue-202509',
       cores: {
-        deepblue: 'iphone-17-pro-finish-select-202509-6-3inch-deepblue',
-        cosmicorange: 'iphone-17-pro-finish-select-202509-6-3inch-cosmicorange',
-        silver: 'iphone-17-pro-finish-select-202509-6-3inch-silver'
+        deepblue: 'iphone-17-pro-finish-select-deepblue-202509',
+        cosmicorange: 'iphone-17-pro-finish-select-cosmicorange-202509',
+        silver: 'iphone-17-pro-finish-select-silver-202509'
       }
     },
     'iphone air': {
