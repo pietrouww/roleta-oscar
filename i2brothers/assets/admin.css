@@ -4,7 +4,7 @@ body.admin { background: var(--parchment); }
 
 .admin-topo {
   background: #000; color: #fff; padding: 0;
-  position: sticky; top: 0; z-index: 60;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 60;
 }
 .admin-topo .wrap { display: flex; align-items: center; gap: 16px; min-height: 52px; flex-wrap: wrap; }
 .admin-topo img { height: 22px; filter: invert(1); }
@@ -18,7 +18,7 @@ body.admin { background: var(--parchment); }
 .admin-topo .acoes .primario { background: var(--blue); }
 
 .abas { background: rgba(245,245,247,.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--divider);
-  position: sticky; top: 52px; z-index: 55; }
+  position: sticky; top: calc(52px + env(safe-area-inset-top, 0px)); z-index: 55; }
 .abas .wrap { display: flex; gap: 6px; overflow-x: auto; min-height: 52px; align-items: center; }
 .aba {
   background: transparent; border: none; border-radius: 980px; padding: 8px 18px;
