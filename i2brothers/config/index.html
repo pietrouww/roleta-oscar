@@ -232,13 +232,16 @@
         <input type="text" id="cfg-gar-seminovo">
       </label>
       <label class="campo">
-        <span>Senha do painel</span>
-        <input type="text" id="cfg-senha">
+        <span>Trocar a senha desta página</span>
+        <input type="password" id="cfg-senha" placeholder="deixe em branco para manter" autocomplete="new-password">
       </label>
     </div>
     <div class="dica">
-      A senha protege apenas a tela do painel neste navegador. Como o site é estático, ela não é uma proteção
-      de servidor — não publique dados sigilosos aqui e prefira manter o endereço do painel restrito à equipe.
+      Esta senha vale só para esta página — o catálogo é aberto ao cliente, sem senha. Ela é guardada como
+      resumo (SHA-256), nunca em texto, porque o arquivo de dados fica público na hospedagem. Ainda assim é uma
+      tranca de tela: não há servidor conferindo nada. Para proteção de verdade, ative a
+      <b>Proteção de diretório</b> da hospedagem apontando para a pasta <code>config</code> — aí o próprio
+      servidor pede usuário e senha antes de abrir a página.
     </div>
   </div>
 </section>
@@ -302,8 +305,7 @@
 
   el('form-login').addEventListener('submit', (e) => {
     e.preventDefault();
-    const esperada = (dados.config.senha || I2.CONFIG_PADRAO.senha);
-    if (el('senha').value === esperada) entrar();
+    if (I2.confereSenha(el('senha').value, dados.config)) entrar();
     else { el('login-erro').textContent = 'Senha incorreta.'; el('senha').select(); }
   });
 
@@ -515,7 +517,7 @@
     el('cfg-cidade').value = c.cidade || '';
     el('cfg-gar-novo').value = c.garantiaNovo;
     el('cfg-gar-seminovo').value = c.garantiaSeminovo;
-    el('cfg-senha').value = c.senha;
+    el('cfg-senha').value = '';
     el('tx-debito').value = c.taxas.debito;
 
     const grid = el('taxas-credito');
@@ -549,7 +551,15 @@
   liga('cfg-cidade', v => dados.config.cidade = v.trim());
   liga('cfg-gar-novo', v => dados.config.garantiaNovo = v);
   liga('cfg-gar-seminovo', v => dados.config.garantiaSeminovo = v);
-  liga('cfg-senha', v => dados.config.senha = v || I2.CONFIG_PADRAO.senha);
+  el('cfg-senha').addEventListener('change', () => {
+    const nova = el('cfg-senha').value;
+    if (!nova) return;                               // em branco: mantém a atual
+    dados.config.senhaHash = I2.hashSenha(nova);
+    delete dados.config.senha;                       // nunca guarda a senha em texto
+    el('cfg-senha').value = '';
+    salvar();
+    alert('Senha alterada. Ela passa a valer quando você publicar o catalogo.json.');
+  });
   liga('tx-debito', v => dados.config.taxas.debito = Number(v) || 0);
 
   el('btn-restaurar-taxas').addEventListener('click', () => {
