@@ -192,7 +192,7 @@
       registradas da Apple Inc.; a i2Brothers é uma assistência independente, sem vínculo com a Apple Inc.
     </p>
     <p class="legal" style="margin-top:8px">
-      © <span id="ano"></span> i2Brothers. · <a href="admin.html">Área administrativa</a>
+      © <span id="ano"></span> i2Brothers. · <a href="config/">Área administrativa</a>
     </p>
   </div>
 </footer>
@@ -214,7 +214,7 @@
     const preview = params.get('preview') === '1';
 
     const local = I2.lerLocal();
-    const publicado = await I2.lerPublicado('catalogo.json');
+    const publicado = await I2.lerPublicado();
 
     if (preview && local) dados = local;
     else if (publicado && publicado.aparelhos.length) dados = publicado;
