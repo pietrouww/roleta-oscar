@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>i2Brothers — Área administrativa</title>
+<title>i2Brothers — Configuração do catálogo</title>
 <meta name="robots" content="noindex, nofollow">
-<link rel="icon" href="assets/logo.png">
-<link rel="stylesheet" href="assets/app.css">
-<link rel="stylesheet" href="assets/admin.css">
+<link rel="icon" href="../assets/logo.png">
+<link rel="stylesheet" href="../assets/app.css">
+<link rel="stylesheet" href="../assets/admin.css">
 </head>
 <body class="admin">
 
 <!-- =========================== LOGIN =========================== -->
 <div class="login-fundo" id="login">
   <form class="login-caixa" id="form-login">
-    <img src="assets/logo.png" alt="i2Brothers">
+    <img src="../assets/logo.png" alt="i2Brothers">
     <h1>Área administrativa</h1>
     <p>Acesso restrito à equipe da loja.</p>
     <label class="campo" style="text-align:left">
@@ -29,10 +29,10 @@
 <!-- =========================== TOPO ============================ -->
 <header class="admin-topo">
   <div class="wrap">
-    <img src="assets/logo.png" alt="i2Brothers">
+    <img src="../assets/logo.png" alt="i2Brothers">
     <span class="titulo">Painel do catálogo</span>
     <div class="acoes">
-      <a href="index.html?preview=1" target="_blank" rel="noopener">Pré-visualizar</a>
+      <a href="../index.html?preview=1" target="_blank" rel="noopener">Pré-visualizar</a>
       <button type="button" id="btn-publicar" class="primario">Baixar catalogo.json</button>
       <button type="button" id="btn-sair">Sair</button>
     </div>
@@ -195,7 +195,7 @@
       <button class="btn btn-ghost btn-pequeno" type="button" id="btn-restaurar-taxas">Restaurar tabela padrão</button>
     </div>
     <div style="margin-top:20px">
-      <img src="assets/tabela-taxas.jpg" alt="Tabela de taxas da maquineta" style="max-width:280px;border-radius:11px;border:1px solid var(--divider)">
+      <img src="../assets/tabela-taxas.jpg" alt="Tabela de taxas da maquineta" style="max-width:280px;border-radius:11px;border:1px solid var(--divider)">
       <p style="font-size:12px;color:var(--legal);margin-top:6px">Tabela de referência enviada pela operadora.</p>
     </div>
   </div>
@@ -278,9 +278,9 @@
 
 <div class="aviso-salvo" id="aviso-salvo">Salvo</div>
 
-<script src="assets/desenho.js"></script>
-<script src="assets/fotos.js"></script>
-<script src="assets/core.js"></script>
+<script src="../assets/desenho.js"></script>
+<script src="../assets/fotos.js"></script>
+<script src="../assets/core.js"></script>
 <script>
 (() => {
   'use strict';
@@ -590,7 +590,7 @@
   });
 
   el('btn-recarregar-publicado').addEventListener('click', async () => {
-    const pub = await I2.lerPublicado('catalogo.json');
+    const pub = await I2.lerPublicado();
     if (!pub) { alert('Não foi possível ler o catalogo.json publicado.'); return; }
     if (!confirm('Substituir o rascunho deste navegador pela versão publicada no site?')) return;
     dados = pub; salvar(); renderTabela(); renderConfig(); atualizaJSON();
@@ -612,7 +612,7 @@
 
   (async () => {
     if (!dados.aparelhos.length) {
-      const pub = await I2.lerPublicado('catalogo.json');
+      const pub = await I2.lerPublicado();
       if (pub) dados = pub;
     }
     if (autenticado()) { el('login').style.display = 'none'; iniciar(); }

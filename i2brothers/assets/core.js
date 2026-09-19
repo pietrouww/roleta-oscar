@@ -112,7 +112,16 @@ const I2 = (() => {
      Cada aparelho tem duas fotos, "<base>-verso.webp" e "<base>-frente.webp",
      na mesma tela e no mesmo tamanho. Modelos em que a Apple só publica uma
      vista aproveitável ficam com uma foto só.                              */
-  const LOCAL = 'assets/iphones/';
+  /* Raiz do site, deduzida de onde este arquivo foi carregado. É o que permite
+     que a página de configuração fique numa subpasta e mesmo assim encontre os
+     arquivos (assets/ e catalogo.json) na raiz da publicação.                */
+  const BASE = (() => {
+    try {
+      const src = (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) || '';
+      return src ? src.replace(/[^/]*$/, '').replace(/assets\/$/, '') : '';
+    } catch (e) { return ''; }
+  })();
+  const LOCAL = BASE + 'assets/iphones/';
   const FOTOS = (typeof I2_FOTOS !== 'undefined') ? I2_FOTOS
               : (typeof globalThis !== 'undefined' && globalThis.I2_FOTOS) ? globalThis.I2_FOTOS : {};
 
@@ -462,7 +471,7 @@ const I2 = (() => {
 
   async function lerPublicado(url) {
     try {
-      const r = await fetch((url || 'catalogo.json') + '?v=' + Date.now(), { cache: 'no-store' });
+      const r = await fetch((url || BASE + 'catalogo.json') + '?v=' + Date.now(), { cache: 'no-store' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return mescla(await r.json());
     } catch (e) { return null; }
@@ -481,7 +490,7 @@ const I2 = (() => {
   return {
     STORAGE_KEY, AUTH_KEY, TAXAS_PADRAO, CONFIG_PADRAO, CORES,
     catalogoVazio, mescla, salvarLocal, lerLocal, lerPublicado, baixarJSON,
-    fotosDe, fotoPrincipal, ROTULO_LADO, svgAparelho, corHex, corSlug, familiaDe, FOTOS,
+    BASE, fotosDe, fotoPrincipal, ROTULO_LADO, svgAparelho, corHex, corSlug, familiaDe, FOTOS,
     desenhosDe, fotosApple,
     money, pct, dataBR, hojeISO, uid, nomeCompleto, norm,
     precoAVista, simular, melhorParcela, aplicaTaxa,
