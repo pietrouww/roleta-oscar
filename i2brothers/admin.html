@@ -162,6 +162,13 @@
         <input type="number" id="cfg-maxparcelas" min="1" max="12">
       </label>
       <label class="campo">
+        <span>Imagens dos aparelhos</span>
+        <select id="cfg-estilo">
+          <option value="ilustracao">Ilustração padronizada (todas iguais)</option>
+          <option value="foto">Foto oficial da Apple (quando houver)</option>
+        </select>
+      </label>
+      <label class="campo">
         <span>Lista atualizada em</span>
         <input type="date" id="cfg-data">
       </label>
@@ -271,6 +278,7 @@
 
 <div class="aviso-salvo" id="aviso-salvo">Salvo</div>
 
+<script src="assets/desenho.js"></script>
 <script src="assets/fotos.js"></script>
 <script src="assets/core.js"></script>
 <script>
@@ -355,7 +363,7 @@
     const tr = document.createElement('tr');
     const preco = I2.precoAVista(ap, dados.config);
     const parc = I2.melhorParcela(preco, dados.config);
-    const fotos = I2.fotosDe(ap);
+    const fotos = I2.fotosDe(ap, dados.config);
 
     tr.innerHTML = `
       <td class="col-fotos">${fotos.map(f =>
@@ -446,7 +454,7 @@
     const semValor = pendentes.filter(a => !a.custo).length;
     const linhas = pendentes.map(ap => {
       const preco = I2.precoAVista(ap, dados.config);
-      const fotos = I2.fotosDe(ap);
+      const fotos = I2.fotosDe(ap, dados.config);
       return `<tr>
         <td class="col-fotos">${fotos.map(f =>
           `<img class="preview-img" src="${f.src}" alt="" loading="lazy">`).join('')}</td>
@@ -498,6 +506,7 @@
     el('cfg-acrescimo').value = c.acrescimo;
     el('cfg-modo').value = c.modoJuros;
     el('cfg-maxparcelas').value = c.maxParcelas;
+    el('cfg-estilo').value = c.estiloImagem || 'ilustracao';
     el('cfg-data').value = c.atualizadoEm || I2.hojeISO();
     el('cfg-whats').value = c.whatsapp || '';
     el('cfg-fone').value = c.telefone || '';
@@ -531,6 +540,7 @@
   liga('cfg-acrescimo', v => dados.config.acrescimo = I2.parseValor(v));
   liga('cfg-modo', v => dados.config.modoJuros = v);
   liga('cfg-maxparcelas', v => dados.config.maxParcelas = Math.min(12, Math.max(1, Number(v) || 12)));
+  liga('cfg-estilo', v => dados.config.estiloImagem = v);
   liga('cfg-data', v => dados.config.atualizadoEm = v);
   liga('cfg-whats', v => dados.config.whatsapp = String(v).replace(/\D/g, ''));
   liga('cfg-fone', v => dados.config.telefone = String(v).replace(/\D/g, ''));

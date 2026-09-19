@@ -31,6 +31,7 @@ const I2 = (() => {
     garantiaNovo: '1 ano de garantia Apple',
     garantiaSeminovo: '3 meses de garantia da loja',
     senha: 'i2brothers',
+    estiloImagem: 'ilustracao',     // 'ilustracao' (padrão, uniforme) | 'foto' (material da Apple)
     taxas: JSON.parse(JSON.stringify(TAXAS_PADRAO))
   };
 
@@ -200,19 +201,43 @@ const I2 = (() => {
     return familia.cores[cor] || familia.cores[familia.padrao] || null;
   }
 
-  /** Fotos do aparelho, na ordem em que o catálogo mostra: traseira e tela. */
-  function fotosDe(ap) {
-    if (ap.imagem) return [{ lado: 'foto', src: ap.imagem }];
+  const DESENHO = (typeof I2_DESENHO !== 'undefined') ? I2_DESENHO
+                : (typeof globalThis !== 'undefined' && globalThis.I2_DESENHO) ? globalThis.I2_DESENHO : null;
+
+  /** Desenho padronizado do aparelho — mesma pose, mesma tela, tamanho real. */
+  function desenhosDe(ap) {
+    const fam = familiaDe(ap.modelo);
+    if (!DESENHO || !fam || !DESENHO.ESPECS[fam]) return null;
+    const cor = corHex(ap.cor);
+    return ['verso', 'frente'].map(lado => ({ lado, src: DESENHO.svg(fam, cor, lado) }));
+  }
+
+  /** Fotos do material oficial da Apple, quando houver para o modelo e a cor. */
+  function fotosApple(ap) {
     const entrada = entradaDe(ap);
-    if (!entrada) return [{ lado: 'ilustracao', src: svgAparelho(ap.cor, true) }];
+    if (!entrada) return null;
     return ['verso', 'frente']
       .filter(lado => entrada.lados.indexOf(lado) >= 0)
       .map(lado => ({ lado, src: LOCAL + entrada.base + '-' + lado + '.webp' }));
   }
 
-  /** Foto principal — a que aparece no card e nas listagens. */
-  function fotoPrincipal(ap) {
-    return fotosDe(ap)[0].src;
+  /**
+   * Imagens do aparelho, na ordem em que o catálogo mostra: traseira e tela.
+   * Por padrão são os desenhos padronizados — todos na mesma pose e no mesmo
+   * enquadramento. Com estiloImagem 'foto', usa o material da Apple onde existir.
+   */
+  function fotosDe(ap, config) {
+    if (ap.imagem) return [{ lado: 'foto', src: ap.imagem }];
+    const estilo = (config && config.estiloImagem) || CONFIG_PADRAO.estiloImagem;
+    const lista = estilo === 'foto'
+      ? (fotosApple(ap) || desenhosDe(ap))
+      : (desenhosDe(ap) || fotosApple(ap));
+    return lista || [{ lado: 'ilustracao', src: svgAparelho(ap.cor, true) }];
+  }
+
+  /** Imagem principal — a que aparece no card e nas listagens. */
+  function fotoPrincipal(ap, config) {
+    return fotosDe(ap, config)[0].src;
   }
 
   const ROTULO_LADO = { verso: 'Traseira', frente: 'Tela', foto: 'Foto', ilustracao: 'Ilustração' };
@@ -457,6 +482,7 @@ const I2 = (() => {
     STORAGE_KEY, AUTH_KEY, TAXAS_PADRAO, CONFIG_PADRAO, CORES,
     catalogoVazio, mescla, salvarLocal, lerLocal, lerPublicado, baixarJSON,
     fotosDe, fotoPrincipal, ROTULO_LADO, svgAparelho, corHex, corSlug, familiaDe, FOTOS,
+    desenhosDe, fotosApple,
     money, pct, dataBR, hojeISO, uid, nomeCompleto, norm,
     precoAVista, simular, melhorParcela, aplicaTaxa,
     parseLista, parseLinha, parseValor

@@ -197,6 +197,7 @@
   </div>
 </footer>
 
+<script src="assets/desenho.js"></script>
 <script src="assets/fotos.js"></script>
 <script src="assets/core.js"></script>
 <script>
@@ -380,7 +381,7 @@
 
     const fig = document.createElement('div');
     fig.className = 'card-figura';
-    fig.appendChild(imagem(ap, I2.fotosDe(ap)[0]));
+    fig.appendChild(imagem(ap, I2.fotosDe(ap, dados.config)[0]));
 
     const etiqueta = `<span class="card-etiqueta ${novo ? 'etiqueta-novo' : 'etiqueta-seminovo'}">${novo ? 'Novo · lacrado' : 'Seminovo'}</span>`;
     const bateria = ap.bateria ? `<span class="card-bateria">Bateria ${ap.bateria}%</span>` : '';
@@ -500,7 +501,7 @@
 
   /* ---------------- galeria de fotos do aparelho ---------------- */
   function galeria(ap) {
-    const fotos = I2.fotosDe(ap);
+    const fotos = I2.fotosDe(ap, dados.config);
     const caixa = document.createElement('div');
     caixa.className = 'galeria';
 
