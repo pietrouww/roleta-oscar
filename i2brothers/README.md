@@ -12,15 +12,19 @@ publicar o catálogo de iPhones **novos** e **seminovos** da i2Brothers — Assi
 
 - **Duas seções**: iPhones novos (lacrados · 1 ano de garantia Apple) e seminovos
   (revisados · 3 meses de garantia da loja).
-- **Duas fotos por aparelho**: traseira e tela, escolhidas automaticamente pelo modelo
-  **e pela cor**. O card mostra a traseira (é onde a cor aparece) e o detalhe do
-  aparelho traz as duas, com miniaturas para alternar.
-- **Repositório de fotos**: 290 imagens oficiais da Apple em `assets/iphones/`,
-  cobrindo do iPhone 7 ao iPhone 18 Pro Max — 41 famílias e 149 cores. Modelo fora
-  dessa lista cai para uma ilustração gerada na hora.
-- **Padrão único de imagem**: todas passam pelo mesmo tratamento — um aparelho
-  inteiro, sem corte, fundo transparente, mesma tela de 620 x 880 px e mesma altura de
-  aparelho (840 px). Assim os cards ficam alinhados, sem um aparelho maior que o outro.
+- **Duas imagens por aparelho**: traseira e tela. O card mostra a traseira (é onde a
+  cor aparece) e o detalhe traz as duas, com miniaturas para alternar.
+- **Imagem padronizada de verdade**: cada aparelho é desenhado por
+  `assets/desenho.js` a partir das medidas reais da Apple — sempre de frente, sem
+  inclinação, mesma luz, mesmo enquadramento. O tamanho na tela respeita o tamanho
+  real: um Pro Max aparece maior que um mini, na proporção certa. São 41 modelos, do
+  iPhone 7 ao 18 Pro Max, com a cor exata do aparelho, o módulo de câmera e a tela
+  (botão, entalhe ou ilha dinâmica) de cada geração.
+- **Fotos oficiais como alternativa**: `assets/iphones/` guarda 290 imagens do
+  material da Apple (41 famílias, 149 cores). Em *Preços e taxas → Imagens dos
+  aparelhos* dá para trocar de ilustração para foto. As artes da Apple mudam de
+  geração para geração — as antigas são renders em perspectiva, as novas são retas —
+  então nesse modo os aparelhos não ficam todos na mesma pose.
 - **Preço à vista** = valor da lista **+ R$ 500,00** por aparelho (o acréscimo é
   configurável, e pode ser ajustado aparelho a aparelho).
 - **Simulador de parcelamento** em até 12x com as taxas da maquineta, sempre
@@ -95,6 +99,7 @@ i2brothers/
 │   └── fotos.py        monta o repositório de fotos a partir do material da Apple
 └── assets/
     ├── core.js         dados, preços, simulador e importador
+    ├── desenho.js      medidas dos modelos e desenho padronizado dos aparelhos
     ├── fotos.js        índice das fotos (gerado por ferramentas/fotos.py)
     ├── fotos.json      o mesmo índice, em JSON
     ├── app.css         estilo do catálogo
@@ -103,6 +108,13 @@ i2brothers/
     ├── tabela-taxas.jpg
     └── iphones/        fotos dos modelos (webp, fundo transparente)
 ```
+
+## Desenho dos aparelhos
+
+`assets/desenho.js` tem a tabela de medidas (altura, largura e raio em milímetros,
+tipo de tela e módulo de câmera) de cada modelo e desenha o aparelho em SVG, na hora,
+na cor cadastrada. Nada de arquivo de imagem: a mesma pose e o mesmo enquadramento
+valem para todos, e um modelo novo é uma linha na tabela `ESPECS`.
 
 ## Repositório de fotos
 
