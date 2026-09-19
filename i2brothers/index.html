@@ -364,7 +364,10 @@
     img.addEventListener('error', () => {
       if (img.dataset.reserva) return;
       img.dataset.reserva = '1';
-      img.src = I2.svgAparelho(ap.cor, true);
+      // Foto ausente (publicação enxuta, sem a pasta de fotos): usa o desenho.
+      const desenhos = I2.desenhosDe(ap);
+      const igual = desenhos && desenhos.filter(d => d.lado === foto.lado)[0];
+      img.src = (igual || (desenhos && desenhos[0]) || { src: I2.svgAparelho(ap.cor, true) }).src;
     }, { once: false });
     return img;
   }
