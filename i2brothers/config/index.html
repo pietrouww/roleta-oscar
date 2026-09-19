@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>i2Brothers — Configuração do catálogo</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="../assets/logo.png">
+<link rel="stylesheet" href="../assets/app.css">
+<link rel="stylesheet" href="../assets/admin.css">
+</head>
+<body class="admin">
+
+<!-- =========================== LOGIN =========================== -->
+<div class="login-fundo" id="login">
+  <form class="login-caixa" id="form-login">
+    <img src="../assets/logo.png" alt="i2Brothers">
+    <h1>Área administrativa</h1>
+    <p>Acesso restrito à equipe da loja.</p>
+    <label class="campo" style="text-align:left">
+      <span>Senha</span>
+      <input type="password" id="senha" autocomplete="current-password" required>
+    </label>
+    <button class="btn" type="submit">Entrar</button>
+    <div class="login-erro" id="login-erro"></div>
+  </form>
+</div>
+
+<!-- =========================== TOPO ============================ -->
+<header class="admin-topo">
+  <div class="wrap">
+    <img src="../assets/logo.png" alt="i2Brothers">
+    <span class="titulo">Painel do catálogo</span>
+    <div class="acoes">
+      <a href="../index.html?preview=1" target="_blank" rel="noopener">Pré-visualizar</a>
+      <button type="button" id="btn-publicar" class="primario">Baixar catalogo.json</button>
+      <button type="button" id="btn-sair">Sair</button>
+    </div>
+  </div>
+</header>
+
+<!-- =========================== ABAS ============================ -->
+<div class="abas" role="tablist">
+  <div class="wrap">
+    <button class="aba" role="tab" data-painel="p-lista" aria-selected="true">Lista de aparelhos</button>
+    <button class="aba" role="tab" data-painel="p-importar" aria-selected="false">Importar lista</button>
+    <button class="aba" role="tab" data-painel="p-config" aria-selected="false">Preços e taxas</button>
+    <button class="aba" role="tab" data-painel="p-publicar" aria-selected="false">Publicar</button>
+  </div>
+</div>
+
+<!-- ========================== LISTA ============================ -->
+<section class="painel wrap" id="p-lista">
+  <div class="cartao">
+    <h2>Aparelhos no catálogo</h2>
+    <p class="desc">
+      O preço à vista mostrado ao cliente é <b>valor do aparelho + acréscimo da loja</b>
+      (hoje <b id="eco-acrescimo">R$ 500,00</b> por aparelho). Deixe o acréscimo em branco para usar o padrão.
+    </p>
+
+    <div class="barra-lista">
+      <button class="btn btn-pequeno" type="button" id="btn-add-novo">+ Novo (lacrado)</button>
+      <button class="btn btn-pequeno btn-ghost" type="button" id="btn-add-seminovo">+ Seminovo</button>
+      <select class="chip" id="filtro-cat">
+        <option value="">Todos</option>
+        <option value="novo">Somente novos</option>
+        <option value="seminovo">Somente seminovos</option>
+      </select>
+      <input class="campo-busca" id="filtro-busca" type="search" placeholder="Filtrar" style="max-width:220px;padding:8px 16px;font-size:14px">
+      <span class="info" id="info-lista"></span>
+    </div>
+
+    <div class="tabela-rolagem">
+      <table class="tabela">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Seção</th>
+            <th>Modelo</th>
+            <th>Capac.</th>
+            <th>Cor</th>
+            <th>Bateria</th>
+            <th class="num">Valor base</th>
+            <th class="num">Acréscimo</th>
+            <th class="num">À vista</th>
+            <th>Obs.</th>
+            <th>Destaque</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="corpo-tabela"></tbody>
+      </table>
+    </div>
+    <div class="vazio" id="lista-vazia" hidden>Nenhum aparelho ainda. Use a aba “Importar lista”.</div>
+  </div>
+</section>
+
+<!-- ========================= IMPORTAR ========================== -->
+<section class="painel wrap" id="p-importar" hidden>
+  <div class="cartao">
+    <h2>Importar lista de aparelhos</h2>
+    <p class="desc">Cole a lista do fornecedor — um aparelho por linha. O sistema identifica modelo, capacidade, cor, bateria e valor.</p>
+
+    <div class="linha-campos" style="margin-bottom:16px">
+      <label class="campo">
+        <span>Seção de destino</span>
+        <select id="imp-categoria">
+          <option value="novo">Novos (lacrados · 1 ano Apple)</option>
+          <option value="seminovo">Seminovos (3 meses da loja)</option>
+        </select>
+      </label>
+      <label class="campo">
+        <span>Modo de importação</span>
+        <select id="imp-modo">
+          <option value="substituir">Substituir a seção inteira</option>
+          <option value="adicionar">Adicionar ao que já existe</option>
+        </select>
+      </label>
+    </div>
+
+    <label class="campo">
+      <span>Lista (um aparelho por linha)</span>
+      <textarea id="imp-texto" placeholder="iPhone 16 Pro Max 256GB Titânio Deserto - 8990&#10;iPhone 15 128GB Azul | 4290&#10;iPhone 13 128GB Meia-noite 87% ; 2450"></textarea>
+    </label>
+
+    <div class="dica" style="margin-bottom:18px">
+      <b>Formatos aceitos</b> — o valor é sempre o último número da linha:<br>
+      <code>iPhone 16 Pro 256GB Titânio Natural - 7890</code><br>
+      <code>iPhone 15 Plus | 512GB | Rosa | 5.499,00</code><br>
+      <code>iPhone 12 64gb Preto 89% ; 1890</code> &nbsp;(o <code>%</code> vira saúde da bateria)<br>
+      Esse valor é o <b>valor base</b>: o acréscimo da loja é somado automaticamente.
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn" type="button" id="btn-processar">Processar lista</button>
+      <button class="btn btn-ghost" type="button" id="btn-limpar-imp">Limpar</button>
+    </div>
+
+    <div id="imp-previa" style="margin-top:24px"></div>
+  </div>
+</section>
+
+<!-- ========================== CONFIG =========================== -->
+<section class="painel wrap" id="p-config" hidden>
+  <div class="cartao">
+    <h2>Preço e parcelamento</h2>
+    <p class="desc">Regras aplicadas a todo o catálogo.</p>
+    <div class="linha-campos">
+      <label class="campo">
+        <span>Acréscimo por aparelho (R$)</span>
+        <input type="number" id="cfg-acrescimo" step="10" min="0">
+      </label>
+      <label class="campo">
+        <span>Como aplicar a taxa do cartão</span>
+        <select id="cfg-modo">
+          <option value="repasse">Repasse integral — valor ÷ (1 − taxa)</option>
+          <option value="acrescimo">Acréscimo simples — valor × (1 + taxa)</option>
+        </select>
+      </label>
+      <label class="campo">
+        <span>Máximo de parcelas</span>
+        <input type="number" id="cfg-maxparcelas" min="1" max="12">
+      </label>
+      <label class="campo">
+        <span>Imagens dos aparelhos</span>
+        <select id="cfg-estilo">
+          <option value="ilustracao">Ilustração padronizada (todas iguais)</option>
+          <option value="foto">Foto oficial da Apple (quando houver)</option>
+        </select>
+      </label>
+      <label class="campo">
+        <span>Lista atualizada em</span>
+        <input type="date" id="cfg-data">
+      </label>
+    </div>
+    <div class="dica">
+      <b>Repasse integral</b> é o cálculo mais usado: a loja recebe o valor cheio e o cliente cobre a taxa da maquineta.
+      Ex.: R$ 5.000 em 12x com taxa de 10,12% → R$ 5.000 ÷ 0,8988 = R$ 5.563, aprox.
+      No <b>acréscimo simples</b> a taxa é somada sobre o valor (R$ 5.000 × 1,1012).
+    </div>
+  </div>
+
+  <div class="cartao">
+    <h2>Taxas da maquineta (Mastercard e Visa)</h2>
+    <p class="desc">
+      Valores da tabela atual. Se a operadora mudar as taxas, atualize aqui — o simulador do catálogo usa estes números.
+      O catálogo sempre avisa que a simulação é uma prévia e que outras bandeiras devem ser consultadas com o atendente.
+    </p>
+    <label class="campo" style="max-width:220px">
+      <span>Débito (%)</span>
+      <input type="number" id="tx-debito" step="0.01">
+    </label>
+    <div class="taxas-grid" id="taxas-credito"></div>
+    <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-pequeno" type="button" id="btn-restaurar-taxas">Restaurar tabela padrão</button>
+    </div>
+    <div style="margin-top:20px">
+      <img src="../assets/tabela-taxas.jpg" alt="Tabela de taxas da maquineta" style="max-width:280px;border-radius:11px;border:1px solid var(--divider)">
+      <p style="font-size:12px;color:var(--legal);margin-top:6px">Tabela de referência enviada pela operadora.</p>
+    </div>
+  </div>
+
+  <div class="cartao">
+    <h2>Loja e contato</h2>
+    <div class="linha-campos">
+      <label class="campo">
+        <span>WhatsApp (só números, com DDI)</span>
+        <input type="text" id="cfg-whats" placeholder="5541992277477" inputmode="numeric">
+      </label>
+      <label class="campo">
+        <span>Telefone fixo</span>
+        <input type="text" id="cfg-fone" placeholder="4131522212" inputmode="numeric">
+      </label>
+      <label class="campo">
+        <span>E-mail</span>
+        <input type="text" id="cfg-email" placeholder="i2brothers@icloud.com">
+      </label>
+      <label class="campo">
+        <span>Endereço</span>
+        <input type="text" id="cfg-endereco" placeholder="Rua Lothário Boutin, 49 — Loja 5">
+      </label>
+      <label class="campo">
+        <span>Bairro, cidade e estado</span>
+        <input type="text" id="cfg-cidade" placeholder="Pinheirinho, Curitiba — PR">
+      </label>
+      <label class="campo">
+        <span>Garantia — novos</span>
+        <input type="text" id="cfg-gar-novo">
+      </label>
+      <label class="campo">
+        <span>Garantia — seminovos</span>
+        <input type="text" id="cfg-gar-seminovo">
+      </label>
+      <label class="campo">
+        <span>Trocar a senha desta página</span>
+        <input type="password" id="cfg-senha" placeholder="deixe em branco para manter" autocomplete="new-password">
+      </label>
+    </div>
+    <div class="dica">
+      Esta senha vale só para esta página — o catálogo é aberto ao cliente, sem senha. Ela é guardada como
+      resumo (SHA-256), nunca em texto, porque o arquivo de dados fica público na hospedagem. Ainda assim é uma
+      tranca de tela: não há servidor conferindo nada. Para proteção de verdade, ative a
+      <b>Proteção de diretório</b> da hospedagem apontando para a pasta <code>config</code> — aí o próprio
+      servidor pede usuário e senha antes de abrir a página.
+    </div>
+  </div>
+</section>
+
+<!-- ========================= PUBLICAR ========================== -->
+<section class="painel wrap" id="p-publicar" hidden>
+  <div class="cartao">
+    <h2>Publicar o catálogo</h2>
+    <p class="desc">
+      As alterações ficam salvas neste navegador automaticamente. Para que os clientes vejam,
+      é preciso subir o arquivo <code>catalogo.json</code> para o site.
+    </p>
+    <ol style="font-size:15px;line-height:1.9;padding-left:20px;margin:0 0 20px">
+      <li>Clique em <b>Baixar catalogo.json</b>.</li>
+      <li>Substitua o arquivo <code>catalogo.json</code> na pasta do site (mesma pasta do <code>index.html</code>).</li>
+      <li>Atualize o catálogo no navegador — os aparelhos novos aparecem para todos.</li>
+    </ol>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px">
+      <button class="btn" type="button" id="btn-publicar-2">Baixar catalogo.json</button>
+      <button class="btn btn-ghost" type="button" id="btn-copiar-json">Copiar JSON</button>
+      <button class="btn btn-ghost" type="button" id="btn-importar-json">Carregar um catalogo.json</button>
+      <button class="btn btn-ghost" type="button" id="btn-recarregar-publicado">Puxar a versão publicada</button>
+      <input type="file" id="arquivo-json" accept="application/json,.json" hidden>
+    </div>
+    <label class="campo">
+      <span>Conteúdo do arquivo</span>
+      <textarea class="mono" id="json-saida" readonly></textarea>
+    </label>
+  </div>
+
+  <div class="cartao">
+    <h2>Zona de risco</h2>
+    <p class="desc">Ações que apagam dados deste navegador. O arquivo já publicado no site não é afetado.</p>
+    <button class="btn btn-ghost btn-pequeno" type="button" id="btn-zerar" style="border-color:#c0392b;color:#c0392b">Apagar todos os aparelhos</button>
+  </div>
+</section>
+
+<div class="aviso-salvo" id="aviso-salvo">Salvo</div>
+
+<script src="../assets/desenho.js"></script>
+<script src="../assets/fotos.js"></script>
+<script src="../assets/core.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  const el = (id) => document.getElementById(id);
+  let dados = I2.lerLocal() || I2.catalogoVazio();
+  let pendentes = null;   // pré-visualização da importação
+
+  /* ============================ LOGIN ============================ */
+  function autenticado() {
+    try { return sessionStorage.getItem(I2.AUTH_KEY) === 'ok'; } catch (e) { return false; }
+  }
+
+  function entrar() {
+    try { sessionStorage.setItem(I2.AUTH_KEY, 'ok'); } catch (e) {}
+    el('login').style.display = 'none';
+    iniciar();
+  }
+
+  el('form-login').addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (I2.confereSenha(el('senha').value, dados.config)) entrar();
+    else { el('login-erro').textContent = 'Senha incorreta.'; el('senha').select(); }
+  });
+
+  el('btn-sair').addEventListener('click', () => {
+    try { sessionStorage.removeItem(I2.AUTH_KEY); } catch (e) {}
+    location.reload();
+  });
+
+  /* ============================ ABAS ============================= */
+  document.querySelectorAll('.aba').forEach(aba => {
+    aba.addEventListener('click', () => {
+      document.querySelectorAll('.aba').forEach(a => {
+        a.setAttribute('aria-selected', String(a === aba));
+        el(a.dataset.painel).hidden = a !== aba;
+      });
+      if (aba.dataset.painel === 'p-publicar') atualizaJSON();
+    });
+  });
+
+  /* ========================= PERSISTÊNCIA ======================== */
+  let timerAviso;
+  function salvar(silencioso) {
+    I2.salvarLocal(dados);
+    if (!silencioso) {
+      const a = el('aviso-salvo');
+      a.classList.add('visivel');
+      clearTimeout(timerAviso);
+      timerAviso = setTimeout(() => a.classList.remove('visivel'), 1400);
+    }
+    el('eco-acrescimo').textContent = I2.money(dados.config.acrescimo);
+  }
+
+  /* =========================== TABELA ============================ */
+  function listaFiltrada() {
+    const cat = el('filtro-cat').value;
+    const q = I2.norm(el('filtro-busca').value);
+    return dados.aparelhos.filter(a =>
+      (!cat || a.categoria === cat) &&
+      (!q || I2.norm(I2.nomeCompleto(a) + ' ' + (a.obs || '')).includes(q))
+    );
+  }
+
+  function renderTabela() {
+    const corpo = el('corpo-tabela');
+    corpo.innerHTML = '';
+    const lista = listaFiltrada();
+    el('lista-vazia').hidden = dados.aparelhos.length > 0;
+
+    const novos = dados.aparelhos.filter(a => a.categoria === 'novo').length;
+    const semi = dados.aparelhos.length - novos;
+    el('info-lista').textContent = `${dados.aparelhos.length} aparelhos · ${novos} novos · ${semi} seminovos`;
+
+    for (const ap of lista) corpo.appendChild(linhaTabela(ap));
+  }
+
+  function linhaTabela(ap) {
+    const tr = document.createElement('tr');
+    const preco = I2.precoAVista(ap, dados.config);
+    const parc = I2.melhorParcela(preco, dados.config);
+    const fotos = I2.fotosDe(ap, dados.config);
+
+    tr.innerHTML = `
+      <td class="col-fotos">${fotos.map(f =>
+        `<img class="preview-img" src="${f.src}" alt="" loading="lazy" title="${I2.ROTULO_LADO[f.lado]}">`
+      ).join('')}</td>
+      <td>
+        <select data-campo="categoria">
+          <option value="novo">Novo</option>
+          <option value="seminovo">Seminovo</option>
+        </select>
+      </td>
+      <td><input type="text" data-campo="modelo" class="midi"></td>
+      <td><input type="text" data-campo="capacidade" class="mini"></td>
+      <td><input type="text" data-campo="cor" class="midi"></td>
+      <td><input type="number" data-campo="bateria" class="mini" min="0" max="100" placeholder="—"></td>
+      <td class="num"><input type="number" data-campo="custo" class="mini num" step="10"></td>
+      <td class="num"><input type="number" data-campo="acrescimo" class="mini num" step="10" placeholder="padrão"></td>
+      <td class="num">
+        <div class="previa-preco">${I2.money(preco)}</div>
+        ${parc ? `<div class="previa-parcela">12x ${I2.money(parc.parcela)}</div>` : ''}
+      </td>
+      <td><input type="text" data-campo="obs" class="midi" placeholder="opcional"></td>
+      <td style="text-align:center"><input type="checkbox" data-campo="destaque"></td>
+      <td><button class="remover" type="button" title="Remover">Remover</button></td>`;
+
+    tr.querySelector('[data-campo="categoria"]').value = ap.categoria;
+    tr.querySelector('[data-campo="modelo"]').value = ap.modelo || '';
+    tr.querySelector('[data-campo="capacidade"]').value = ap.capacidade || '';
+    tr.querySelector('[data-campo="cor"]').value = ap.cor || '';
+    tr.querySelector('[data-campo="bateria"]').value = ap.bateria == null ? '' : ap.bateria;
+    tr.querySelector('[data-campo="custo"]').value = ap.custo || 0;
+    tr.querySelector('[data-campo="acrescimo"]').value = ap.acrescimo == null ? '' : ap.acrescimo;
+    tr.querySelector('[data-campo="obs"]').value = ap.obs || '';
+    tr.querySelector('[data-campo="destaque"]').checked = !!ap.destaque;
+
+    tr.querySelectorAll('[data-campo]').forEach(campo => {
+      campo.addEventListener('change', () => {
+        const nome = campo.dataset.campo;
+        if (nome === 'destaque') ap.destaque = campo.checked;
+        else if (nome === 'custo') ap.custo = I2.parseValor(campo.value);
+        else if (nome === 'acrescimo') ap.acrescimo = campo.value === '' ? null : I2.parseValor(campo.value);
+        else if (nome === 'bateria') ap.bateria = campo.value === '' ? null : Number(campo.value);
+        else ap[nome] = campo.value;
+        salvar();
+        renderTabela();
+      });
+    });
+
+    tr.querySelector('.remover').addEventListener('click', () => {
+      if (!confirm('Remover ' + (I2.nomeCompleto(ap) || 'este aparelho') + ' do catálogo?')) return;
+      dados.aparelhos = dados.aparelhos.filter(a => a.id !== ap.id);
+      salvar(); renderTabela();
+    });
+
+    return tr;
+  }
+
+  el('filtro-cat').addEventListener('change', renderTabela);
+  el('filtro-busca').addEventListener('input', renderTabela);
+
+  function adicionar(categoria) {
+    dados.aparelhos.unshift({
+      id: I2.uid(), categoria, modelo: 'iPhone ', capacidade: '', cor: '',
+      bateria: null, custo: 0, acrescimo: null, imagem: '', obs: '', destaque: false
+    });
+    salvar(); renderTabela();
+  }
+  el('btn-add-novo').addEventListener('click', () => adicionar('novo'));
+  el('btn-add-seminovo').addEventListener('click', () => adicionar('seminovo'));
+
+  /* ========================== IMPORTAR =========================== */
+  el('btn-processar').addEventListener('click', () => {
+    const cat = el('imp-categoria').value;
+    pendentes = I2.parseLista(el('imp-texto').value, cat);
+    renderPrevia(cat);
+  });
+
+  el('btn-limpar-imp').addEventListener('click', () => {
+    el('imp-texto').value = ''; pendentes = null; el('imp-previa').innerHTML = '';
+  });
+
+  function renderPrevia(cat) {
+    const alvo = el('imp-previa');
+    if (!pendentes || !pendentes.length) {
+      alvo.innerHTML = '<div class="dica">Nada reconhecido. Confira se cada aparelho está em uma linha.</div>';
+      return;
+    }
+    const semValor = pendentes.filter(a => !a.custo).length;
+    const linhas = pendentes.map(ap => {
+      const preco = I2.precoAVista(ap, dados.config);
+      const fotos = I2.fotosDe(ap, dados.config);
+      return `<tr>
+        <td class="col-fotos">${fotos.map(f =>
+          `<img class="preview-img" src="${f.src}" alt="" loading="lazy">`).join('')}</td>
+        <td>${escape2(ap.modelo) || '<b style="color:#c0392b">?</b>'}</td>
+        <td>${escape2(ap.capacidade)}</td>
+        <td>${escape2(ap.cor)}</td>
+        <td>${ap.bateria ? ap.bateria + '%' : '—'}</td>
+        <td class="num">${I2.money(ap.custo)}${ap.custo ? '' : ' <b style="color:#c0392b">!</b>'}</td>
+        <td class="num previa-preco">${I2.money(preco)}</td>
+      </tr>`;
+    }).join('');
+
+    alvo.innerHTML = `
+      <h3 style="font-size:17px;margin:0 0 6px">Prévia — ${pendentes.length} aparelho(s)</h3>
+      <p style="font-size:14px;color:var(--legal);margin:0 0 12px">
+        Seção: <span class="pilula pilula-${cat}">${cat === 'novo' ? 'Novos' : 'Seminovos'}</span>
+        ${semValor ? ` · <b style="color:#c0392b">${semValor} sem valor reconhecido</b>` : ''}
+      </p>
+      <div class="tabela-rolagem">
+        <table class="tabela">
+          <thead><tr><th></th><th>Modelo</th><th>Capac.</th><th>Cor</th><th>Bateria</th>
+            <th class="num">Valor base</th><th class="num">À vista</th></tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:18px;flex-wrap:wrap">
+        <button class="btn" type="button" id="btn-confirmar-imp">Confirmar importação</button>
+      </div>`;
+
+    el('btn-confirmar-imp').addEventListener('click', () => {
+      const modo = el('imp-modo').value;
+      if (modo === 'substituir') dados.aparelhos = dados.aparelhos.filter(a => a.categoria !== cat);
+      dados.aparelhos = dados.aparelhos.concat(pendentes);
+      dados.config.atualizadoEm = I2.hojeISO();
+      el('cfg-data').value = dados.config.atualizadoEm;
+      salvar(); renderTabela();
+      pendentes = null;
+      el('imp-texto').value = '';
+      alvo.innerHTML = '<div class="dica">Importação concluída. Veja a aba <b>Lista de aparelhos</b> e depois <b>Publicar</b>.</div>';
+    });
+  }
+
+  const escape2 = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  /* =========================== CONFIG ============================ */
+  function renderConfig() {
+    const c = dados.config;
+    el('cfg-acrescimo').value = c.acrescimo;
+    el('cfg-modo').value = c.modoJuros;
+    el('cfg-maxparcelas').value = c.maxParcelas;
+    el('cfg-estilo').value = c.estiloImagem || 'ilustracao';
+    el('cfg-data').value = c.atualizadoEm || I2.hojeISO();
+    el('cfg-whats').value = c.whatsapp || '';
+    el('cfg-fone').value = c.telefone || '';
+    el('cfg-email').value = c.email || '';
+    el('cfg-endereco').value = c.endereco || '';
+    el('cfg-cidade').value = c.cidade || '';
+    el('cfg-gar-novo').value = c.garantiaNovo;
+    el('cfg-gar-seminovo').value = c.garantiaSeminovo;
+    el('cfg-senha').value = '';
+    el('tx-debito').value = c.taxas.debito;
+
+    const grid = el('taxas-credito');
+    grid.innerHTML = '';
+    for (let n = 1; n <= 12; n++) {
+      const lab = document.createElement('label');
+      lab.className = 'campo';
+      lab.innerHTML = `<span>${n}x (%)</span><input type="number" step="0.01" data-parcela="${n}">`;
+      lab.querySelector('input').value = c.taxas.credito[n] != null ? c.taxas.credito[n] : '';
+      grid.appendChild(lab);
+    }
+
+    grid.querySelectorAll('input[data-parcela]').forEach(inp => {
+      inp.addEventListener('change', () => {
+        dados.config.taxas.credito[Number(inp.dataset.parcela)] = Number(inp.value) || 0;
+        salvar(); renderTabela();
+      });
+    });
+  }
+
+  const liga = (id, aplica) => el(id).addEventListener('change', () => { aplica(el(id).value); salvar(); renderTabela(); });
+  liga('cfg-acrescimo', v => dados.config.acrescimo = I2.parseValor(v));
+  liga('cfg-modo', v => dados.config.modoJuros = v);
+  liga('cfg-maxparcelas', v => dados.config.maxParcelas = Math.min(12, Math.max(1, Number(v) || 12)));
+  liga('cfg-estilo', v => dados.config.estiloImagem = v);
+  liga('cfg-data', v => dados.config.atualizadoEm = v);
+  liga('cfg-whats', v => dados.config.whatsapp = String(v).replace(/\D/g, ''));
+  liga('cfg-fone', v => dados.config.telefone = String(v).replace(/\D/g, ''));
+  liga('cfg-email', v => dados.config.email = v.trim());
+  liga('cfg-endereco', v => dados.config.endereco = v.trim());
+  liga('cfg-cidade', v => dados.config.cidade = v.trim());
+  liga('cfg-gar-novo', v => dados.config.garantiaNovo = v);
+  liga('cfg-gar-seminovo', v => dados.config.garantiaSeminovo = v);
+  el('cfg-senha').addEventListener('change', () => {
+    const nova = el('cfg-senha').value;
+    if (!nova) return;                               // em branco: mantém a atual
+    dados.config.senhaHash = I2.hashSenha(nova);
+    delete dados.config.senha;                       // nunca guarda a senha em texto
+    el('cfg-senha').value = '';
+    salvar();
+    alert('Senha alterada. Ela passa a valer quando você publicar o catalogo.json.');
+  });
+  liga('tx-debito', v => dados.config.taxas.debito = Number(v) || 0);
+
+  el('btn-restaurar-taxas').addEventListener('click', () => {
+    if (!confirm('Restaurar a tabela de taxas padrão (Mastercard/Visa)?')) return;
+    dados.config.taxas = JSON.parse(JSON.stringify(I2.TAXAS_PADRAO));
+    salvar(); renderConfig(); renderTabela();
+  });
+
+  /* ========================== PUBLICAR =========================== */
+  function atualizaJSON() { el('json-saida').value = JSON.stringify(dados, null, 2); }
+
+  const publicar = () => { dados.config.atualizadoEm = dados.config.atualizadoEm || I2.hojeISO(); salvar(true); I2.baixarJSON(dados, 'catalogo.json'); };
+  el('btn-publicar').addEventListener('click', publicar);
+  el('btn-publicar-2').addEventListener('click', publicar);
+
+  el('btn-copiar-json').addEventListener('click', (e) => {
+    atualizaJSON();
+    navigator.clipboard?.writeText(el('json-saida').value).then(() => {
+      e.target.textContent = 'Copiado!';
+      setTimeout(() => { e.target.textContent = 'Copiar JSON'; }, 1800);
+    });
+  });
+
+  el('btn-importar-json').addEventListener('click', () => el('arquivo-json').click());
+  el('arquivo-json').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => {
+      try {
+        dados = I2.mescla(JSON.parse(fr.result));
+        salvar(); renderTabela(); renderConfig(); atualizaJSON();
+        alert('Catálogo carregado com sucesso.');
+      } catch (err) { alert('Arquivo inválido: ' + err.message); }
+    };
+    fr.readAsText(f);
+    e.target.value = '';
+  });
+
+  el('btn-recarregar-publicado').addEventListener('click', async () => {
+    const pub = await I2.lerPublicado();
+    if (!pub) { alert('Não foi possível ler o catalogo.json publicado.'); return; }
+    if (!confirm('Substituir o rascunho deste navegador pela versão publicada no site?')) return;
+    dados = pub; salvar(); renderTabela(); renderConfig(); atualizaJSON();
+  });
+
+  el('btn-zerar').addEventListener('click', () => {
+    if (!confirm('Apagar TODOS os aparelhos deste rascunho? As configurações e taxas são mantidas.')) return;
+    dados.aparelhos = [];
+    salvar(); renderTabela(); atualizaJSON();
+  });
+
+  /* =========================== INÍCIO ============================ */
+  function iniciar() {
+    renderConfig();
+    renderTabela();
+    salvar(true);
+    atualizaJSON();
+  }
+
+  (async () => {
+    if (!dados.aparelhos.length) {
+      const pub = await I2.lerPublicado();
+      if (pub) dados = pub;
+    }
+    if (autenticado()) { el('login').style.display = 'none'; iniciar(); }
+    else el('senha').focus();
+  })();
+})();
+</script>
+</body>
+</html>

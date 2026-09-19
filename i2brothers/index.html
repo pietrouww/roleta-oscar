@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>i2Brothers — Catálogo de iPhones</title>
+<meta name="description" content="Catálogo de iPhones novos e seminovos da i2Brothers — Assistência Apple. Novos lacrados com 1 ano de garantia Apple; seminovos com 3 meses de garantia da loja.">
+<meta name="theme-color" content="#000000">
+<meta property="og:title" content="i2Brothers — Catálogo de iPhones">
+<meta property="og:description" content="iPhones novos e seminovos com garantia. Consulte disponibilidade antes da compra.">
+<meta property="og:type" content="website">
+<link rel="icon" href="assets/logo.png">
+<link rel="apple-touch-icon" href="assets/logo.png">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+
+<!-- ============================ NAV ============================ -->
+<nav class="nav">
+  <div class="wrap">
+    <a class="nav-logo" href="index.html">
+      <img src="assets/logo.png" alt="i2Brothers">
+      <span>i2Brothers · Assistência Apple</span>
+    </a>
+    <div class="nav-links">
+      <a href="#novos">Novos</a>
+      <a href="#seminovos">Seminovos</a>
+      <a href="#como-funciona">Como funciona</a>
+      <a href="#contato">Contato</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ========================== SUB-NAV ========================== -->
+<div class="subnav">
+  <div class="wrap">
+    <div class="subnav-titulo">iPhone</div>
+    <div class="subnav-links">
+      <span id="atualizacao" style="font-size:14px;color:var(--legal)"></span>
+      <a class="btn btn-pequeno" id="btn-topo-whats" href="#contato">Consultar disponibilidade</a>
+    </div>
+  </div>
+</div>
+
+<!-- =========================== HERO ============================ -->
+<header class="hero">
+  <div class="wrap-texto">
+    <h1>O iPhone que você quer. Com quem entende de Apple.</h1>
+    <p class="lead">Aparelhos novos lacrados e seminovos revisados, com garantia e preço à vista ou parcelado em até 12x.</p>
+    <div class="hero-acoes">
+      <a class="btn" href="#novos">Ver novos</a>
+      <a class="btn btn-ghost" href="#seminovos">Ver seminovos</a>
+    </div>
+  </div>
+</header>
+
+<!-- ====================== AVISO PRINCIPAL ====================== -->
+<section class="aviso">
+  <div class="wrap-texto">
+    <div class="aviso-icone">!</div>
+    <div>
+      <strong>Confirme a disponibilidade antes de fechar a compra</strong>
+      <p>
+        Esta lista é atualizada <b>apenas uma vez por dia</b>. Todos os aparelhos estão
+        <b>sujeitos a consulta de disponibilidade</b> no momento do fechamento da compra.
+        Valores e estoque podem mudar sem aviso prévio.
+        <span id="atualizacao-aviso" style="display:block;margin-top:6px"></span>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= FILTROS =========================== -->
+<div class="wrap filtros">
+  <div class="linha">
+    <input class="campo-busca" id="busca" type="search" placeholder="Buscar por modelo, capacidade ou cor" autocomplete="off">
+    <select class="chip" id="f-modelo"><option value="">Todos os modelos</option></select>
+    <select class="chip" id="f-capacidade"><option value="">Todas as capacidades</option></select>
+    <select class="chip" id="f-ordem">
+      <option value="rel">Ordenar: destaques</option>
+      <option value="menor">Menor preço</option>
+      <option value="maior">Maior preço</option>
+      <option value="az">Nome (A–Z)</option>
+    </select>
+  </div>
+</div>
+
+<!-- ========================== NOVOS ============================ -->
+<main>
+<section class="secao wrap" id="novos">
+  <div class="secao-cabecalho">
+    <h2>iPhones novos</h2>
+    <span class="selo-garantia" id="selo-novo">Lacrados · 1 ano de garantia Apple</span>
+    <div class="contagem" id="contagem-novos"></div>
+  </div>
+  <div class="grid" id="grid-novos"></div>
+  <div class="vazio" id="vazio-novos" hidden>Nenhum aparelho novo nesta busca.</div>
+</section>
+
+<!-- ======================== SEMINOVOS ========================== -->
+<section class="secao wrap" id="seminovos" style="padding-bottom:64px">
+  <div class="secao-cabecalho">
+    <h2>iPhones seminovos</h2>
+    <span class="selo-garantia" id="selo-seminovo">Revisados · 3 meses de garantia da loja</span>
+    <div class="contagem" id="contagem-seminovos"></div>
+  </div>
+  <div class="grid" id="grid-seminovos"></div>
+  <div class="vazio" id="vazio-seminovos" hidden>Nenhum aparelho seminovo nesta busca.</div>
+</section>
+
+<!-- ====================== COMO FUNCIONA ======================== -->
+<section class="tile tile-escuro" id="como-funciona">
+  <div class="wrap-texto">
+    <h2>Como funciona a compra</h2>
+    <p>Transparência do primeiro contato até a entrega do aparelho.</p>
+    <div class="colunas">
+      <div class="coluna">
+        <h3>1. Escolha o aparelho</h3>
+        <p>Navegue pelo catálogo e use o simulador de parcelamento para ter uma prévia do valor nas maquinetas Mastercard e Visa.</p>
+      </div>
+      <div class="coluna">
+        <h3>2. Consulte a disponibilidade</h3>
+        <p>Fale com nossa equipe. A lista é atualizada uma vez por dia — a confirmação de estoque e do valor final é sempre feita no atendimento.</p>
+      </div>
+      <div class="coluna">
+        <h3>3. Feche com garantia</h3>
+        <p>Novos saem lacrados com 1 ano de garantia Apple. Seminovos passam por revisão técnica e têm 3 meses de garantia da loja.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================= GARANTIA ========================== -->
+<section class="tile tile-claro">
+  <div class="wrap-texto">
+    <h2>Garantia de quem é assistência Apple</h2>
+    <p>Somos especialistas em Apple. Cada aparelho seminovo é testado, higienizado e revisado antes de entrar no catálogo.</p>
+    <div class="colunas">
+      <div class="coluna">
+        <h3>Novos · lacrados</h3>
+        <p>Aparelhos novos, na caixa lacrada, com <b>1 ano de garantia diretamente com a Apple</b>, válida em qualquer autorizada.</p>
+      </div>
+      <div class="coluna">
+        <h3>Seminovos · revisados</h3>
+        <p>Testados item a item e cobertos por <b>3 meses de garantia da i2Brothers</b>. Quando informado, exibimos a saúde da bateria.</p>
+      </div>
+      <div class="coluna">
+        <h3>Pagamento</h3>
+        <p>À vista no PIX, dinheiro ou débito. No crédito, parcelamos em até 12x com a taxa da maquineta — simule antes no catálogo.</p>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<!-- =========================== MODAL =========================== -->
+<div class="modal-fundo" id="modal-fundo" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+  <div class="modal" id="modal">
+    <button class="modal-fechar" id="modal-fechar" aria-label="Fechar">✕</button>
+    <div class="modal-corpo" id="modal-corpo"></div>
+  </div>
+</div>
+
+<!-- ========================== RODAPÉ =========================== -->
+<footer class="rodape" id="contato">
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <h4>Contato</h4>
+        <ul class="contato" id="rodape-contato"></ul>
+      </div>
+      <div>
+        <h4>Endereço</h4>
+        <ul class="contato" id="rodape-endereco"></ul>
+      </div>
+      <div>
+        <h4>Garantias</h4>
+        <div>Novos: 1 ano de garantia Apple.<br>Seminovos: 3 meses de garantia da loja.</div>
+      </div>
+      <div>
+        <h4>Pagamento</h4>
+        <div>À vista (PIX / dinheiro / débito).<br>Crédito em até 12x com taxa da maquineta.</div>
+      </div>
+    </div>
+    <div class="divisor"></div>
+    <p class="legal">
+      <b>Avisos importantes.</b> A lista de aparelhos é atualizada apenas uma vez por dia e está sujeita a
+      consulta de disponibilidade no fechamento da compra. O simulador de parcelamento é uma
+      <b>prévia</b>: as taxas apresentadas são <b>exclusivamente para cartões Mastercard e Visa</b> e podem mudar
+      a qualquer momento — <b>confirme as taxas com um atendente antes da compra</b>. Para outras bandeiras,
+      consulte o atendimento. Imagens meramente ilustrativas dos modelos. iPhone e Apple são marcas
+      registradas da Apple Inc.; a i2Brothers é uma assistência independente, sem vínculo com a Apple Inc.
+    </p>
+    <p class="legal" style="margin-top:8px">
+      © <span id="ano"></span> i2Brothers — Assistência Apple.
+    </p>
+  </div>
+</footer>
+
+<script src="assets/desenho.js"></script>
+<script src="assets/fotos.js"></script>
+<script src="assets/core.js"></script>
+<script>
+(() => {
+  'use strict';
+
+  let dados = I2.catalogoVazio();
+  const el = (id) => document.getElementById(id);
+  const estado = { busca: '', modelo: '', capacidade: '', ordem: 'rel' };
+
+  /* ---------------- carregamento ---------------- */
+  async function carregar() {
+    const params = new URLSearchParams(location.search);
+    const preview = params.get('preview') === '1';
+
+    const local = I2.lerLocal();
+    const publicado = await I2.lerPublicado();
+
+    if (preview && local) dados = local;
+    else if (publicado && publicado.aparelhos.length) dados = publicado;
+    else if (local) dados = local;
+    else if (publicado) dados = publicado;
+
+    if (preview) marcaPreview();
+    aplicaConfig();
+    montaFiltros();
+    render();
+  }
+
+  function marcaPreview() {
+    const d = document.createElement('div');
+    d.style.cssText = 'position:fixed;bottom:16px;left:16px;z-index:200;background:#1d1d1f;color:#fff;' +
+      'font-size:12px;padding:8px 14px;border-radius:980px;letter-spacing:-.12px';
+    d.textContent = 'Pré-visualização do rascunho local (não publicado)';
+    document.body.appendChild(d);
+  }
+
+  function aplicaConfig() {
+    const c = dados.config;
+    el('ano').textContent = new Date().getFullYear();
+    el('selo-novo').textContent = 'Lacrados · ' + c.garantiaNovo;
+    el('selo-seminovo').textContent = 'Revisados · ' + c.garantiaSeminovo;
+    if (c.atualizadoEm) {
+      el('atualizacao').textContent = 'Lista atualizada em ' + I2.dataBR(c.atualizadoEm);
+      el('atualizacao-aviso').innerHTML = 'Última atualização desta lista: <b>' + I2.dataBR(c.atualizadoEm) + '</b>.';
+    }
+
+    if (c.whatsapp) {
+      const url = linkWhats('Olá! Vim pelo catálogo de iPhones e gostaria de consultar a disponibilidade.');
+      const b = el('btn-topo-whats');
+      b.href = url; b.target = '_blank'; b.rel = 'noopener';
+    }
+    montaContato(c);
+  }
+
+  /* ---------------- contatos do rodapé ---------------- */
+  const ICONES = {
+    whatsapp: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+      '<path fill="#25D366" d="M12 2a9.9 9.9 0 0 0-8.5 15L2 22l5.2-1.4A9.9 9.9 0 1 0 12 2Zm0 1.8a8.1 8.1 0 1 1-4.1 15.1l-.3-.2-3 .8.8-2.9-.2-.3A8.1 8.1 0 0 1 12 3.8Zm-3.6 4c-.2 0-.5.1-.7.4-.2.3-.9.9-.9 2.1s.9 2.5 1 2.6c.1.2 1.7 2.7 4.2 3.7 2.1.8 2.5.7 3 .6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.2-1.2-.1-.1-.3-.2-.5-.3l-1.8-.9c-.2-.1-.4-.1-.6.1l-.8 1c-.2.2-.3.2-.5.1-.3-.1-1.2-.4-2.2-1.4-.8-.7-1.4-1.6-1.5-1.9-.1-.2 0-.4.1-.5l.4-.5c.1-.2.2-.3.3-.5 0-.2 0-.4-.1-.5l-.8-1.8c-.2-.5-.4-.4-.5-.4h-.5Z"/></svg>',
+    telefone: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+      '<path fill="currentColor" d="M6.6 2.6a1.7 1.7 0 0 1 2.3.5l1.5 2.3c.4.6.3 1.4-.2 1.9l-1 1c-.2.2-.2.4-.1.6.5 1.1 2.1 3.6 4.6 4.9.2.1.5.1.6-.1l.9-1c.5-.5 1.2-.6 1.8-.3l2.4 1.4c.8.5 1 1.5.5 2.2l-1 1.4c-.6.9-1.7 1.3-2.8 1-2.2-.6-5-2.2-7.4-4.7C6.3 11 4.9 8.4 4.3 6.3c-.3-1 .1-2 .9-2.6l1.4-1.1Z"/></svg>',
+    email: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+      '<path fill="currentColor" d="M3 5.5h18c.3 0 .5.2.5.5v12c0 .3-.2.5-.5.5H3a.5.5 0 0 1-.5-.5V6c0-.3.2-.5.5-.5Zm1.6 1.7 7.4 5.3 7.4-5.3H4.6Zm15.1 1.4-7.3 5.2a.7.7 0 0 1-.8 0L4.3 8.6v8.2h15.4V8.6Z"/></svg>',
+    local: '<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">' +
+      '<path fill="currentColor" d="M12 2.5a6.5 6.5 0 0 0-6.5 6.5c0 4.6 5.6 11.4 5.9 11.7.3.4.9.4 1.2 0 .3-.3 5.9-7.1 5.9-11.7A6.5 6.5 0 0 0 12 2.5Zm0 9a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2Z"/></svg>'
+  };
+
+  function linhaContato(icone, texto, href, externo) {
+    if (!texto) return '';
+    const miolo = href
+      ? `<a href="${href}"${externo ? ' target="_blank" rel="noopener"' : ''}>${esc(texto)}</a>`
+      : esc(texto);
+    return `<li>${ICONES[icone]}<span>${miolo}</span></li>`;
+  }
+
+  function montaContato(c) {
+    const fone = String(c.telefone || '').replace(/\D/g, '');
+    el('rodape-contato').innerHTML =
+      linhaContato('whatsapp', formataTel(c.whatsapp),
+        linkWhats('Olá! Vim pelo catálogo de iPhones e gostaria de consultar a disponibilidade.'), true) +
+      linhaContato('telefone', formataTel(fone), fone ? 'tel:+55' + fone : '', false) +
+      linhaContato('email', c.email, c.email ? 'mailto:' + c.email : '', false);
+
+    const mapa = [c.endereco, c.cidade].filter(Boolean).join(', ');
+    el('rodape-endereco').innerHTML =
+      linhaContato('local', c.endereco,
+        mapa ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(mapa) : '', true) +
+      (c.cidade ? `<li class="sem-icone"><span>${esc(c.cidade)}</span></li>` : '');
+  }
+
+  function formataTel(n) {
+    const s = String(n || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '');
+    const m = s.match(/^(\d{2})(\d{4,5})(\d{4})$/);
+    return m ? `(${m[1]}) ${m[2]}-${m[3]}` : s;
+  }
+
+  function linkWhats(msg) {
+    const n = String(dados.config.whatsapp || '').replace(/\D/g, '');
+    return 'https://wa.me/' + n + '?text=' + encodeURIComponent(msg);
+  }
+
+  /* ---------------- filtros ---------------- */
+  function montaFiltros() {
+    const modelos = [...new Set(dados.aparelhos.map(a => a.modelo).filter(Boolean))]
+      .sort((a, b) => a.localeCompare(b, 'pt-BR'));
+    const caps = [...new Set(dados.aparelhos.map(a => a.capacidade).filter(Boolean))]
+      .sort((a, b) => valorCap(a) - valorCap(b));
+
+    for (const m of modelos) el('f-modelo').add(new Option(m, m));
+    for (const c of caps) el('f-capacidade').add(new Option(c, c));
+
+    el('busca').addEventListener('input', e => { estado.busca = e.target.value; render(); });
+    el('f-modelo').addEventListener('change', e => { estado.modelo = e.target.value; render(); });
+    el('f-capacidade').addEventListener('change', e => { estado.capacidade = e.target.value; render(); });
+    el('f-ordem').addEventListener('change', e => { estado.ordem = e.target.value; render(); });
+  }
+
+  const valorCap = (c) => {
+    const m = String(c).match(/(\d+)\s*(GB|TB)/i);
+    if (!m) return 0;
+    return Number(m[1]) * (m[2].toUpperCase() === 'TB' ? 1024 : 1);
+  };
+
+  function filtra(lista) {
+    const q = I2.norm(estado.busca);
+    let out = lista.filter(a => {
+      if (estado.modelo && a.modelo !== estado.modelo) return false;
+      if (estado.capacidade && a.capacidade !== estado.capacidade) return false;
+      if (q && !I2.norm(I2.nomeCompleto(a) + ' ' + (a.obs || '')).includes(q)) return false;
+      return true;
+    });
+
+    const preco = (a) => I2.precoAVista(a, dados.config);
+    if (estado.ordem === 'menor') out.sort((a, b) => preco(a) - preco(b));
+    else if (estado.ordem === 'maior') out.sort((a, b) => preco(b) - preco(a));
+    else if (estado.ordem === 'az') out.sort((a, b) => I2.nomeCompleto(a).localeCompare(I2.nomeCompleto(b), 'pt-BR'));
+    else out.sort((a, b) => (b.destaque ? 1 : 0) - (a.destaque ? 1 : 0) || preco(b) - preco(a));
+    return out;
+  }
+
+  /* ---------------- render ---------------- */
+  function render() {
+    renderSecao('novo', 'grid-novos', 'vazio-novos', 'contagem-novos');
+    renderSecao('seminovo', 'grid-seminovos', 'vazio-seminovos', 'contagem-seminovos');
+  }
+
+  function renderSecao(cat, idGrid, idVazio, idContagem) {
+    const lista = filtra(dados.aparelhos.filter(a => a.categoria === cat));
+    const grid = el(idGrid);
+    grid.innerHTML = '';
+    el(idVazio).hidden = lista.length > 0;
+    el(idContagem).textContent = lista.length
+      ? `${lista.length} ${lista.length === 1 ? 'aparelho disponível' : 'aparelhos disponíveis'} · sujeito a consulta`
+      : '';
+    for (const ap of lista) grid.appendChild(card(ap));
+  }
+
+  function imagem(ap, foto, preguicosa) {
+    const img = document.createElement('img');
+    if (preguicosa !== false) img.loading = 'lazy';
+    img.alt = I2.nomeCompleto(ap) + (foto.lado === 'verso' ? ' — traseira'
+            : foto.lado === 'frente' ? ' — tela' : '');
+    img.src = foto.src;
+    img.addEventListener('error', () => {
+      if (img.dataset.reserva) return;
+      img.dataset.reserva = '1';
+      // Foto ausente (publicação enxuta, sem a pasta de fotos): usa o desenho.
+      const desenhos = I2.desenhosDe(ap);
+      const igual = desenhos && desenhos.filter(d => d.lado === foto.lado)[0];
+      img.src = (igual || (desenhos && desenhos[0]) || { src: I2.svgAparelho(ap.cor, true) }).src;
+    }, { once: false });
+    return img;
+  }
+
+  function card(ap) {
+    const preco = I2.precoAVista(ap, dados.config);
+    const parc = I2.melhorParcela(preco, dados.config);
+    const novo = ap.categoria === 'novo';
+
+    const div = document.createElement('article');
+    div.className = 'card';
+    div.tabIndex = 0;
+    div.setAttribute('role', 'button');
+
+    const fig = document.createElement('div');
+    fig.className = 'card-figura';
+    fig.appendChild(imagem(ap, I2.fotosDe(ap, dados.config)[0]));
+
+    const etiqueta = `<span class="card-etiqueta ${novo ? 'etiqueta-novo' : 'etiqueta-seminovo'}">${novo ? 'Novo · lacrado' : 'Seminovo'}</span>`;
+    const bateria = ap.bateria ? `<span class="card-bateria">Bateria ${ap.bateria}%</span>` : '';
+    const cor = ap.cor ? `<span class="card-cor" style="background:${I2.corHex(ap.cor)}"></span>${ap.cor}` : '';
+    const spec = [ap.capacidade, cor].filter(Boolean).join(' · ');
+
+    div.innerHTML = etiqueta +
+      `<h3>${esc(ap.modelo)}</h3>` +
+      `<p class="spec">${spec || '&nbsp;'}</p>` +
+      bateria +
+      `<p class="preco">${I2.money(preco)}<small>à vista</small></p>` +
+      (parc ? `<p class="parcela">ou até ${parc.n}x de ${I2.money(parc.parcela)}</p>` : '') +
+      `<div class="acao"><button class="btn btn-pequeno" type="button">Ver detalhes</button></div>`;
+
+    div.insertBefore(fig, div.firstChild.nextSibling);
+    div.addEventListener('click', () => abreModal(ap));
+    div.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abreModal(ap); } });
+    return div;
+  }
+
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  /* ---------------- modal ---------------- */
+  let ultimoFoco = null;
+
+  function abreModal(ap) {
+    ultimoFoco = document.activeElement;
+    const preco = I2.precoAVista(ap, dados.config);
+    const linhas = I2.simular(preco, dados.config);
+    const novo = ap.categoria === 'novo';
+    const c = dados.config;
+
+    const corpo = el('modal-corpo');
+    corpo.innerHTML = '';
+
+    const figura = document.createElement('div');
+    figura.className = 'modal-figura';
+    figura.appendChild(galeria(ap));
+
+    const info = document.createElement('div');
+    info.className = 'modal-info';
+
+    const specs = [
+      ['Condição', novo ? 'Novo, lacrado de fábrica' : 'Seminovo revisado'],
+      ['Garantia', novo ? c.garantiaNovo : c.garantiaSeminovo],
+      ap.capacidade ? ['Capacidade', ap.capacidade] : null,
+      ap.cor ? ['Cor', ap.cor] : null,
+      ap.bateria ? ['Saúde da bateria', ap.bateria + '%'] : null,
+      ap.obs ? ['Observações', ap.obs] : null
+    ].filter(Boolean);
+
+    const linhasHTML = linhas.map(l => `
+      <tr class="${l.tipo === 'debito' ? 'debito' : ''} ${l.n === 12 && l.tipo === 'credito' ? 'destaque' : ''}">
+        <td>${esc(l.rotulo)}</td>
+        <td>${I2.pct(l.taxa)}</td>
+        <td>${l.tipo === 'debito' ? '—' : I2.money(l.parcela)}</td>
+        <td>${I2.money(l.total)}</td>
+      </tr>`).join('');
+
+    const msg = `Olá! Tenho interesse no ${I2.nomeCompleto(ap)} (${novo ? 'novo' : 'seminovo'}) anunciado por ${I2.money(preco)} à vista. Ele está disponível?`;
+    const temWhats = !!c.whatsapp;
+
+    info.innerHTML = `
+      <h2 id="modal-titulo">${esc(ap.modelo)}</h2>
+      <p class="subt">${esc([ap.capacidade, ap.cor].filter(Boolean).join(' · '))}${ap.capacidade || ap.cor ? ' · ' : ''}${novo ? 'Novo lacrado' : 'Seminovo'}</p>
+      <p class="modal-preco">${I2.money(preco)}<small>à vista (PIX, dinheiro ou débito conforme condição da loja)</small></p>
+      <ul class="modal-lista">
+        ${specs.map(([k, v]) => `<li><span>${esc(k)}</span><span>${esc(v)}</span></li>`).join('')}
+      </ul>
+      <div class="simulador">
+        <h3>Simulador de parcelamento</h3>
+        <p class="nota">
+          <b>Prévia sujeita a confirmação.</b> Taxas válidas somente para <b>Mastercard e Visa</b>;
+          outras bandeiras devem ser consultadas com o atendente. As taxas podem mudar —
+          <b>confirme com um atendente antes da compra</b>.
+        </p>
+        <table class="tabela-parcelas">
+          <thead><tr><th>Forma</th><th>Taxa</th><th>Parcela</th><th>Total</th></tr></thead>
+          <tbody>${linhasHTML}</tbody>
+        </table>
+      </div>
+      <div class="modal-acoes">
+        ${temWhats
+          ? `<a class="btn" href="${linkWhats(msg)}" target="_blank" rel="noopener">Consultar disponibilidade</a>`
+          : `<button class="btn" type="button" disabled>Consulte a loja</button>`}
+        <button class="btn btn-ghost" type="button" id="btn-copiar">Copiar resumo</button>
+      </div>
+      <div class="modal-aviso">
+        <b>Antes de fechar a compra, confirme a disponibilidade deste aparelho.</b>
+        A lista do catálogo é atualizada apenas uma vez por dia e todos os itens estão sujeitos a
+        consulta de disponibilidade no momento do fechamento.
+      </div>`;
+
+    corpo.appendChild(figura);
+    corpo.appendChild(info);
+
+    info.querySelector('#btn-copiar').addEventListener('click', (ev) => {
+      const txt = [
+        I2.nomeCompleto(ap) + (novo ? ' — Novo lacrado' : ' — Seminovo'),
+        'Garantia: ' + (novo ? c.garantiaNovo : c.garantiaSeminovo),
+        ap.bateria ? 'Bateria: ' + ap.bateria + '%' : null,
+        'À vista: ' + I2.money(preco),
+        'Até 12x de ' + I2.money(I2.melhorParcela(preco, c).parcela) + ' (Master/Visa, taxas sujeitas a confirmação)',
+        'Sujeito a consulta de disponibilidade.'
+      ].filter(Boolean).join('\n');
+      navigator.clipboard?.writeText(txt).then(() => {
+        ev.target.textContent = 'Copiado!';
+        setTimeout(() => { ev.target.textContent = 'Copiar resumo'; }, 1800);
+      });
+    });
+
+    el('modal-fundo').classList.add('aberto');
+    document.body.style.overflow = 'hidden';
+    el('modal-fechar').focus();
+  }
+
+  /* ---------------- galeria de fotos do aparelho ---------------- */
+  function galeria(ap) {
+    const fotos = I2.fotosDe(ap, dados.config);
+    const caixa = document.createElement('div');
+    caixa.className = 'galeria';
+
+    const palco = document.createElement('div');
+    palco.className = 'galeria-palco';
+    palco.appendChild(imagem(ap, fotos[0], false));
+    caixa.appendChild(palco);
+
+    if (fotos.length < 2) return caixa;
+
+    const barra = document.createElement('div');
+    barra.className = 'galeria-miniaturas';
+    fotos.forEach((foto, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'miniatura';
+      b.setAttribute('aria-pressed', String(i === 0));
+      b.title = I2.ROTULO_LADO[foto.lado];
+      b.appendChild(imagem(ap, foto));
+      b.addEventListener('click', () => {
+        palco.innerHTML = '';
+        palco.appendChild(imagem(ap, foto, false));
+        barra.querySelectorAll('.miniatura').forEach((o, j) =>
+          o.setAttribute('aria-pressed', String(i === j)));
+      });
+      barra.appendChild(b);
+    });
+    caixa.appendChild(barra);
+    return caixa;
+  }
+
+  function fechaModal() {
+    el('modal-fundo').classList.remove('aberto');
+    document.body.style.overflow = '';
+    if (ultimoFoco) ultimoFoco.focus();
+  }
+
+  el('modal-fechar').addEventListener('click', fechaModal);
+  el('modal-fundo').addEventListener('click', e => { if (e.target === el('modal-fundo')) fechaModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') fechaModal(); });
+
+  carregar();
+})();
+</script>
+</body>
+</html>

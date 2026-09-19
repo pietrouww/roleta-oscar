@@ -1,0 +1,1242 @@
+{
+ "iphone 11": {
+  "cores": {
+   "black": {
+    "base": "iphone-11-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "green": {
+    "base": "iphone-11-green",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "purple": {
+    "base": "iphone-11-purple",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "red": {
+    "base": "iphone-11-red",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-11-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "yellow": {
+    "base": "iphone-11-yellow",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "black"
+ },
+ "iphone 11 pro": {
+  "cores": {
+   "gold": {
+    "base": "iphone-11-pro-gold",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "midnightgreen": {
+    "base": "iphone-11-pro-midnightgreen",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-11-pro-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "spacegray": {
+    "base": "iphone-11-pro-spacegray",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "spacegray"
+ },
+ "iphone 11 pro max": {
+  "cores": {
+   "gold": {
+    "base": "iphone-11-pro-max-gold",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "midnightgreen": {
+    "base": "iphone-11-pro-max-midnightgreen",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-11-pro-max-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "spacegray": {
+    "base": "iphone-11-pro-max-spacegray",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "spacegray"
+ },
+ "iphone 12": {
+  "cores": {
+   "black": {
+    "base": "iphone-12-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "blue": {
+    "base": "iphone-12-blue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "green": {
+    "base": "iphone-12-green",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "red": {
+    "base": "iphone-12-red",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-12-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "blue"
+ },
+ "iphone 12 mini": {
+  "cores": {
+   "black": {
+    "base": "iphone-12-mini-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "blue": {
+    "base": "iphone-12-mini-blue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "green": {
+    "base": "iphone-12-mini-green",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "red": {
+    "base": "iphone-12-mini-red",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-12-mini-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "blue"
+ },
+ "iphone 12 pro": {
+  "cores": {
+   "graphite": {
+    "base": "iphone-12-pro-graphite",
+    "lados": [
+     "frente"
+    ]
+   }
+  },
+  "padrao": "graphite"
+ },
+ "iphone 12 pro max": {
+  "cores": {
+   "graphite": {
+    "base": "iphone-12-pro-max-graphite",
+    "lados": [
+     "frente"
+    ]
+   }
+  },
+  "padrao": "graphite"
+ },
+ "iphone 13": {
+  "cores": {
+   "blue": {
+    "base": "iphone-13-blue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "midnight": {
+    "base": "iphone-13-midnight",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "pink": {
+    "base": "iphone-13-pink",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "starlight": {
+    "base": "iphone-13-starlight",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "blue"
+ },
+ "iphone 13 mini": {
+  "cores": {
+   "blue": {
+    "base": "iphone-13-mini-blue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "midnight": {
+    "base": "iphone-13-mini-midnight",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "pink": {
+    "base": "iphone-13-mini-pink",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "starlight": {
+    "base": "iphone-13-mini-starlight",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "blue"
+ },
+ "iphone 13 pro": {
+  "cores": {
+   "alpinegreen": {
+    "base": "iphone-13-pro-alpinegreen",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "gold": {
+    "base": "iphone-13-pro-gold",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "graphite": {
+    "base": "iphone-13-pro-graphite",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "sierrablue": {
+    "base": "iphone-13-pro-sierrablue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-13-pro-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "sierrablue"
+ },
+ "iphone 13 pro max": {
+  "cores": {
+   "alpinegreen": {
+    "base": "iphone-13-pro-max-alpinegreen",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "gold": {
+    "base": "iphone-13-pro-max-gold",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "graphite": {
+    "base": "iphone-13-pro-max-graphite",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "sierrablue": {
+    "base": "iphone-13-pro-max-sierrablue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-13-pro-max-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "sierrablue"
+ },
+ "iphone 14": {
+  "cores": {
+   "blue": {
+    "base": "iphone-14-blue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "midnight": {
+    "base": "iphone-14-midnight",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "purple": {
+    "base": "iphone-14-purple",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "red": {
+    "base": "iphone-14-red",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "starlight": {
+    "base": "iphone-14-starlight",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "blue"
+ },
+ "iphone 14 plus": {
+  "cores": {
+   "blue": {
+    "base": "iphone-14-plus-blue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "midnight": {
+    "base": "iphone-14-plus-midnight",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "purple": {
+    "base": "iphone-14-plus-purple",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "red": {
+    "base": "iphone-14-plus-red",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "starlight": {
+    "base": "iphone-14-plus-starlight",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "blue"
+ },
+ "iphone 14 pro": {
+  "cores": {
+   "deeppurple": {
+    "base": "iphone-14-pro-deeppurple",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "gold": {
+    "base": "iphone-14-pro-gold",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-14-pro-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "spaceblack": {
+    "base": "iphone-14-pro-spaceblack",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "deeppurple"
+ },
+ "iphone 14 pro max": {
+  "cores": {
+   "deeppurple": {
+    "base": "iphone-14-pro-max-deeppurple",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "gold": {
+    "base": "iphone-14-pro-max-gold",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-14-pro-max-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "spaceblack": {
+    "base": "iphone-14-pro-max-spaceblack",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "deeppurple"
+ },
+ "iphone 15": {
+  "cores": {
+   "black": {
+    "base": "iphone-15-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "blue": {
+    "base": "iphone-15-blue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "green": {
+    "base": "iphone-15-green",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "pink": {
+    "base": "iphone-15-pink",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "yellow": {
+    "base": "iphone-15-yellow",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "blue"
+ },
+ "iphone 15 plus": {
+  "cores": {
+   "black": {
+    "base": "iphone-15-plus-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "blue": {
+    "base": "iphone-15-plus-blue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "green": {
+    "base": "iphone-15-plus-green",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "pink": {
+    "base": "iphone-15-plus-pink",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "yellow": {
+    "base": "iphone-15-plus-yellow",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "blue"
+ },
+ "iphone 15 pro": {
+  "cores": {
+   "blacktitanium": {
+    "base": "iphone-15-pro-blacktitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "bluetitanium": {
+    "base": "iphone-15-pro-bluetitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "naturaltitanium": {
+    "base": "iphone-15-pro-naturaltitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "whitetitanium": {
+    "base": "iphone-15-pro-whitetitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "naturaltitanium"
+ },
+ "iphone 15 pro max": {
+  "cores": {
+   "blacktitanium": {
+    "base": "iphone-15-pro-max-blacktitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "bluetitanium": {
+    "base": "iphone-15-pro-max-bluetitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "naturaltitanium": {
+    "base": "iphone-15-pro-max-naturaltitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "whitetitanium": {
+    "base": "iphone-15-pro-max-whitetitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "naturaltitanium"
+ },
+ "iphone 16": {
+  "cores": {
+   "black": {
+    "base": "iphone-16-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "pink": {
+    "base": "iphone-16-pink",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "teal": {
+    "base": "iphone-16-teal",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "ultramarine": {
+    "base": "iphone-16-ultramarine",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-16-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "ultramarine"
+ },
+ "iphone 16 plus": {
+  "cores": {
+   "black": {
+    "base": "iphone-16-plus-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "pink": {
+    "base": "iphone-16-plus-pink",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "teal": {
+    "base": "iphone-16-plus-teal",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "ultramarine": {
+    "base": "iphone-16-plus-ultramarine",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-16-plus-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "ultramarine"
+ },
+ "iphone 16 pro": {
+  "cores": {
+   "blacktitanium": {
+    "base": "iphone-16-pro-blacktitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "deserttitanium": {
+    "base": "iphone-16-pro-deserttitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "naturaltitanium": {
+    "base": "iphone-16-pro-naturaltitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "whitetitanium": {
+    "base": "iphone-16-pro-whitetitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "naturaltitanium"
+ },
+ "iphone 16 pro max": {
+  "cores": {
+   "blacktitanium": {
+    "base": "iphone-16-pro-max-blacktitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "deserttitanium": {
+    "base": "iphone-16-pro-max-deserttitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "naturaltitanium": {
+    "base": "iphone-16-pro-max-naturaltitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "whitetitanium": {
+    "base": "iphone-16-pro-max-whitetitanium",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "naturaltitanium"
+ },
+ "iphone 16e": {
+  "cores": {
+   "black": {
+    "base": "iphone-16e-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-16e-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "black"
+ },
+ "iphone 17": {
+  "cores": {
+   "black": {
+    "base": "iphone-17-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "lavender": {
+    "base": "iphone-17-lavender",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "mistblue": {
+    "base": "iphone-17-mistblue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "sage": {
+    "base": "iphone-17-sage",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-17-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "lavender"
+ },
+ "iphone 17 pro": {
+  "cores": {
+   "cosmicorange": {
+    "base": "iphone-17-pro-cosmicorange",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "deepblue": {
+    "base": "iphone-17-pro-deepblue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-17-pro-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "cosmicorange"
+ },
+ "iphone 17 pro max": {
+  "cores": {
+   "cosmicorange": {
+    "base": "iphone-17-pro-max-cosmicorange",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "deepblue": {
+    "base": "iphone-17-pro-max-deepblue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-17-pro-max-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "cosmicorange"
+ },
+ "iphone 17e": {
+  "cores": {
+   "black": {
+    "base": "iphone-17e-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "softpink": {
+    "base": "iphone-17e-softpink",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-17e-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "black"
+ },
+ "iphone 18 pro": {
+  "cores": {
+   "black": {
+    "base": "iphone-18-pro-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "burgundy": {
+    "base": "iphone-18-pro-burgundy",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "glacier": {
+    "base": "iphone-18-pro-glacier",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-18-pro-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "black"
+ },
+ "iphone 18 pro max": {
+  "cores": {
+   "black": {
+    "base": "iphone-18-pro-max-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "burgundy": {
+    "base": "iphone-18-pro-max-burgundy",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "glacier": {
+    "base": "iphone-18-pro-max-glacier",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-18-pro-max-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "black"
+ },
+ "iphone 7": {
+  "cores": {
+   "silver": {
+    "base": "iphone-7-silver",
+    "lados": [
+     "frente"
+    ]
+   }
+  },
+  "padrao": "silver"
+ },
+ "iphone 7 plus": {
+  "cores": {
+   "silver": {
+    "base": "iphone-7-plus-silver",
+    "lados": [
+     "frente"
+    ]
+   }
+  },
+  "padrao": "silver"
+ },
+ "iphone 8": {
+  "cores": {
+   "silver": {
+    "base": "iphone-8-silver",
+    "lados": [
+     "frente"
+    ]
+   }
+  },
+  "padrao": "silver"
+ },
+ "iphone 8 plus": {
+  "cores": {
+   "silver": {
+    "base": "iphone-8-plus-silver",
+    "lados": [
+     "frente"
+    ]
+   }
+  },
+  "padrao": "silver"
+ },
+ "iphone air": {
+  "cores": {
+   "cloudwhite": {
+    "base": "iphone-air-cloudwhite",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "lightgold": {
+    "base": "iphone-air-lightgold",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "skyblue": {
+    "base": "iphone-air-skyblue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "spaceblack": {
+    "base": "iphone-air-spaceblack",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "skyblue"
+ },
+ "iphone se 2": {
+  "cores": {
+   "black": {
+    "base": "iphone-se-2-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "red": {
+    "base": "iphone-se-2-red",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-se-2-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "black"
+ },
+ "iphone se 3": {
+  "cores": {
+   "midnight": {
+    "base": "iphone-se-3-midnight",
+    "lados": [
+     "frente"
+    ]
+   },
+   "starlight": {
+    "base": "iphone-se-3-starlight",
+    "lados": [
+     "frente"
+    ]
+   }
+  },
+  "padrao": "midnight"
+ },
+ "iphone x": {
+  "cores": {
+   "silver": {
+    "base": "iphone-x-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "spacegray": {
+    "base": "iphone-x-spacegray",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "silver"
+ },
+ "iphone xr": {
+  "cores": {
+   "black": {
+    "base": "iphone-xr-black",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "blue": {
+    "base": "iphone-xr-blue",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "coral": {
+    "base": "iphone-xr-coral",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "red": {
+    "base": "iphone-xr-red",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "white": {
+    "base": "iphone-xr-white",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "yellow": {
+    "base": "iphone-xr-yellow",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "black"
+ },
+ "iphone xs": {
+  "cores": {
+   "gold": {
+    "base": "iphone-xs-gold",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-xs-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "spacegray": {
+    "base": "iphone-xs-spacegray",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "gold"
+ },
+ "iphone xs max": {
+  "cores": {
+   "gold": {
+    "base": "iphone-xs-max-gold",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "silver": {
+    "base": "iphone-xs-max-silver",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   },
+   "spacegray": {
+    "base": "iphone-xs-max-spacegray",
+    "lados": [
+     "verso",
+     "frente"
+    ]
+   }
+  },
+  "padrao": "gold"
+ }
+}

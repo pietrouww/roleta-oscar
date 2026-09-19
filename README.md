@@ -14,3 +14,12 @@ Site estático que sorteia um filme entre **todos os 97 vencedores do Oscar de M
 O deploy é feito automaticamente no **GitHub Pages** via GitHub Actions (`.github/workflows/deploy-pages.yml`) a cada push.
 
 URL do site: `https://pietrouww.github.io/roleta-oscar/`
+
+---
+
+## Outros projetos neste repositório
+
+- [`i2brothers/`](i2brothers/) — **Catálogo de iPhones da i2Brothers (Assistência Apple)**:
+  catálogo público de aparelhos novos e seminovos, com fotos reais dos modelos,
+  simulador de parcelamento e área administrativa para atualizar a lista.
+  Publicado em `https://pietrouww.github.io/roleta-oscar/i2brothers/`.

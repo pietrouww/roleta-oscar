@@ -1,0 +1,129 @@
+/* ================= i2Brothers — área administrativa ================= */
+
+body.admin { background: var(--parchment); }
+
+.admin-topo {
+  background: #000; color: #fff; padding: 0;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 60;
+}
+.admin-topo .wrap { display: flex; align-items: center; gap: 16px; min-height: 52px; flex-wrap: wrap; }
+.admin-topo img { height: 22px; filter: invert(1); }
+.admin-topo .titulo { font-size: 14px; letter-spacing: -0.224px; color: rgba(255,255,255,.86); }
+.admin-topo .acoes { margin-left: auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.admin-topo .acoes a, .admin-topo .acoes button {
+  font-size: 14px; letter-spacing: -0.224px; color: #fff; background: rgba(255,255,255,.16);
+  border: none; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-family: var(--font-text);
+}
+.admin-topo .acoes button:active { transform: scale(.95); }
+.admin-topo .acoes .primario { background: var(--blue); }
+
+.abas { background: rgba(245,245,247,.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--divider);
+  position: sticky; top: calc(52px + env(safe-area-inset-top, 0px)); z-index: 55; }
+.abas .wrap { display: flex; gap: 6px; overflow-x: auto; min-height: 52px; align-items: center; }
+.aba {
+  background: transparent; border: none; border-radius: 980px; padding: 8px 18px;
+  font-family: var(--font-text); font-size: 14px; letter-spacing: -0.224px; color: var(--ink);
+  cursor: pointer; white-space: nowrap;
+}
+.aba[aria-selected="true"] { background: var(--ink); color: #fff; }
+.aba:active { transform: scale(.95); }
+
+.painel { padding: 34px 22px 80px; }
+.painel[hidden] { display: none; }
+
+.cartao {
+  background: #fff; border: 1px solid var(--divider); border-radius: 18px;
+  padding: 26px 28px; margin-bottom: 22px;
+}
+.cartao > h2 { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin: 0 0 6px; letter-spacing: -0.374px; }
+.cartao > .desc { font-size: 14px; color: var(--legal); letter-spacing: -0.224px; margin: 0 0 20px; line-height: 1.5; }
+
+label.campo { display: block; margin-bottom: 16px; }
+label.campo > span {
+  display: block; font-size: 12px; font-weight: 600; letter-spacing: -0.12px;
+  color: var(--legal); text-transform: uppercase; margin-bottom: 6px;
+}
+input[type="text"], input[type="number"], input[type="date"], input[type="password"],
+input[type="url"], select, textarea {
+  width: 100%; font-family: var(--font-text); font-size: 17px; letter-spacing: -0.374px;
+  color: var(--ink); background: #fff; border: 1px solid var(--divider);
+  border-radius: 11px; padding: 11px 14px;
+}
+textarea { min-height: 200px; resize: vertical; line-height: 1.6; font-size: 15px; }
+textarea.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+
+.linha-campos { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+
+.dica {
+  background: var(--parchment); border-radius: 11px; padding: 14px 16px;
+  font-size: 13px; line-height: 1.6; color: var(--muted); letter-spacing: -0.12px;
+}
+.dica code { background: #fff; padding: 1px 6px; border-radius: 5px; font-size: 12px; }
+
+.tabela { width: 100%; min-width: 1120px; border-collapse: collapse; font-size: 14px; letter-spacing: -0.224px; }
+.tabela th {
+  text-align: left; font-size: 11px; text-transform: uppercase; color: var(--legal);
+  font-weight: 600; padding: 0 8px 8px; border-bottom: 1px solid var(--divider); white-space: nowrap;
+}
+.tabela td { padding: 8px; border-bottom: 1px solid var(--divider); vertical-align: middle; }
+.tabela tbody tr:hover { background: var(--parchment); }
+.tabela input, .tabela select {
+  font-size: 14px; padding: 7px 9px; border-radius: 8px;
+}
+.tabela .num { text-align: right; }
+.tabela .mini { width: 92px; }
+.tabela .midi { width: 130px; }
+.tabela-rolagem { overflow-x: auto; margin: 0 -8px; }
+
+.remover {
+  background: transparent; border: none; color: #c0392b; cursor: pointer;
+  font-size: 14px; padding: 6px 8px; border-radius: 8px;
+}
+.remover:hover { background: rgba(192,57,43,.08); }
+
+.barra-lista { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+.barra-lista .info { margin-left: auto; font-size: 14px; color: var(--legal); }
+
+.pilula {
+  display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 9px;
+  border-radius: 980px; letter-spacing: -0.12px;
+}
+.pilula-novo { background: var(--blue); color: #fff; }
+.pilula-seminovo { background: var(--parchment); color: var(--muted); border: 1px solid var(--divider); }
+
+.previa-preco { font-weight: 600; white-space: nowrap; }
+.previa-parcela { font-size: 12px; color: var(--legal); white-space: nowrap; }
+
+.aviso-salvo {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: #fff; padding: 10px 20px; border-radius: 980px;
+  font-size: 14px; letter-spacing: -0.224px; z-index: 200; opacity: 0;
+  transition: opacity .25s ease; pointer-events: none;
+}
+.aviso-salvo.visivel { opacity: 1; }
+
+.login-fundo {
+  position: fixed; inset: 0; background: var(--parchment); z-index: 300;
+  display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.login-caixa {
+  background: #fff; border: 1px solid var(--divider); border-radius: 18px;
+  padding: 40px 34px; max-width: 380px; width: 100%; text-align: center;
+}
+.login-caixa img { height: 44px; margin: 0 auto 18px; }
+.login-caixa h1 { font-family: var(--font-display); font-size: 24px; font-weight: 600; margin: 0 0 6px; }
+.login-caixa p { font-size: 14px; color: var(--legal); margin: 0 0 22px; letter-spacing: -0.224px; }
+.login-caixa .btn { width: 100%; margin-top: 14px; }
+.login-erro { color: #c0392b; font-size: 14px; margin-top: 12px; min-height: 20px; }
+
+.taxas-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.taxas-grid label { margin: 0; }
+
+.preview-img { width: 40px; min-width: 40px; max-width: none; height: 52px; object-fit: contain; }
+.col-fotos { display: flex; gap: 2px; align-items: center; min-width: 84px; }
+.tabela select { min-width: 104px; }
+
+@media (max-width: 735px) {
+  .cartao { padding: 20px 18px; border-radius: 14px; }
+  .abas { top: 52px; }
+}

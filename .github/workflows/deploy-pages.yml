@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - claude/oscar-imdb-roulette-site-5l52x0
+      - claude/iphone-sales-catalog-i2brothers-8mlgtq
   workflow_dispatch:
 
 permissions:
