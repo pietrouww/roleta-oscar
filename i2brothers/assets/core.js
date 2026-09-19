@@ -119,6 +119,7 @@ const I2 = (() => {
      que a página de configuração fique numa subpasta e mesmo assim encontre os
      arquivos (assets/ e catalogo.json) na raiz da publicação.                */
   const BASE = (() => {
+    if (typeof I2_BASE !== 'undefined') return I2_BASE;      // versão de arquivo único
     try {
       const src = (typeof document !== 'undefined' && document.currentScript && document.currentScript.src) || '';
       return src ? src.replace(/[^/]*$/, '').replace(/assets\/$/, '') : '';
