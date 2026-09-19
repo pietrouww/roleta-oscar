@@ -55,12 +55,22 @@ Depois é só apontar `public_html/venda_aparelhos` para `public_html/repo/i2bro
 (link simbólico) ou copiar a pasta após cada **Deploy**. Nesse caminho, o
 `catalogo.json` publicado passa a vir do repositório.
 
-## Antes de divulgar o link
+## Sobre o acesso à configuração
 
-- Troque a senha da configuração em **Preços e taxas → Senha do painel**
-  (padrão: `i2brothers`). Ela protege só a tela, no navegador — não é proteção
-  de servidor. Se quiser proteção de verdade, dá para pôr uma senha de pasta em
-  hPanel → **Avançado** → **Proteção de diretório**, apontando para
-  `public_html/venda_aparelhos/config`.
-- Renomeie a pasta `config` para algo menos óbvio, se preferir: basta trocar o
-  nome na hospedagem e no rodapé do catálogo.
+O catálogo é aberto: o cliente entra e navega, sem senha. A senha vale só para
+`/venda_aparelhos/config/`, e **o catálogo não tem link para lá** — só chega
+quem souber o endereço.
+
+A senha é guardada como resumo SHA-256 dentro do `catalogo.json`, nunca em
+texto. Isso importa porque esse arquivo fica público na hospedagem: se a senha
+estivesse em texto, bastaria abrir
+`rfserver.link/venda_aparelhos/catalogo.json` para lê-la.
+
+Ainda assim, é uma tranca de tela — não há servidor conferindo nada. **Para
+proteção de verdade**, ative em hPanel → **Avançado** → **Proteção de
+diretório**, apontando para `public_html/venda_aparelhos/config`. Aí o próprio
+servidor pede usuário e senha antes de a página carregar.
+
+Para trocar a senha depois: aba **Preços e taxas** → *Trocar a senha desta
+página* → digite a nova → publique o `catalogo.json`. Renomear a pasta `config`
+para algo menos óbvio também ajuda: basta trocar o nome na hospedagem.

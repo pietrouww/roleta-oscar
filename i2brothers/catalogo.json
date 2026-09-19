@@ -12,7 +12,6 @@
     "atualizadoEm": "2026-09-18",
     "garantiaNovo": "1 ano de garantia Apple",
     "garantiaSeminovo": "3 meses de garantia da loja",
-    "senha": "i2brothers",
     "taxas": {
       "debito": 0.85,
       "credito": {
@@ -29,7 +28,8 @@
         "11": 9.56,
         "12": 10.12
       }
-    }
+    },
+    "senhaHash": "3676ea21edae3af175f03087b8aea883624bd1b3dbfeb655a5a0c1b7637b784c"
   },
   "aparelhos": [
     {

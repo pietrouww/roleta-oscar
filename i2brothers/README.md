@@ -37,7 +37,7 @@ publicar o catálogo de iPhones **novos** e **seminovos** da i2Brothers — Assi
 
 ## Uso diário
 
-1. Abra `admin.html` e entre com a senha (padrão: `i2brothers` — troque em **Preços e taxas**).
+1. Abra `config/` e entre com a senha (trocável em **Preços e taxas**).
 2. Aba **Importar lista** → cole a lista, escolha a seção (novos/seminovos) e processe.
 3. Confira a prévia e confirme.
 4. Aba **Publicar** → **Baixar catalogo.json** e substitua o arquivo `catalogo.json`
@@ -138,8 +138,10 @@ pela traseira, então a foto da tela vem da arte de comparação da Apple.
 
 ## Observações
 
-- A senha do painel protege apenas a tela, no navegador. Como o site é estático,
-  não existe autenticação de servidor — mantenha o endereço do painel restrito à equipe.
+- O catálogo é aberto e não tem link para a configuração; a senha vale só para
+  `config/`. Ela é guardada como resumo SHA-256, nunca em texto, porque o
+  `catalogo.json` fica público. Ainda assim é uma tranca de tela: para proteção
+  real, use a proteção de diretório da hospedagem sobre a pasta `config`.
 - As imagens dos aparelhos são material oficial da Apple, usadas para identificar os
   modelos à venda. iPhone e Apple são marcas registradas da Apple Inc.; a i2Brothers é
   uma assistência independente, sem vínculo com a Apple Inc.

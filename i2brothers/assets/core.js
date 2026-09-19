@@ -30,7 +30,10 @@ const I2 = (() => {
     atualizadoEm: '',               // ISO date (YYYY-MM-DD)
     garantiaNovo: '1 ano de garantia Apple',
     garantiaSeminovo: '3 meses de garantia da loja',
-    senha: 'i2brothers',
+    // Resumo (SHA-256) da senha da página de configuração. A senha em si nunca
+    // é gravada: o catalogo.json fica público na hospedagem, e o que está aqui
+    // qualquer um consegue ler.
+    senhaHash: '3676ea21edae3af175f03087b8aea883624bd1b3dbfeb655a5a0c1b7637b784c',
     estiloImagem: 'ilustracao',     // 'ilustracao' (padrão, uniforme) | 'foto' (material da Apple)
     taxas: JSON.parse(JSON.stringify(TAXAS_PADRAO))
   };
@@ -425,6 +428,74 @@ const I2 = (() => {
       .filter(Boolean);
   }
 
+  /* ---------- Senha da configuração --------------------------------------
+     O catálogo é aberto; a senha vale só para a página de configuração. Como
+     o arquivo de dados fica público, guardamos apenas o resumo SHA-256 dela.  */
+  function sha256Hex(texto) {
+  const K = [];
+  const H = [];
+  let n = 2, i = 0;
+  const raiz = (x, p) => {
+    const r = Math.pow(x, 1 / p);
+    return Math.floor((r - Math.floor(r)) * Math.pow(2, 32)) >>> 0;
+  };
+  const primo = (x) => { for (let d = 2; d * d <= x; d++) if (x % d === 0) return false; return true; };
+  while (i < 64) {
+    if (primo(n)) {
+      if (i < 8) H.push(raiz(n, 2));
+      K.push(raiz(n, 3));
+      i++;
+    }
+    n++;
+  }
+  const bytes = [];
+  for (const ch of unescape(encodeURIComponent(texto))) bytes.push(ch.charCodeAt(0));
+  const bits = bytes.length * 8;
+  bytes.push(0x80);
+  while (bytes.length % 64 !== 56) bytes.push(0);
+  for (let j = 7; j >= 0; j--) bytes.push((j < 4 ? Math.floor(bits / Math.pow(2, 8 * j)) : 0) & 0xff);
+
+  const h = H.slice();
+  const w = new Array(64);
+  const rotr = (x, c) => ((x >>> c) | (x << (32 - c))) >>> 0;
+  for (let bloco = 0; bloco < bytes.length; bloco += 64) {
+    for (let t = 0; t < 16; t++) {
+      w[t] = ((bytes[bloco + t * 4] << 24) | (bytes[bloco + t * 4 + 1] << 16) |
+              (bytes[bloco + t * 4 + 2] << 8) | bytes[bloco + t * 4 + 3]) >>> 0;
+    }
+    for (let t = 16; t < 64; t++) {
+      const s0 = (rotr(w[t - 15], 7) ^ rotr(w[t - 15], 18) ^ (w[t - 15] >>> 3)) >>> 0;
+      const s1 = (rotr(w[t - 2], 17) ^ rotr(w[t - 2], 19) ^ (w[t - 2] >>> 10)) >>> 0;
+      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) >>> 0;
+    }
+    let [a, b, c, d, e, f, g, hh] = h;
+    for (let t = 0; t < 64; t++) {
+      const S1 = (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) >>> 0;
+      const ch = ((e & f) ^ (~e & g)) >>> 0;
+      const t1 = (hh + S1 + ch + K[t] + w[t]) >>> 0;
+      const S0 = (rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) >>> 0;
+      const maj = ((a & b) ^ (a & c) ^ (b & c)) >>> 0;
+      const t2 = (S0 + maj) >>> 0;
+      hh = g; g = f; f = e; e = (d + t1) >>> 0;
+      d = c; c = b; b = a; a = (t1 + t2) >>> 0;
+    }
+    const novos = [a, b, c, d, e, f, g, hh];
+    for (let t = 0; t < 8; t++) h[t] = (h[t] + novos[t]) >>> 0;
+  }
+  return h.map(x => x.toString(16).padStart(8, '0')).join('');
+  }
+
+  /** Resumo da senha, para gravar na configuração. */
+  const hashSenha = (texto) => sha256Hex(String(texto == null ? '' : texto));
+
+  /** Confere a senha digitada contra a configuração. */
+  function confereSenha(texto, config) {
+    const c = config || {};
+    if (c.senhaHash) return hashSenha(texto) === c.senhaHash;
+    if (c.senha) return String(texto) === String(c.senha);   // arquivo antigo
+    return hashSenha(texto) === CONFIG_PADRAO.senhaHash;
+  }
+
   /* ---------- Utilidades -------------------------------------------------- */
   function uid() {
     return 'ap' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -490,7 +561,7 @@ const I2 = (() => {
   return {
     STORAGE_KEY, AUTH_KEY, TAXAS_PADRAO, CONFIG_PADRAO, CORES,
     catalogoVazio, mescla, salvarLocal, lerLocal, lerPublicado, baixarJSON,
-    BASE, fotosDe, fotoPrincipal, ROTULO_LADO, svgAparelho, corHex, corSlug, familiaDe, FOTOS,
+    BASE, hashSenha, confereSenha, fotosDe, fotoPrincipal, ROTULO_LADO, svgAparelho, corHex, corSlug, familiaDe, FOTOS,
     desenhosDe, fotosApple,
     money, pct, dataBR, hojeISO, uid, nomeCompleto, norm,
     precoAVista, simular, melhorParcela, aplicaTaxa,
