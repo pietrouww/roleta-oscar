@@ -83,6 +83,18 @@
       </div>
     </section>
 
+    <div id="sec-numeros" hidden>
+      <h2 class="secao-titulo">Números de WhatsApp</h2>
+      <section id="lista-numeros" class="secao"></section>
+      <section class="secao espaco">
+        <button id="btn-novo-numero" class="linha linha-btn verde-txt">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+          Conectar novo número
+        </button>
+      </section>
+      <p class="secao-nota sec pequeno">Cada número vira uma caixa de entrada no Chatwoot. As respostas saem com o nome do atendente.</p>
+    </div>
+
     <h2 class="secao-titulo">Notificações</h2>
     <section class="secao">
       <div class="linha">
@@ -140,6 +152,49 @@
     </button>
   </nav>
 </div>
+
+<dialog id="qr-dialog" class="folha" aria-labelledby="qr-titulo">
+  <div class="folha-topo">
+    <button id="qr-fechar" class="link-btn">Fechar</button>
+    <h2 id="qr-titulo">Conectar número</h2>
+    <span class="folha-esp"></span>
+  </div>
+
+  <form id="qr-passo-nome" class="folha-corpo">
+    <p class="sec">Como esse número vai aparecer para a equipe?</p>
+    <div class="grupo"><label class="campo"><span>Nome</span><input id="qr-nome" name="nome" maxlength="40" placeholder="Ex.: Comercial" required></label></div>
+    <p id="qr-erro-nome" class="erro" role="alert"></p>
+    <button type="submit" class="btn-verde">Continuar</button>
+  </form>
+
+  <div id="qr-passo-qr" class="folha-corpo" hidden>
+    <ol class="passos-qr">
+      <li>Abra o <strong>WhatsApp Business</strong> no celular desse número.</li>
+      <li>Toque em <strong>Configurações</strong> (iPhone) ou <strong>⋮ Mais opções</strong> (Android).</li>
+      <li>Toque em <strong>Aparelhos conectados</strong> → <strong>Conectar um aparelho</strong>.</li>
+      <li>Aponte a câmera para este código.</li>
+    </ol>
+    <div class="qr-caixa">
+      <img id="qr-img" alt="QR Code para conectar o WhatsApp" width="264" height="264">
+      <p id="qr-carregando" class="sec pequeno">Gerando código…</p>
+    </div>
+    <p id="qr-status" class="sec pequeno centro" role="status">O código se renova sozinho a cada 30 segundos.</p>
+    <details class="parear">
+      <summary>Está no mesmo celular? Conectar com número de telefone</summary>
+      <p class="sec pequeno">No WhatsApp, em <strong>Conectar um aparelho</strong>, toque em <strong>Conectar com número de telefone</strong> e digite o código abaixo.</p>
+      <div class="grupo"><label class="campo"><span>Número</span><input id="qr-numero" inputmode="tel" placeholder="(41) 99999-0000"></label></div>
+      <button id="qr-gerar-codigo" class="btn-contorno btn-p">Gerar código</button>
+      <p id="qr-codigo" class="codigo" aria-live="polite"></p>
+    </details>
+  </div>
+
+  <div id="qr-passo-ok" class="folha-corpo centro" hidden>
+    <svg aria-hidden="true" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#1DAA61" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M7.5 12.5l3 3 6-6.5"></path></svg>
+    <p class="grande">Número conectado!</p>
+    <p class="sec pequeno">As novas mensagens desse número já chegam no Chatwoot e entram no painel de pendências.</p>
+    <button id="qr-ok" class="btn-verde">Pronto</button>
+  </div>
+</dialog>
 
 <script src="/app.js" type="module"></script>
 </body>

@@ -2,3 +2,7 @@
 	encode gzip
 	reverse_proxy painel:3100
 }
+
+{$EVOLUTION_DOMINIO} {
+	reverse_proxy evolution:8080
+}

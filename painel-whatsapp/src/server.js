@@ -3,7 +3,8 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { config, validateConfig } from './config.js';
 import { ChatwootClient } from './chatwoot.js';
-import { DemoChatwootClient } from './demo.js';
+import { DemoChatwootClient, DemoEvolutionClient } from './demo.js';
+import { EvolutionClient, slug } from './evolution.js';
 import { PendenciasEngine } from './pendencias.js';
 import { Store } from './store.js';
 import { PushService } from './push.js';
@@ -21,6 +22,13 @@ if (problems.length) {
 const store = new Store(config.dataDir);
 const client = config.demo ? new DemoChatwootClient() : new ChatwootClient(config.chatwoot);
 const engine = new PendenciasEngine({ client, config });
+const evolution = config.demo
+  ? new DemoEvolutionClient()
+  : new EvolutionClient({
+      url: config.evolution.url,
+      apiKey: config.evolution.apiKey,
+      chatwoot: { url: config.evolution.chatwootUrl, accountId: config.chatwoot.accountId, token: config.evolution.chatwootToken },
+    });
 const push = new PushService({ store, config });
 const scheduler = new Scheduler({ engine, store, push, config });
 const auth = createAuth({ secret: config.sessionSecret, secure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : !config.demo });
@@ -68,7 +76,12 @@ app.post('/api/logout', (req, res) => {
 });
 
 app.get('/api/me', auth.require, (req, res) => {
-  res.json({ usuario: { name: req.user.name, email: req.user.email }, demo: config.demo, horarios: config.checks.times });
+  res.json({
+    usuario: { name: req.user.name, email: req.user.email, admin: req.user.role === 'administrator' },
+    demo: config.demo,
+    horarios: config.checks.times,
+    qrcode: evolution.configured,
+  });
 });
 
 // ---- Pendências agora ----
@@ -124,6 +137,84 @@ app.post('/api/push/teste', auth.require, async (req, res) => {
     (s) => s.user.id === req.user.id,
   );
   res.json({ enviados: n });
+});
+
+// ---- Números de WhatsApp por QR Code (Evolution API) — só administradores ----
+const semEvolution = (res) => res.status(503).json({ erro: 'Evolution API não configurada (EVOLUTION_API_KEY no .env)' });
+const nomeValido = (n) => /^[a-z0-9][a-z0-9-]{1,39}$/.test(n);
+const erroEvolution = (res, err) => {
+  console.error('[evolution]', err.message);
+  res.status(502).json({ erro: 'Não foi possível falar com a Evolution API' });
+};
+
+app.get('/api/conexoes', auth.requireAdmin, async (req, res) => {
+  if (!evolution.configured) return semEvolution(res);
+  try {
+    res.json({ conexoes: await evolution.list() });
+  } catch (err) {
+    erroEvolution(res, err);
+  }
+});
+
+app.post('/api/conexoes', auth.requireAdmin, async (req, res) => {
+  if (!evolution.configured) return semEvolution(res);
+  const titulo = String(req.body?.nome || '').trim().slice(0, 40);
+  const nome = slug(titulo);
+  if (!titulo || !nomeValido(nome)) return res.status(400).json({ erro: 'Dê um nome ao número, ex.: Comercial' });
+  try {
+    const existentes = await evolution.list();
+    if (existentes.some((c) => c.nome === nome)) return res.status(409).json({ erro: 'Já existe um número com esse nome' });
+    await evolution.create(nome);
+    await evolution.setChatwoot(nome, titulo);
+    engine.inboxesAt = 0; // a caixa nova no Chatwoot aparece na próxima varredura
+    res.json({ nome });
+  } catch (err) {
+    erroEvolution(res, err);
+  }
+});
+
+app.get('/api/conexoes/:nome/qr', auth.requireAdmin, async (req, res) => {
+  if (!evolution.configured) return semEvolution(res);
+  if (!nomeValido(req.params.nome)) return res.status(400).json({ erro: 'Nome inválido' });
+  const numero = String(req.query.numero || '').replace(/\D/g, '');
+  try {
+    res.json(await evolution.connect(req.params.nome, numero || undefined));
+  } catch (err) {
+    erroEvolution(res, err);
+  }
+});
+
+app.get('/api/conexoes/:nome/estado', auth.requireAdmin, async (req, res) => {
+  if (!evolution.configured) return semEvolution(res);
+  if (!nomeValido(req.params.nome)) return res.status(400).json({ erro: 'Nome inválido' });
+  try {
+    res.json({ estado: await evolution.state(req.params.nome) });
+  } catch (err) {
+    erroEvolution(res, err);
+  }
+});
+
+app.post('/api/conexoes/:nome/desconectar', auth.requireAdmin, async (req, res) => {
+  if (!evolution.configured) return semEvolution(res);
+  if (!nomeValido(req.params.nome)) return res.status(400).json({ erro: 'Nome inválido' });
+  try {
+    await evolution.logout(req.params.nome);
+    res.json({ ok: true });
+  } catch (err) {
+    erroEvolution(res, err);
+  }
+});
+
+app.delete('/api/conexoes/:nome', auth.requireAdmin, async (req, res) => {
+  if (!evolution.configured) return semEvolution(res);
+  if (!nomeValido(req.params.nome)) return res.status(400).json({ erro: 'Nome inválido' });
+  try {
+    await evolution.logout(req.params.nome).catch(() => {});
+    await evolution.remove(req.params.nome);
+    res.json({ ok: true });
+  } catch (err) {
+    erroEvolution(res, err);
+  }
 });
 
 // Só em modo demonstração: dispara uma verificação na hora para ver o resultado

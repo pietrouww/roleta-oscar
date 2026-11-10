@@ -13,6 +13,10 @@ As conversas pendentes também ganham **etiquetas no próprio Chatwoot** (`pediu
 
 Os atendentes entram no painel com o **mesmo e-mail e senha do Chatwoot**.
 
+Os números de WhatsApp são conectados **por QR Code direto no app** (*Ajustes → Números de WhatsApp*), usando a **Evolution API**, que já vem no `docker-compose.yml`. Cada número vira uma caixa de entrada no Chatwoot, e as respostas saem para o cliente com o nome do atendente.
+
+> ⚠️ A conexão por QR Code **não é a API oficial** do WhatsApp. Funciona como o WhatsApp Web e pode levar a bloqueio do número, principalmente se mandar muitas mensagens para quem não tem seu contato. Use para atendimento (responder quem te chama), evite disparos em massa, e **não conecte por QR o número verificado com IA da Meta**.
+
 ---
 
 ## 1. Testar no computador (sem Chatwoot)
@@ -26,7 +30,12 @@ Qualquer e-mail e senha entram no modo demonstração.
 
 ## 2. Instalar no VPS da Hostinger
 
-Pré-requisito: VPS (KVM 2 ou maior) com o Chatwoot já rodando, por exemplo com o modelo **"Ubuntu 24.04 with Chatwoot"**.
+Pré-requisito: VPS (KVM 2 ou maior, 8 GB de RAM) com o Chatwoot já rodando, por exemplo com o modelo **"Ubuntu 24.04 with Chatwoot"**. Esse modelo deixa o Chatwoot em `/root/chatwoot`.
+
+**Antes de começar, no Chatwoot:**
+1. Crie sua conta de administrador e entre.
+2. Em *Configurações → Agentes*, crie um usuário **"Celular"** com papel **Administrador** (pode usar um e-mail seu com `+celular`, ex.: `voce+celular@gmail.com`). Entre com ele uma vez e copie o **Token de acesso** (foto → *Configurações do perfil*). Mensagens enviadas direto pelo celular vão aparecer com o nome "Celular".
+3. Copie também o token do **seu** usuário administrador.
 
 ### 2.1 Copiar o projeto para o servidor
 
@@ -49,7 +58,11 @@ nano .env
 |---|---|
 | `CHATWOOT_URL` / `CHATWOOT_PUBLIC_URL` | Endereço do seu Chatwoot (ex.: `https://atendimento.suaempresa.com.br`) |
 | `CHATWOOT_ACCOUNT_ID` | Número que aparece na URL do Chatwoot: `.../app/accounts/`**`1`**`/...` |
-| `CHATWOOT_API_TOKEN` | No Chatwoot, com um usuário **administrador**: foto → *Configurações do perfil* → *Token de acesso* |
+| `CHATWOOT_API_TOKEN` | Token do **seu** usuário administrador (foto → *Configurações do perfil* → *Token de acesso*) |
+| `CHATWOOT_TOKEN_CELULAR` | Token do usuário **"Celular"** criado acima |
+| `EVOLUTION_API_KEY` | Rode `openssl rand -hex 24` e cole o resultado |
+| `EVOLUTION_DB_PASSWORD` | Rode `openssl rand -hex 16` e cole o resultado |
+| `EVOLUTION_PUBLIC_URL` / `EVOLUTION_DOMINIO` | Subdomínio da Evolution, ex.: `https://evolution.suaempresa.com.br` / `evolution.suaempresa.com.br` |
 | `SESSION_SECRET` | Rode `openssl rand -hex 32` e cole o resultado |
 | `VAPID_SUBJECT` | `mailto:` + um e-mail seu (usado pelas notificações) |
 | `PAINEL_DOMINIO` | Subdomínio do painel, ex.: `painel.suaempresa.com.br` |
@@ -58,9 +71,14 @@ Salve com `Ctrl+O`, `Enter`, `Ctrl+X`.
 
 ### 2.3 Apontar o subdomínio
 
-No DNS do seu domínio (na Hostinger: *Domínios → DNS*), crie um registro **A** com nome `painel` apontando para o **IP do VPS**.
+No DNS do seu domínio (na Hostinger: *Domínios → DNS*), crie dois registros **A** apontando para o **IP do VPS**:
 
-### 2.4 Subir o painel
+| Nome | Para quê |
+|---|---|
+| `painel` | O app dos atendentes |
+| `evolution` | A Evolution API (o Chatwoot usa esse endereço para mandar as respostas ao WhatsApp) |
+
+### 2.4 Subir o painel e a Evolution API
 
 As notificações do iPhone **exigem HTTPS**. Antes, veja se as portas 80/443 já estão em uso (o Chatwoot pode já ter um proxy):
 
@@ -74,7 +92,7 @@ sudo ss -ltnp | grep -E ':(80|443) '
 docker compose --profile https up -d --build
 ```
 
-**B) Portas já usadas por um Nginx no servidor.** Suba só o painel e acrescente um site no Nginx:
+**B) Portas já usadas por um Nginx no servidor.** Suba sem o Caddy e acrescente dois sites no Nginx:
 
 ```bash
 docker compose up -d --build
@@ -92,15 +110,28 @@ server {
 }
 ```
 
-Depois rode `sudo certbot --nginx -d painel.suaempresa.com.br` para o HTTPS.
+```nginx
+server {
+    server_name evolution.suaempresa.com.br;
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
 
-**C) Portas usadas pelo Traefik ou por outro proxy em Docker.** Suba o painel com `docker compose up -d --build` e crie uma rota no proxy existente para `http://127.0.0.1:3100` (ou para o container `painel-pendencias`, porta 3100).
+Depois rode `sudo certbot --nginx -d painel.suaempresa.com.br -d evolution.suaempresa.com.br` para o HTTPS.
+
+**C) Portas usadas pelo Traefik ou por outro proxy em Docker.** Suba com `docker compose up -d --build` e crie no proxy existente duas rotas: `painel.…` → `http://127.0.0.1:3100` e `evolution.…` → `http://127.0.0.1:8080`.
 
 Conferir se está no ar:
 
 ```bash
 docker compose logs -f painel      # deve mostrar "Painel de pendências rodando na porta 3100"
 curl http://127.0.0.1:3100/health  # {"ok":true,...}
+docker compose logs -f evolution   # a Evolution API deve subir sem erros de banco
+curl https://evolution.suaempresa.com.br   # deve responder (mensagem de boas-vindas da Evolution)
 ```
 
 ### 2.5 Criar as etiquetas no Chatwoot
@@ -116,11 +147,32 @@ Em *Configurações → Etiquetas*, crie `pediu-atendente` (vermelho), `retorno-
 
 > As notificações no iPhone precisam do iOS 16.4 ou mais novo e do app aberto pelo ícone da Tela de Início.
 
+### 2.7 Conectar os números por QR Code
+
+1. Num computador ou outro celular, abra o painel e entre com um usuário **administrador** do Chatwoot.
+2. Vá em **Ajustes → Números de WhatsApp → Conectar novo número** e dê um nome (ex.: `Comercial`).
+3. Aparece o QR Code. No celular do número: **WhatsApp Business → Configurações → Aparelhos conectados → Conectar um aparelho** e aponte para o código.
+   - Se o painel estiver aberto no **mesmo celular** do número, use *Conectar com número de telefone*: o painel mostra um código de 8 letras para digitar no WhatsApp.
+4. Em alguns segundos aparece **"Número conectado!"**. No Chatwoot surge uma caixa de entrada com o mesmo nome.
+5. Repita para o segundo número.
+6. No Chatwoot, em *Configurações → Caixas de entrada → (a caixa nova) → Colaboradores*, adicione os atendentes que vão responder por ela.
+
+O celular continua funcionando normalmente. Ele só precisa entrar na internet de vez em quando (pelo menos a cada 14 dias) para a conexão não cair.
+
 ## 3. Nome do atendente na mensagem para o cliente
 
-O painel já mostra quem respondeu. Para o **cliente** também ver o nome, cada atendente configura no Chatwoot: foto → *Configurações do perfil* → **Assinatura de mensagem** (ex.: `*Ana*`), e ativa a assinatura na caixa de resposta.
+Com a conexão por QR Code isso **já é automático**: quando a Ana responde pelo Chatwoot, o cliente recebe
+
+```
+*Ana Souza:*
+Bom dia! Temos sim.
+```
+
+Não ative também a "Assinatura de mensagem" do Chatwoot, senão o nome sai duas vezes. Se um dia migrar para a API oficial, aí sim use a assinatura do Chatwoot (foto → *Configurações do perfil* → **Assinatura de mensagem**).
 
 ## 4. Selo IA e números com IA da Meta
+
+- Nos números conectados por QR Code, o que alguém mandar **direto pelo celular** aparece no Chatwoot como enviado pelo usuário **"Celular"** e conta como resposta humana.
 
 - Em `AI_DETECTION=sem_usuario` (padrão), toda resposta que **não** saiu de um atendente do Chatwoot recebe o selo **IA**: a IA da Meta, robôs (Agent Bot) e automações.
 - Se a equipe também responder **pelo app do celular** nesse número, essas respostas também ganham o selo IA. Nesse caso use `AI_DETECTION=assinatura` e `AI_SIGNATURE_REGEX` com um trecho que só a IA escreve (ex.: `assistente virtual`). As outras respostas fora do Chatwoot aparecem como **Celular**.
@@ -154,6 +206,11 @@ cd /opt/painel-whatsapp && docker compose up -d --build
 - **"Falha ao consultar o Chatwoot"**: confira `CHATWOOT_URL`, `CHATWOOT_ACCOUNT_ID` e se o token é de um administrador (`docker compose logs painel`).
 - **Login não funciona**: se o usuário usa verificação em duas etapas no Chatwoot, o login direto pode ser recusado.
 - **Verificação "não executada"**: o servidor estava desligado no horário.
+- **"Evolution API não configurada"**: falta `EVOLUTION_API_KEY` no `.env`.
+- **QR Code não aparece ou não conecta**: veja `docker compose logs evolution`. O WhatsApp muda com frequência; atualize a versão da imagem `evoapicloud/evolution-api` no `docker-compose.yml` para a mais recente e rode `docker compose up -d`.
+- **Mensagens do cliente não chegam no Chatwoot**: confira `CHATWOOT_TOKEN_CELULAR`, `CHATWOOT_ACCOUNT_ID` e se a Evolution consegue abrir o endereço do Chatwoot (`docker compose exec evolution wget -qO- $CHATWOOT_URL`).
+- **Respostas do Chatwoot não chegam no cliente**: o Chatwoot precisa abrir `EVOLUTION_PUBLIC_URL`. Teste no navegador `https://evolution.suaempresa.com.br`.
+- **Número desconectou sozinho**: em *Ajustes → Números de WhatsApp*, toque em **Conectar** e leia o QR Code de novo.
 
 ## Estrutura
 
@@ -163,6 +220,7 @@ src/chatwoot.js     comunicação com a API do Chatwoot
 src/pendencias.js   varredura das conversas abertas, cache e etiquetas
 src/scheduler.js    verificações 08:30/12:00/17:00 e alertas imediatos
 src/push.js         notificações no celular
+src/evolution.js    conexão dos números por QR Code (Evolution API)
 public/             app (PWA) que roda no iPhone
 test/               testes (npm test)
 ```

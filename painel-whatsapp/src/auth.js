@@ -12,7 +12,7 @@ export function createAuth({ secret, secure }) {
 
   function issue(res, user) {
     const payload = Buffer.from(
-      JSON.stringify({ id: user.id, name: user.name, email: user.email, exp: Date.now() + MAX_AGE_DAYS * 864e5 }),
+      JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role || '', exp: Date.now() + MAX_AGE_DAYS * 864e5 }),
     ).toString('base64url');
     const value = `${payload}.${sign(payload)}`;
     res.setHeader('Set-Cookie', [
@@ -49,5 +49,12 @@ export function createAuth({ secret, secure }) {
     next();
   }
 
-  return { issue, clear, read, require };
+  function requireAdmin(req, res, next) {
+    require(req, res, () => {
+      if (req.user.role !== 'administrator') return res.status(403).json({ erro: 'Somente administradores do Chatwoot' });
+      next();
+    });
+  }
+
+  return { issue, clear, read, require, requireAdmin };
 }

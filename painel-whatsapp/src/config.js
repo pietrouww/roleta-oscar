@@ -49,6 +49,16 @@ export const config = {
     maxMessages: int('MAX_MESSAGES', 60),
   },
 
+  // Evolution API: conecta números de WhatsApp por QR Code (sem API oficial)
+  evolution: {
+    url: env('EVOLUTION_URL', 'http://evolution:8080').replace(/\/+$/, ''),
+    apiKey: env('EVOLUTION_API_KEY', ''),
+    // Token do Chatwoot usado pela Evolution. Mensagens enviadas pelo celular aparecem com o nome desse usuário.
+    chatwootToken: env('CHATWOOT_TOKEN_CELULAR', env('CHATWOOT_API_TOKEN', '')),
+    // Endereço do Chatwoot visto pela Evolution (padrão: o mesmo CHATWOOT_URL)
+    chatwootUrl: env('EVOLUTION_CHATWOOT_URL', env('CHATWOOT_URL', '')).replace(/\/+$/, ''),
+  },
+
   checks: {
     times: list('CHECK_TIMES', '08:30,12:00,17:00'),
     days: env('CHECK_DAYS', '1-6'), // 1=segunda ... 6=sábado (formato cron)

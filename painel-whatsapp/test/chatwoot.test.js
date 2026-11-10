@@ -24,7 +24,7 @@ function fakeChatwoot() {
       if (u.pathname === '/auth/sign_in') {
         const b = JSON.parse(body);
         return b.password === 'certa'
-          ? json(200, { data: { id: 7, name: 'Ana Souza', email: b.email, accounts: [{ id: 3 }] } })
+          ? json(200, { data: { id: 7, name: 'Ana Souza', email: b.email, accounts: [{ id: 3, role: 'administrator' }] } })
           : json(401, { errors: ['x'] });
       }
       if (u.pathname === '/api/v1/accounts/3/inboxes') return json(200, { payload: [{ id: 11, name: 'Comercial', phone_number: '+55' }] });
@@ -52,6 +52,7 @@ test('cliente Chatwoot + varredura completa', async () => {
     assert.equal(await client.signIn('ana@x.com', 'errada'), null);
     const u = await client.signIn('ana@x.com', 'certa');
     assert.equal(u.name, 'Ana Souza');
+    assert.equal(u.role, 'administrator');
 
     const raw = await client.listMessages(99, 60);
     assert.equal(raw.length, 26, 'busca páginas anteriores');

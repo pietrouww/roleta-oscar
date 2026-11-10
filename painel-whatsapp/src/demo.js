@@ -126,3 +126,79 @@ export class DemoChatwootClient {
     return { id: 1, name: name.replace(/\b\w/g, (c) => c.toUpperCase()), email, role: 'administrator' };
   }
 }
+
+// Evolution API de mentira: mostra um QR Code ilustrativo e "conecta" depois de alguns segundos.
+export class DemoEvolutionClient {
+  constructor() {
+    this.configured = true;
+    this.instances = new Map([
+      ['comercial', { nome: 'comercial', estado: 'conectado', numero: '5541999990001', perfil: 'Comercial', foto: '' }],
+      ['suporte', { nome: 'suporte', estado: 'desconectado', numero: '', perfil: '', foto: '' }],
+    ]);
+  }
+
+  async list() {
+    return [...this.instances.values()].map((i) => ({ ...i }));
+  }
+
+  async create(nome) {
+    if (this.instances.has(nome)) throw new Error('Já existe um número com esse nome');
+    this.instances.set(nome, { nome, estado: 'desconectado', numero: '', perfil: '', foto: '' });
+  }
+
+  async setChatwoot() {}
+
+  fakeQr(seed) {
+    const n = 29;
+    let rects = '';
+    let h = 0;
+    for (const c of seed) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        const finder = (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7);
+        h = (h * 1103515245 + 12345) >>> 0;
+        if (finder) {
+          const fx = x < 7 ? x : x - (n - 7);
+          const fy = y < 7 ? y : y - (n - 7);
+          const ring = fx === 0 || fx === 6 || fy === 0 || fy === 6;
+          const core = fx >= 2 && fx <= 4 && fy >= 2 && fy <= 4;
+          if (ring || core) rects += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+        } else if ((h >> 16) & 1) {
+          rects += `<rect x="${x}" y="${y}" width="1" height="1"/>`;
+        }
+      }
+    }
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-2 -2 ${n + 4} ${n + 4}" shape-rendering="crispEdges"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><g fill="#111B21">${rects}</g></svg>`;
+    return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+  }
+
+  async connect(nome, numero) {
+    const i = this.instances.get(nome);
+    if (!i) throw new Error('Número não encontrado');
+    if (i.estado !== 'conectado') {
+      i.estado = 'conectando';
+      i.polls = 0;
+    }
+    return { qr: this.fakeQr(nome + Date.now()), codigo: numero ? 'K7QM-2XPA' : '', estado: i.estado };
+  }
+
+  async state(nome) {
+    const i = this.instances.get(nome);
+    if (!i) throw new Error('Número não encontrado');
+    if (i.estado === 'conectando' && ++i.polls >= 4) {
+      i.estado = 'conectado';
+      i.numero = '5541999990002';
+      i.perfil = nome.charAt(0).toUpperCase() + nome.slice(1);
+    }
+    return i.estado;
+  }
+
+  async logout(nome) {
+    const i = this.instances.get(nome);
+    if (i) Object.assign(i, { estado: 'desconectado', numero: '', perfil: '' });
+  }
+
+  async remove(nome) {
+    this.instances.delete(nome);
+  }
+}

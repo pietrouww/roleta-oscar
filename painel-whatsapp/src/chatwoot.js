@@ -102,9 +102,12 @@ export class ChatwootClient {
     const body = await res.json().catch(() => null);
     const u = body?.data;
     if (!u) return null;
-    const accounts = (u.accounts || []).map((a) => String(a.id));
-    if (accounts.length && !accounts.includes(String(this.accountId))) return null;
-    return { id: u.id, name: u.available_name || u.name || u.email, email: u.email, role: u.role || '' };
+    const accounts = u.accounts || [];
+    const conta = accounts.find((a) => String(a.id) === String(this.accountId));
+    if (accounts.length && !conta) return null;
+    // O papel (administrator / agent) vem por conta; versões antigas mandam no próprio usuário
+    const role = conta?.role || u.role || '';
+    return { id: u.id, name: u.available_name || u.name || u.email, email: u.email, role };
   }
 }
 

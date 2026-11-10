@@ -126,7 +126,12 @@ function irPara(aba) {
   $('#topo-info').textContent = '';
   if (aba === 'agora') carregarAgora();
   if (aba === 'verificacoes') carregarDia(state.dia);
-  if (aba === 'ajustes') atualizarPushStatus();
+  if (aba === 'ajustes') {
+    atualizarPushStatus();
+    const podeQr = state.me?.usuario.admin && state.me?.qrcode;
+    $('#sec-numeros').hidden = !podeQr;
+    if (podeQr) carregarNumeros();
+  }
   window.scrollTo(0, 0);
 }
 document.querySelectorAll('.aba-btn').forEach((t) => t.addEventListener('click', () => irPara(t.dataset.aba)));
@@ -421,6 +426,142 @@ $('#btn-push-teste').addEventListener('click', async () => {
   } catch (err) {
     toast(err.message);
   }
+});
+
+// ---------- Números de WhatsApp (QR Code) ----------
+const ESTADO_TXT = { conectado: 'Conectado', conectando: 'Aguardando leitura do QR Code', desconectado: 'Desconectado' };
+const ESTADO_DOT = { conectado: 'ok', conectando: 'meio', desconectado: 'off' };
+
+async function carregarNumeros() {
+  const box = $('#lista-numeros');
+  try {
+    const { conexoes } = await api('/api/conexoes');
+    box.innerHTML = conexoes.length
+      ? conexoes.map((c) => {
+        const titulo = c.perfil || c.nome.charAt(0).toUpperCase() + c.nome.slice(1);
+        const sub = c.estado === 'conectado' && c.numero ? `${fone(c.numero)} · Conectado` : ESTADO_TXT[c.estado] || c.estado;
+        const acoes = c.estado === 'conectado'
+          ? `<button class="link-btn vermelho" data-desconectar="${esc(c.nome)}">Desconectar</button>`
+          : `<button class="btn-verde btn-p" data-conectar="${esc(c.nome)}">Conectar</button><button class="link-btn vermelho" data-remover="${esc(c.nome)}" aria-label="Remover ${esc(titulo)}">Remover</button>`;
+        return `<div class="num-linha">
+          <span class="avatar" style="background:${corAvatar(c.nome)}" aria-hidden="true">${esc(iniciais(titulo))}<span class="num-dot ${ESTADO_DOT[c.estado] || 'off'}"></span></span>
+          <div class="num-texto"><p>${esc(titulo)}</p><p class="sec pequeno">${esc(sub)}</p></div>
+          <div class="num-acoes">${acoes}</div>
+        </div>`;
+      }).join('')
+      : '<div class="linha"><p class="sec pequeno">Nenhum número conectado ainda.</p></div>';
+  } catch (err) {
+    box.innerHTML = `<div class="linha"><p class="sec pequeno">${esc(err.message)}</p></div>`;
+    return;
+  }
+  box.querySelectorAll('[data-conectar]').forEach((b) => b.addEventListener('click', () => abrirQr(b.dataset.conectar)));
+  box.querySelectorAll('[data-desconectar]').forEach((b) => b.addEventListener('click', async () => {
+    if (!confirm('Desconectar este número? As mensagens dele param de chegar no Chatwoot até conectar de novo.')) return;
+    await api(`/api/conexoes/${b.dataset.desconectar}/desconectar`, { method: 'POST' }).catch((e) => toast(e.message));
+    carregarNumeros();
+  }));
+  box.querySelectorAll('[data-remover]').forEach((b) => b.addEventListener('click', async () => {
+    if (!confirm('Remover este número do painel? A caixa de entrada e as conversas continuam no Chatwoot.')) return;
+    await api(`/api/conexoes/${b.dataset.remover}`, { method: 'DELETE' }).catch((e) => toast(e.message));
+    carregarNumeros();
+  }));
+}
+
+const qr = { nome: null, timerQr: null, timerEstado: null };
+const dialogo = $('#qr-dialog');
+
+function passoQr(qual) {
+  for (const p of ['nome', 'qr', 'ok']) $(`#qr-passo-${p}`).hidden = p !== qual;
+}
+
+function pararQr() {
+  clearInterval(qr.timerQr);
+  clearInterval(qr.timerEstado);
+  qr.timerQr = qr.timerEstado = null;
+}
+
+async function atualizarQr() {
+  try {
+    const r = await api(`/api/conexoes/${qr.nome}/qr`);
+    if (r.estado === 'conectado') return conectou();
+    if (r.qr) {
+      $('#qr-img').src = r.qr;
+      $('#qr-carregando').hidden = true;
+    }
+  } catch (err) {
+    $('#qr-status').textContent = err.message;
+  }
+}
+
+function conectou() {
+  pararQr();
+  passoQr('ok');
+  carregarNumeros();
+}
+
+function abrirQr(nome) {
+  pararQr();
+  qr.nome = nome;
+  $('#qr-titulo').textContent = 'Conectar número';
+  $('#qr-img').removeAttribute('src');
+  $('#qr-carregando').hidden = false;
+  $('#qr-codigo').textContent = '';
+  $('#qr-status').textContent = 'O código se renova sozinho a cada 30 segundos.';
+  passoQr('qr');
+  if (!dialogo.open) dialogo.showModal();
+  atualizarQr();
+  qr.timerQr = setInterval(atualizarQr, 30000);
+  qr.timerEstado = setInterval(async () => {
+    try {
+      const { estado } = await api(`/api/conexoes/${qr.nome}/estado`);
+      if (estado === 'conectado') conectou();
+    } catch { /* tenta de novo */ }
+  }, 3000);
+}
+
+$('#btn-novo-numero').addEventListener('click', () => {
+  pararQr();
+  $('#qr-titulo').textContent = 'Novo número';
+  $('#qr-nome').value = '';
+  $('#qr-erro-nome').textContent = '';
+  passoQr('nome');
+  dialogo.showModal();
+  $('#qr-nome').focus();
+});
+
+$('#qr-passo-nome').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = e.target.querySelector('button');
+  btn.disabled = true;
+  $('#qr-erro-nome').textContent = '';
+  try {
+    const { nome } = await api('/api/conexoes', { method: 'POST', body: { nome: $('#qr-nome').value } });
+    carregarNumeros();
+    abrirQr(nome);
+  } catch (err) {
+    $('#qr-erro-nome').textContent = err.message;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+$('#qr-gerar-codigo').addEventListener('click', async () => {
+  const numero = $('#qr-numero').value.replace(/\D/g, '');
+  if (numero.length < 10) return toast('Digite o número com DDD');
+  const completo = numero.startsWith('55') ? numero : `55${numero}`;
+  try {
+    const r = await api(`/api/conexoes/${qr.nome}/qr?numero=${completo}`);
+    $('#qr-codigo').textContent = r.codigo || 'Não foi possível gerar o código. Use o QR Code.';
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
+$('#qr-fechar').addEventListener('click', () => dialogo.close());
+$('#qr-ok').addEventListener('click', () => dialogo.close());
+dialogo.addEventListener('close', () => {
+  pararQr();
+  if (state.me?.usuario.admin) carregarNumeros();
 });
 
 $('#btn-sair').addEventListener('click', async () => {
