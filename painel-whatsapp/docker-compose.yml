@@ -1,0 +1,40 @@
+# Painel de pendências do WhatsApp (roda ao lado do Chatwoot no mesmo VPS)
+#
+#   docker compose up -d --build                    -> só o painel, na porta 3100
+#   docker compose --profile https up -d --build    -> painel + Caddy com HTTPS automático (portas 80/443 livres)
+
+services:
+  painel:
+    build: .
+    container_name: painel-pendencias
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - DATA_DIR=/data
+      - PORT=3100
+    volumes:
+      - ./data:/data
+    ports:
+      - "127.0.0.1:3100:3100"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  caddy:
+    image: caddy:2.8
+    profiles: ["https"]
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - PAINEL_DOMINIO=${PAINEL_DOMINIO:-painel.seudominio.com.br}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - painel
+
+volumes:
+  caddy_data:
+  caddy_config:

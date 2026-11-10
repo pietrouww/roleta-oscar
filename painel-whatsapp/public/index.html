@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pendências</title>
+<meta name="theme-color" content="#0F766E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Pendências">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/icons/icon-180.png">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<section id="login" class="login" hidden>
+  <form id="login-form" class="login-card">
+    <img src="/icons/icon-192.png" alt="" width="64" height="64" class="login-logo">
+    <h1>Painel de pendências</h1>
+    <p class="muted">Entre com o mesmo e-mail e senha do Chatwoot.</p>
+    <p id="demo-hint" class="demo-hint" hidden>Modo demonstração: digite qualquer e-mail e senha.</p>
+    <label>E-mail<input type="email" name="email" autocomplete="username" required></label>
+    <label>Senha<input type="password" name="senha" autocomplete="current-password" required></label>
+    <p id="login-erro" class="erro" role="alert"></p>
+    <button type="submit" class="btn btn-primary">Entrar</button>
+  </form>
+</section>
+
+<div id="app" class="app" hidden>
+  <header class="topbar">
+    <div>
+      <h1 id="titulo">Pendências</h1>
+      <p id="subtitulo" class="muted small"></p>
+    </div>
+    <button id="btn-atualizar" class="icon-btn" aria-label="Atualizar agora">
+      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg>
+    </button>
+  </header>
+
+  <!-- Aba: agora -->
+  <main id="aba-agora" class="aba">
+    <div id="resumo" class="resumo"></div>
+    <div id="filtros" class="chips" role="group" aria-label="Filtrar por número"></div>
+    <p id="agora-info" class="muted small info"></p>
+    <div id="lista-agora" class="lista"></div>
+  </main>
+
+  <!-- Aba: verificações -->
+  <main id="aba-verificacoes" class="aba" hidden>
+    <div class="dia">
+      <button id="dia-anterior" class="btn btn-ghost" aria-label="Dia anterior">‹</button>
+      <span id="dia-label" class="dia-label"></span>
+      <button id="dia-proximo" class="btn btn-ghost" aria-label="Próximo dia">›</button>
+    </div>
+    <div id="horarios" class="segmented" role="tablist" aria-label="Horário da verificação"></div>
+    <div id="verif-resumo" class="resumo"></div>
+    <div id="lista-verif" class="lista"></div>
+  </main>
+
+  <!-- Aba: ajustes -->
+  <main id="aba-ajustes" class="aba" hidden>
+    <div class="card">
+      <p class="muted small">Conectado como</p>
+      <p id="usuario-nome" class="strong"></p>
+    </div>
+    <div class="card">
+      <h2>Alertas no celular</h2>
+      <p class="muted small">Você recebe um aviso nas verificações das <span id="horarios-txt"></span> (seg a sáb), quando um cliente pede atendente e quando um retorno prometido atrasa.</p>
+      <p id="push-status" class="small"></p>
+      <div class="row">
+        <button id="btn-push" class="btn btn-primary">Ativar notificações</button>
+        <button id="btn-push-teste" class="btn btn-ghost" hidden>Enviar teste</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Instalar no iPhone</h2>
+      <ol class="small passos">
+        <li>Abra este endereço no <strong>Safari</strong>.</li>
+        <li>Toque em <strong>Compartilhar</strong> (quadrado com seta).</li>
+        <li>Escolha <strong>Adicionar à Tela de Início</strong>.</li>
+        <li>Abra pelo ícone novo e ative as notificações aqui.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>Legenda</h2>
+      <ul class="legenda small">
+        <li><span class="badge b-atendente">Pediu atendente</span> o cliente quer falar com uma pessoa e nenhum humano respondeu.</li>
+        <li><span class="badge b-promessa">Retorno prometido</span> alguém disse “vou verificar / já te retorno” e não voltou.</li>
+        <li><span class="badge b-sem">Sem resposta</span> o cliente falou por último e ninguém respondeu.</li>
+        <li><span class="badge b-ia">IA</span> a conversa teve resposta da inteligência artificial.</li>
+      </ul>
+    </div>
+    <button id="btn-sair" class="btn btn-ghost full">Sair</button>
+  </main>
+
+  <nav class="tabbar" aria-label="Navegação">
+    <button class="tab" data-aba="agora" aria-current="page">
+      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l2.5 2.5"></path><circle cx="12" cy="12" r="9"></circle></svg>
+      <span>Agora</span><span id="tab-badge" class="tab-badge" hidden></span>
+    </button>
+    <button class="tab" data-aba="verificacoes">
+      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg>
+      <span>Verificações</span>
+    </button>
+    <button class="tab" data-aba="ajustes">
+      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+      <span>Ajustes</span>
+    </button>
+  </nav>
+</div>
+
+<script src="/app.js" type="module"></script>
+</body>
+</html>

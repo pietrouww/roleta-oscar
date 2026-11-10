@@ -1,0 +1,4 @@
+{$PAINEL_DOMINIO} {
+	encode gzip
+	reverse_proxy painel:3100
+}
