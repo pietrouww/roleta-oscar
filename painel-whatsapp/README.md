@@ -34,12 +34,14 @@ No painel da Hostinger, abra o **Terminal do navegador** do VPS (ou use SSH) e r
 
 ```bash
 cd /opt
-git clone https://github.com/pietrouww/roleta-oscar.git painel-src
+git clone -b claude/dreamy-ramanujan-6uzw0g https://github.com/pietrouww/roleta-oscar.git painel-src
 cp -r painel-src/painel-whatsapp /opt/painel-whatsapp
 cd /opt/painel-whatsapp
 cp .env.example .env
 nano .env
 ```
+
+> Se o repositório for privado, o `git clone` vai pedir usuário e um *token* do GitHub (não a senha). Outra opção é baixar o ZIP do projeto no GitHub e enviar pelo gerenciador de arquivos.
 
 ### 2.2 Preencher o `.env`
 
