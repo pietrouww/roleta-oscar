@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pendências</title>
-<meta name="theme-color" content="#0F766E">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0B141A" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -16,97 +17,125 @@
 </head>
 <body>
 
+<!-- Login -->
 <section id="login" class="login" hidden>
-  <form id="login-form" class="login-card">
-    <img src="/icons/icon-192.png" alt="" width="64" height="64" class="login-logo">
-    <h1>Painel de pendências</h1>
-    <p class="muted">Entre com o mesmo e-mail e senha do Chatwoot.</p>
-    <p id="demo-hint" class="demo-hint" hidden>Modo demonstração: digite qualquer e-mail e senha.</p>
-    <label>E-mail<input type="email" name="email" autocomplete="username" required></label>
-    <label>Senha<input type="password" name="senha" autocomplete="current-password" required></label>
+  <form id="login-form" class="login-box">
+    <img src="/icons/icon-192.png" alt="" width="88" height="88" class="login-logo">
+    <h1>Pendências</h1>
+    <p class="sec">Entre com o mesmo e-mail e senha do Chatwoot.</p>
+    <p id="demo-hint" class="demo-hint" hidden>Modo demonstração: qualquer e-mail e senha entram.</p>
+    <div class="grupo">
+      <label class="campo"><span>E-mail</span><input type="email" name="email" autocomplete="username" placeholder="seu@email.com" required></label>
+      <label class="campo"><span>Senha</span><input type="password" name="senha" autocomplete="current-password" placeholder="Senha" required></label>
+    </div>
     <p id="login-erro" class="erro" role="alert"></p>
-    <button type="submit" class="btn btn-primary">Entrar</button>
+    <button type="submit" class="btn-verde">Entrar</button>
   </form>
 </section>
 
 <div id="app" class="app" hidden>
-  <header class="topbar">
-    <div>
-      <h1 id="titulo">Pendências</h1>
-      <p id="subtitulo" class="muted small"></p>
+  <header class="topo">
+    <div class="topo-acoes">
+      <span id="topo-info" class="sec pequeno"></span>
+      <button id="btn-atualizar" class="icone-btn" aria-label="Atualizar agora">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg>
+      </button>
     </div>
-    <button id="btn-atualizar" class="icon-btn" aria-label="Atualizar agora">
-      <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg>
-    </button>
+    <h1 id="titulo">Pendências</h1>
+    <label id="busca-box" class="busca">
+      <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+      <span class="sr">Pesquisar</span>
+      <input id="busca" type="search" placeholder="Pesquisar" autocomplete="off">
+    </label>
   </header>
 
   <!-- Aba: agora -->
-  <main id="aba-agora" class="aba">
-    <div id="resumo" class="resumo"></div>
-    <div id="filtros" class="chips" role="group" aria-label="Filtrar por número"></div>
-    <p id="agora-info" class="muted small info"></p>
-    <div id="lista-agora" class="lista"></div>
+  <main id="aba-agora" class="aba" hidden>
+    <div id="filtros-tipo" class="pilulas" role="group" aria-label="Filtrar por situação"></div>
+    <div id="filtros-numero" class="pilulas" role="group" aria-label="Filtrar por número"></div>
+    <ul id="lista-agora" class="lista"></ul>
+    <p id="agora-rodape" class="rodape sec pequeno"></p>
   </main>
 
   <!-- Aba: verificações -->
   <main id="aba-verificacoes" class="aba" hidden>
     <div class="dia">
-      <button id="dia-anterior" class="btn btn-ghost" aria-label="Dia anterior">‹</button>
+      <button id="dia-anterior" class="icone-btn" aria-label="Dia anterior">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
+      </button>
       <span id="dia-label" class="dia-label"></span>
-      <button id="dia-proximo" class="btn btn-ghost" aria-label="Próximo dia">›</button>
+      <button id="dia-proximo" class="icone-btn" aria-label="Próximo dia">
+        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
+      </button>
     </div>
-    <div id="horarios" class="segmented" role="tablist" aria-label="Horário da verificação"></div>
-    <div id="verif-resumo" class="resumo"></div>
-    <div id="lista-verif" class="lista"></div>
+    <div id="horarios" class="pilulas horarios" role="tablist" aria-label="Horário da verificação"></div>
+    <p id="verif-resumo" class="faixa" hidden></p>
+    <ul id="lista-verif" class="lista"></ul>
   </main>
 
   <!-- Aba: ajustes -->
-  <main id="aba-ajustes" class="aba" hidden>
-    <div class="card">
-      <p class="muted small">Conectado como</p>
-      <p id="usuario-nome" class="strong"></p>
-    </div>
-    <div class="card">
-      <h2>Alertas no celular</h2>
-      <p class="muted small">Você recebe um aviso nas verificações das <span id="horarios-txt"></span> (seg a sáb), quando um cliente pede atendente e quando um retorno prometido atrasa.</p>
-      <p id="push-status" class="small"></p>
-      <div class="row">
-        <button id="btn-push" class="btn btn-primary">Ativar notificações</button>
-        <button id="btn-push-teste" class="btn btn-ghost" hidden>Enviar teste</button>
+  <main id="aba-ajustes" class="aba ajustes" hidden>
+    <section class="secao perfil">
+      <span id="perfil-avatar" class="avatar avatar-g"></span>
+      <div>
+        <p id="usuario-nome" class="perfil-nome"></p>
+        <p id="usuario-email" class="sec pequeno"></p>
       </div>
-    </div>
-    <div class="card">
-      <h2>Instalar no iPhone</h2>
-      <ol class="small passos">
+    </section>
+
+    <h2 class="secao-titulo">Notificações</h2>
+    <section class="secao">
+      <div class="linha">
+        <span class="quadrado q-verde" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg></span>
+        <div class="linha-texto">
+          <p>Alertas no celular</p>
+          <p id="push-status" class="sec pequeno"></p>
+        </div>
+      </div>
+      <div class="linha linha-botoes">
+        <button id="btn-push" class="btn-verde btn-p">Ativar notificações</button>
+        <button id="btn-push-teste" class="btn-contorno btn-p" hidden>Enviar teste</button>
+      </div>
+    </section>
+    <p class="secao-nota sec pequeno">Avisos nas verificações das <span id="horarios-txt"></span> (seg a sáb), quando um cliente pede atendente e quando um retorno prometido atrasa.</p>
+
+    <h2 class="secao-titulo">Instalar no iPhone</h2>
+    <section class="secao">
+      <ol class="passos">
         <li>Abra este endereço no <strong>Safari</strong>.</li>
         <li>Toque em <strong>Compartilhar</strong> (quadrado com seta).</li>
         <li>Escolha <strong>Adicionar à Tela de Início</strong>.</li>
-        <li>Abra pelo ícone novo e ative as notificações aqui.</li>
+        <li>Abra pelo ícone e ative as notificações aqui.</li>
       </ol>
-    </div>
-    <div class="card">
-      <h2>Legenda</h2>
-      <ul class="legenda small">
-        <li><span class="badge b-atendente">Pediu atendente</span> o cliente quer falar com uma pessoa e nenhum humano respondeu.</li>
-        <li><span class="badge b-promessa">Retorno prometido</span> alguém disse “vou verificar / já te retorno” e não voltou.</li>
-        <li><span class="badge b-sem">Sem resposta</span> o cliente falou por último e ninguém respondeu.</li>
-        <li><span class="badge b-ia">IA</span> a conversa teve resposta da inteligência artificial.</li>
-      </ul>
-    </div>
-    <button id="btn-sair" class="btn btn-ghost full">Sair</button>
+    </section>
+
+    <h2 class="secao-titulo">Legenda</h2>
+    <section class="secao legenda">
+      <div class="linha"><span class="etq e-atendente">Pediu atendente</span><p class="pequeno">Cliente quer falar com uma pessoa e nenhum humano respondeu.</p></div>
+      <div class="linha"><span class="etq e-promessa">Retorno prometido</span><p class="pequeno">Alguém disse “vou verificar / já te retorno” e não voltou.</p></div>
+      <div class="linha"><span class="etq e-sem">Sem resposta</span><p class="pequeno">O cliente falou por último e ninguém respondeu.</p></div>
+      <div class="linha"><span class="etq e-ia">✦ IA</span><p class="pequeno">A conversa teve resposta da inteligência artificial.</p></div>
+    </section>
+
+    <section class="secao">
+      <button id="btn-sair" class="linha linha-btn vermelho">Sair</button>
+    </section>
   </main>
 
-  <nav class="tabbar" aria-label="Navegação">
-    <button class="tab" data-aba="agora" aria-current="page">
-      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l2.5 2.5"></path><circle cx="12" cy="12" r="9"></circle></svg>
-      <span>Agora</span><span id="tab-badge" class="tab-badge" hidden></span>
+  <nav class="abas" aria-label="Navegação">
+    <button class="aba-btn" data-aba="agora">
+      <span class="aba-icone">
+        <svg aria-hidden="true" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"></path><path d="M12 7.5v4l2.5 1.5"></path></svg>
+        <span id="tab-badge" class="aba-badge" hidden></span>
+      </span>
+      <span>Pendências</span>
     </button>
-    <button class="tab" data-aba="verificacoes">
-      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg>
+    <button class="aba-btn" data-aba="verificacoes">
+      <span class="aba-icone"><svg aria-hidden="true" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path><path d="M8.5 15l2 2 4-4"></path></svg></span>
       <span>Verificações</span>
     </button>
-    <button class="tab" data-aba="ajustes">
-      <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg>
+    <button class="aba-btn" data-aba="ajustes">
+      <span class="aba-icone"><svg aria-hidden="true" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></span>
       <span>Ajustes</span>
     </button>
   </nav>

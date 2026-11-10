@@ -2,19 +2,24 @@ const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 const FLAG = {
-  pediu_atendente: { label: 'Pediu atendente', cls: 'b-atendente' },
-  retorno_prometido: { label: 'Retorno prometido', cls: 'b-promessa' },
-  sem_resposta: { label: 'Sem resposta', cls: 'b-sem' },
+  pediu_atendente: { label: 'Pediu atendente', cls: 'e-atendente', curto: 'Pediu atendente' },
+  retorno_prometido: { label: 'Retorno prometido', cls: 'e-promessa', curto: 'Retorno' },
+  sem_resposta: { label: 'Sem resposta', cls: 'e-sem', curto: 'Sem resposta' },
 };
+const AVATAR_CORES = ['#0F7A5C', '#2563A8', '#7E3FA0', '#B4363F', '#3D5A80', '#6B4F9E', '#1F6F8B', '#8A5A12'];
+const CHECKS = '<svg aria-hidden="true" width="17" height="11" viewBox="0 0 17 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6l3 3 6-7.5"></path><path d="M7 9l1 1 6-8.5"></path></svg>';
+const ICONE_PESSOA = '<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>';
 
 const state = {
   me: null,
   aba: 'agora',
   agora: null,
+  verif: null,
   filtroNumero: 'todos',
-  filtroTipo: null,
+  filtroTipo: 'todos',
+  busca: '',
+  abertos: new Set(),
   dia: null,
-  hoje: null,
   hora: null,
 };
 
@@ -43,12 +48,27 @@ function toast(msg) {
   setTimeout(() => el.remove(), 3200);
 }
 
+// ---------- Formatação ----------
 function tempo(min) {
   if (min < 60) return `${min} min`;
   const h = Math.floor(min / 60);
   if (h < 24) return `${h}h${String(min % 60).padStart(2, '0')}`;
-  const d = Math.floor(h / 24);
-  return `${d}d ${h % 24}h`;
+  return `${Math.floor(h / 24)}d ${h % 24}h`;
+}
+
+function hhmm(ms) {
+  return new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+/** Igual à lista de conversas: hora se hoje, "Ontem", ou data. */
+function quando(ms) {
+  const d = new Date(ms);
+  const hoje = new Date();
+  if (d.toDateString() === hoje.toDateString()) return hhmm(ms);
+  const ontem = new Date(hoje);
+  ontem.setDate(hoje.getDate() - 1);
+  if (d.toDateString() === ontem.toDateString()) return 'Ontem';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 }
 
 function fone(p) {
@@ -57,15 +77,18 @@ function fone(p) {
   return m ? `(${m[1]}) ${m[2]}-${m[3]}` : p || '';
 }
 
-function hora(ms) {
-  const d = new Date(ms);
-  const hoje = new Date();
-  const hh = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  if (d.toDateString() === hoje.toDateString()) return `hoje ${hh}`;
-  const ontem = new Date(hoje); ontem.setDate(hoje.getDate() - 1);
-  if (d.toDateString() === ontem.toDateString()) return `ontem ${hh}`;
-  return `${d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} ${hh}`;
+function iniciais(nome) {
+  const partes = String(nome || '?').trim().split(/\s+/).filter((p) => /\p{L}|\d/u.test(p));
+  return ((partes[0]?.[0] || '?') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase();
 }
+
+function corAvatar(nome) {
+  let h = 0;
+  for (const c of String(nome)) h = (h * 31 + c.codePointAt(0)) >>> 0;
+  return AVATAR_CORES[h % AVATAR_CORES.length];
+}
+
+const autorPromessa = (f) => (f.byAuthor === 'ia' ? '✦ IA' : f.by || 'Equipe');
 
 // ---------- Login ----------
 function mostrarLogin() {
@@ -93,19 +116,20 @@ $('#login-form').addEventListener('submit', async (e) => {
 function irPara(aba) {
   state.aba = aba;
   for (const a of ['agora', 'verificacoes', 'ajustes']) $(`#aba-${a}`).hidden = a !== aba;
-  document.querySelectorAll('.tab').forEach((t) => {
+  document.querySelectorAll('.aba-btn').forEach((t) => {
     if (t.dataset.aba === aba) t.setAttribute('aria-current', 'page');
     else t.removeAttribute('aria-current');
   });
   $('#titulo').textContent = { agora: 'Pendências', verificacoes: 'Verificações', ajustes: 'Ajustes' }[aba];
   $('#btn-atualizar').hidden = aba === 'ajustes';
-  if (aba === 'ajustes') $('#subtitulo').textContent = '';
+  $('#busca-box').hidden = aba === 'ajustes';
+  $('#topo-info').textContent = '';
   if (aba === 'agora') carregarAgora();
   if (aba === 'verificacoes') carregarDia(state.dia);
   if (aba === 'ajustes') atualizarPushStatus();
   window.scrollTo(0, 0);
 }
-document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => irPara(t.dataset.aba)));
+document.querySelectorAll('.aba-btn').forEach((t) => t.addEventListener('click', () => irPara(t.dataset.aba)));
 
 $('#btn-atualizar').addEventListener('click', async () => {
   const b = $('#btn-atualizar');
@@ -118,97 +142,88 @@ $('#btn-atualizar').addEventListener('click', async () => {
   }
 });
 
-// ---------- Cartões ----------
-function cartao(item, { podeResolver }) {
-  const tags = [];
-  if (item.inbox) tags.push(`<span class="badge" style="background:${esc(item.inbox.color.bg)};color:${esc(item.inbox.color.fg)}">${esc(item.inbox.name)}</span>`);
-  for (const f of item.flags) tags.push(`<span class="badge ${FLAG[f.type].cls}">${FLAG[f.type].label}</span>`);
-  if (item.aiInvolved) tags.push('<span class="badge b-ia" title="A IA participou da conversa">IA</span>');
+$('#busca').addEventListener('input', (e) => {
+  state.busca = e.target.value.trim().toLowerCase();
+  if (state.aba === 'agora') desenharAgora();
+  if (state.aba === 'verificacoes' && state.verif) desenharVerif();
+});
 
-  const citacoes = item.flags.map((f) => {
-    if (f.type === 'retorno_prometido') {
-      const quem = f.byAuthor === 'ia' ? 'IA' : f.by || 'Equipe';
-      return `<p class="citacao"><span class="quem">${esc(quem)} prometeu · ${esc(hora(f.since))}</span>“${esc(f.text)}”</p>`;
-    }
-    const rot = f.type === 'pediu_atendente' ? 'Cliente pediu atendente' : 'Cliente';
-    return `<p class="citacao"><span class="quem">${rot} · ${esc(hora(f.since))}</span>“${esc(f.text || '[mídia]')}”</p>`;
-  }).join('');
+const bateBusca = (i) => {
+  if (!state.busca) return true;
+  const alvo = [i.contactName, i.contactPhone, fone(i.contactPhone), i.assigneeName, i.inbox?.name, ...i.flags.map((f) => f.text)]
+    .join(' ').toLowerCase();
+  return alvo.includes(state.busca);
+};
 
-  const resp = item.assigneeName ? `Resp.: ${item.assigneeName}` : item.lastHumanName ? `Último: ${item.lastHumanName}` : 'Sem atendente';
-  return `
-  <article class="card item">
-    <div class="item-top">
-      <div>
-        <p class="item-nome">${esc(item.contactName)}</p>
-        <p class="item-fone">${esc(fone(item.contactPhone))}</p>
-      </div>
-      <span class="espera ${item.waitingMinutes >= 120 ? 'alta' : ''}">há ${tempo(item.waitingMinutes)}</span>
-    </div>
-    <div class="tags">${tags.join('')}<span class="badge b-neutro">${esc(resp)}</span></div>
-    ${citacoes}
-    <div class="item-acoes">
-      ${item.url ? `<a class="btn btn-primary btn-sm" href="${esc(item.url)}" target="_blank" rel="noopener">Abrir no Chatwoot</a>` : '<span></span>'}
-      ${podeResolver ? `<button class="btn btn-ghost btn-sm" data-resolver="${item.id}">Marcar resolvida</button>` : ''}
-    </div>
-  </article>`;
-}
-
-function vazio(titulo, texto) {
-  return `<div class="card vazio"><p class="grande">${esc(titulo)}</p><p class="muted small">${esc(texto)}</p></div>`;
-}
-
-function resumoHTML(totals, ativo) {
-  const b = (tipo, num, lbl, cls) =>
-    `<button data-tipo="${tipo}" aria-pressed="${ativo === tipo}"><span class="num ${cls}">${num}</span><span class="lbl">${lbl}</span></button>`;
-  return b('pediu_atendente', totals.pediuAtendente, 'pediram atendente', 'atendente')
-    + b('retorno_prometido', totals.retornoPrometido, 'retornos prometidos', 'promessa')
-    + b('sem_resposta', totals.semResposta, 'sem resposta', 'sem');
-}
-
-// ---------- Aba Agora ----------
-async function carregarAgora(forcar = false) {
-  try {
-    state.agora = await api(`/api/pendencias${forcar ? '?atualizar=1' : ''}`);
-    desenharAgora();
-  } catch (err) {
-    $('#lista-agora').innerHTML = vazio('Não foi possível carregar', err.message);
+// ---------- Linha de conversa ----------
+function previa(item) {
+  const f = item.flags[0];
+  if (f.type === 'retorno_prometido') {
+    return `<span class="conv-prev">${CHECKS}<span><b>${esc(autorPromessa(f))}:</b> ${esc(f.text)}</span></span>`;
   }
+  if (f.type === 'pediu_atendente') {
+    return `<span class="conv-prev">${ICONE_PESSOA}<span>${esc(f.text)}</span></span>`;
+  }
+  return `<span class="conv-prev"><span>${esc(f.text || 'Mídia')}</span></span>`;
 }
 
-function desenharAgora() {
-  const d = state.agora;
-  if (!d) return;
-  const badge = $('#tab-badge');
-  badge.hidden = !d.totals.total;
-  badge.textContent = d.totals.total;
-  if ('setAppBadge' in navigator) navigator.setAppBadge(d.totals.total).catch(() => {});
+function baloes(item) {
+  const partes = [...item.flags].sort((a, b) => a.since - b.since).map((f) => {
+    if (f.type === 'retorno_prometido') {
+      const ia = f.byAuthor === 'ia';
+      return `<div class="balao out"><span class="autor" style="color:${ia ? 'var(--e-ia)' : 'var(--verde-texto)'}">${esc(autorPromessa(f))}</span>${esc(f.text)}<span class="meta">${hhmm(f.since)} ${CHECKS}</span></div>`;
+    }
+    return `<div class="balao in">${esc(f.text || 'Mídia')}<span class="meta">${hhmm(f.since)}</span></div>`;
+  });
+  const resp = item.assigneeName ? `Responsável: ${item.assigneeName}` : item.lastHumanName ? `Último atendente: ${item.lastHumanName}` : 'Sem atendente atribuído';
+  return `<div class="papel"><span class="aviso-sis">Aguardando há ${tempo(item.waitingMinutes)} · ${esc(resp)}</span>${partes.join('')}</div>`;
+}
 
-  $('#resumo').innerHTML = resumoHTML(d.totals, state.filtroTipo);
-  $('#resumo').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => {
-    state.filtroTipo = state.filtroTipo === b.dataset.tipo ? null : b.dataset.tipo;
-    desenharAgora();
+function linhaConversa(item, { podeResolver }) {
+  const aberto = state.abertos.has(item.id);
+  const atraso = item.waitingMinutes >= 120;
+  const etqs = [];
+  if (item.inbox) etqs.push(`<span class="etq e-numero" style="--c:${esc(item.inbox.color.fg)};--c-d:${esc(item.inbox.color.bg)}">${esc(item.inbox.name)}</span>`);
+  for (const f of item.flags) etqs.push(`<span class="etq ${FLAG[f.type].cls}">${FLAG[f.type].label}</span>`);
+  if (item.aiInvolved) etqs.push('<span class="etq e-ia" title="A IA participou da conversa">✦ IA</span>');
+  if (item.assigneeName) etqs.push(`<span class="etq e-resp">${esc(item.assigneeName)}</span>`);
+
+  return `
+  <li class="conv">
+    <button class="conv-linha" data-abrir="${item.id}" aria-expanded="${aberto}">
+      <span class="avatar" style="background:${corAvatar(item.contactName)}" aria-hidden="true">${esc(iniciais(item.contactName))}</span>
+      <span class="conv-corpo">
+        <span class="conv-l1">
+          <span class="conv-nome">${esc(item.contactName)}</span>
+          <span class="conv-hora ${atraso ? 'atraso' : ''}">${quando(item.since)}</span>
+        </span>
+        <span class="conv-l2">
+          ${previa(item)}
+          <span class="espera ${atraso ? 'atraso' : ''}" aria-label="aguardando há ${tempo(item.waitingMinutes)}">${tempo(item.waitingMinutes)}</span>
+        </span>
+        <span class="etqs">${etqs.join('')}</span>
+      </span>
+    </button>
+    ${aberto ? `
+    <div class="conv-detalhe">
+      ${baloes(item)}
+      <p class="sec pequeno">${esc(fone(item.contactPhone))}</p>
+      <div class="conv-acoes">
+        ${item.url ? `<a class="btn-verde btn-p" href="${esc(item.url)}" target="_blank" rel="noopener">Responder no Chatwoot</a>` : ''}
+        ${podeResolver ? `<button class="btn-contorno btn-p" data-resolver="${item.id}">Marcar resolvida</button>` : ''}
+      </div>
+    </div>` : ''}
+  </li>`;
+}
+
+function ligarLista(el, redesenhar) {
+  el.querySelectorAll('[data-abrir]').forEach((b) => b.addEventListener('click', () => {
+    const id = Number(b.dataset.abrir);
+    if (state.abertos.has(id)) state.abertos.delete(id);
+    else state.abertos.add(id);
+    redesenhar();
   }));
-
-  const chips = [{ id: 'todos', name: 'Todos', total: d.totals.total }, ...d.totals.porNumero];
-  $('#filtros').innerHTML = chips.map((c) =>
-    `<button class="chip" data-id="${c.id}" aria-pressed="${String(state.filtroNumero) === String(c.id)}">${esc(c.name)}<span class="cnt">${c.total}</span></button>`).join('');
-  $('#filtros').querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => {
-    state.filtroNumero = b.dataset.id;
-    desenharAgora();
-  }));
-
-  const itens = d.items.filter((i) =>
-    (state.filtroNumero === 'todos' || String(i.inbox?.id) === String(state.filtroNumero))
-    && (!state.filtroTipo || i.flags.some((f) => f.type === state.filtroTipo)));
-
-  $('#agora-info').textContent = `Atualizado ${hora(d.updatedAt)} · ${d.openConversations} conversas abertas`;
-  $('#subtitulo').textContent = d.totals.total
-    ? `${d.totals.total} conversa${d.totals.total > 1 ? 's' : ''} aguardando a equipe`
-    : 'Nenhuma conversa aguardando';
-  $('#lista-agora').innerHTML = itens.length
-    ? itens.map((i) => cartao(i, { podeResolver: true })).join('')
-    : vazio('Tudo em dia', 'Nenhuma conversa pendente com esse filtro.');
-  $('#lista-agora').querySelectorAll('[data-resolver]').forEach((b) => b.addEventListener('click', async () => {
+  el.querySelectorAll('[data-resolver]').forEach((b) => b.addEventListener('click', async () => {
     if (!confirm('Marcar esta conversa como resolvida no Chatwoot?')) return;
     b.disabled = true;
     try {
@@ -222,6 +237,67 @@ function desenharAgora() {
   }));
 }
 
+function vazio(titulo, texto) {
+  return `<li class="vazio">
+    <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.5l2.5 2.5 5.5-6"></path></svg>
+    <p class="grande">${esc(titulo)}</p><p class="sec pequeno">${esc(texto)}</p></li>`;
+}
+
+// ---------- Aba Pendências ----------
+async function carregarAgora(forcar = false) {
+  try {
+    state.agora = await api(`/api/pendencias${forcar ? '?atualizar=1' : ''}`);
+    desenharAgora();
+  } catch (err) {
+    $('#lista-agora').innerHTML = vazio('Não foi possível carregar', err.message);
+  }
+}
+
+function desenharAgora() {
+  const d = state.agora;
+  if (!d || state.aba !== 'agora') return;
+  const t = d.totals;
+  const badge = $('#tab-badge');
+  badge.hidden = !t.total;
+  badge.textContent = t.total;
+  if ('setAppBadge' in navigator) navigator.setAppBadge(t.total).catch(() => {});
+  $('#topo-info').textContent = `Atualizado ${hhmm(d.updatedAt)}`;
+
+  const tipos = [
+    { id: 'todos', nome: 'Todas', n: t.total },
+    { id: 'pediu_atendente', nome: 'Pediu atendente', n: t.pediuAtendente },
+    { id: 'retorno_prometido', nome: 'Retorno prometido', n: t.retornoPrometido },
+    { id: 'sem_resposta', nome: 'Sem resposta', n: t.semResposta },
+  ];
+  $('#filtros-tipo').innerHTML = tipos.map((x) =>
+    `<button class="pilula" data-tipo="${x.id}" aria-pressed="${state.filtroTipo === x.id}">${esc(x.nome)}${x.n ? ` <span class="n">${x.n}</span>` : ''}</button>`).join('');
+  $('#filtros-tipo').querySelectorAll('.pilula').forEach((b) => b.addEventListener('click', () => {
+    state.filtroTipo = b.dataset.tipo;
+    desenharAgora();
+  }));
+
+  const nums = [{ id: 'todos', name: 'Todos os números', total: t.total }, ...t.porNumero];
+  const cor = (id) => d.inboxes.find((i) => String(i.id) === String(id))?.color;
+  $('#filtros-numero').innerHTML = nums.map((c) =>
+    `<button class="pilula" data-id="${c.id}" aria-pressed="${String(state.filtroNumero) === String(c.id)}">${cor(c.id) ? `<span class="pt" style="--c:${esc(cor(c.id).fg)};--c-d:${esc(cor(c.id).bg)}"></span>` : ''}${esc(c.name)} <span class="n">${c.total}</span></button>`).join('');
+  $('#filtros-numero').querySelectorAll('.pilula').forEach((b) => b.addEventListener('click', () => {
+    state.filtroNumero = b.dataset.id;
+    desenharAgora();
+  }));
+
+  const itens = d.items.filter((i) =>
+    (state.filtroNumero === 'todos' || String(i.inbox?.id) === String(state.filtroNumero))
+    && (state.filtroTipo === 'todos' || i.flags.some((f) => f.type === state.filtroTipo))
+    && bateBusca(i));
+
+  const lista = $('#lista-agora');
+  lista.innerHTML = itens.length
+    ? itens.map((i) => linhaConversa(i, { podeResolver: true })).join('')
+    : vazio(t.total ? 'Nada com esse filtro' : 'Tudo respondido', t.total ? 'Tente outro filtro ou pesquisa.' : 'Nenhum cliente aguardando retorno.');
+  ligarLista(lista, desenharAgora);
+  $('#agora-rodape').textContent = `${d.openConversations} conversas abertas · toque numa conversa para ver as mensagens`;
+}
+
 // ---------- Aba Verificações ----------
 function somarDias(iso, n) {
   const d = new Date(`${iso}T12:00:00Z`);
@@ -232,15 +308,14 @@ function somarDias(iso, n) {
 async function carregarDia(dia, horaEscolhida) {
   const r = await api(`/api/verificacoes${dia ? `?data=${dia}` : ''}`);
   state.dia = r.data;
-  state.hoje = r.hoje;
   const label = new Date(`${r.data}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
-  $('#dia-label').textContent = r.data === r.hoje ? `Hoje, ${label}` : label;
+  $('#dia-label').textContent = r.data === r.hoje ? `Hoje, ${label}` : label.charAt(0).toUpperCase() + label.slice(1);
   $('#dia-proximo').disabled = r.data >= r.hoje;
-  $('#subtitulo').textContent = `Seg a sáb · ${(state.me?.horarios || []).join(' · ')}`;
+  state.verif = null;
 
   if (!r.horarios.length) {
     $('#horarios').innerHTML = '';
-    $('#verif-resumo').innerHTML = '';
+    $('#verif-resumo').hidden = true;
     $('#lista-verif').innerHTML = vazio('Sem verificações neste dia', 'As verificações acontecem de segunda a sábado.');
     return;
   }
@@ -251,27 +326,43 @@ async function carregarDia(dia, horaEscolhida) {
   state.hora = escolhida;
   const sub = { feita: 'feita', agendada: 'agendada', nao_executada: 'não executada' };
   $('#horarios').innerHTML = r.horarios.map((h) =>
-    `<button role="tab" data-h="${h.time}" aria-selected="${h.time === escolhida}"><span class="h">${h.time}</span><span class="s">${sub[h.status]}</span></button>`).join('');
-  $('#horarios').querySelectorAll('button').forEach((b) => b.addEventListener('click', () => carregarDia(state.dia, b.dataset.h)));
+    `<button class="pilula" role="tab" data-h="${h.time}" aria-selected="${h.time === escolhida}"><span class="h">${h.time}</span><span class="s">${sub[h.status]}</span></button>`).join('');
+  $('#horarios').querySelectorAll('.pilula').forEach((b) => b.addEventListener('click', () => carregarDia(state.dia, b.dataset.h)));
 
   const st = r.horarios.find((h) => h.time === escolhida).status;
   if (st !== 'feita') {
-    $('#verif-resumo').innerHTML = '';
+    $('#verif-resumo').hidden = true;
     $('#lista-verif').innerHTML = st === 'agendada'
       ? vazio(`Próxima verificação às ${escolhida}`, 'A equipe recebe um aviso no celular quando a lista ficar pronta.')
       : vazio('Verificação não executada', 'O servidor estava desligado neste horário.');
     return;
   }
   try {
-    const snap = await api(`/api/verificacoes/${r.data}/${escolhida.replace(':', '')}`);
-    $('#verif-resumo').innerHTML = resumoHTML(snap.totals, null);
-    $('#verif-resumo').querySelectorAll('button').forEach((b) => { b.disabled = true; b.style.cursor = 'default'; });
-    $('#lista-verif').innerHTML = snap.items.length
-      ? `<p class="muted small info">Retrato das ${escolhida}: quem estava aguardando naquele momento.</p>` + snap.items.map((i) => cartao(i, { podeResolver: false })).join('')
-      : vazio('Nenhuma pendência', `Às ${escolhida} todas as conversas estavam respondidas.`);
+    state.verif = await api(`/api/verificacoes/${r.data}/${escolhida.replace(':', '')}`);
+    desenharVerif();
   } catch (err) {
     $('#lista-verif').innerHTML = vazio('Erro', err.message);
   }
+}
+
+function desenharVerif() {
+  const snap = state.verif;
+  const t = snap.totals;
+  const partes = [
+    t.pediuAtendente && `${t.pediuAtendente} ${t.pediuAtendente > 1 ? 'pediram' : 'pediu'} atendente`,
+    t.retornoPrometido && `${t.retornoPrometido} ${t.retornoPrometido > 1 ? 'retornos prometidos' : 'retorno prometido'}`,
+    t.semResposta && `${t.semResposta} sem resposta`,
+  ].filter(Boolean);
+  $('#verif-resumo').hidden = false;
+  $('#verif-resumo').textContent = t.total
+    ? `Às ${snap.time}, ${t.total} cliente${t.total > 1 ? 's' : ''} aguardando · ${partes.join(' · ')}`
+    : `Às ${snap.time}, todas as conversas estavam respondidas`;
+  const itens = snap.items.filter(bateBusca);
+  const lista = $('#lista-verif');
+  lista.innerHTML = itens.length
+    ? itens.map((i) => linhaConversa(i, { podeResolver: false })).join('')
+    : vazio(t.total ? 'Nada com essa pesquisa' : 'Nenhuma pendência', t.total ? 'Tente outra pesquisa.' : 'Tudo respondido neste horário.');
+  ligarLista(lista, desenharVerif);
 }
 $('#dia-anterior').addEventListener('click', () => carregarDia(somarDias(state.dia, -1)));
 $('#dia-proximo').addEventListener('click', () => carregarDia(somarDias(state.dia, 1)));
@@ -292,7 +383,7 @@ async function atualizarPushStatus() {
   const teste = $('#btn-push-teste');
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     st.textContent = ehIOS && !instalado
-      ? 'No iPhone, primeiro adicione o app à Tela de Início (veja abaixo) e abra por lá.'
+      ? 'Primeiro adicione o app à Tela de Início e abra por lá.'
       : 'Este navegador não suporta notificações.';
     btn.hidden = true;
     teste.hidden = true;
@@ -301,9 +392,9 @@ async function atualizarPushStatus() {
   const reg = await navigator.serviceWorker.ready;
   const sub = await reg.pushManager.getSubscription();
   const ativo = sub && Notification.permission === 'granted';
-  st.textContent = ativo ? 'Notificações ativadas neste aparelho.' : Notification.permission === 'denied'
-    ? 'Notificações bloqueadas. Libere em Ajustes do iPhone > Notificações > Pendências.'
-    : 'Notificações desativadas neste aparelho.';
+  st.textContent = ativo ? 'Ativadas neste aparelho' : Notification.permission === 'denied'
+    ? 'Bloqueadas. Libere em Ajustes do iPhone > Notificações > Pendências.'
+    : 'Desativadas neste aparelho';
   btn.hidden = !!ativo;
   teste.hidden = !ativo;
 }
@@ -346,12 +437,16 @@ async function iniciar() {
   }
   $('#login').hidden = true;
   $('#app').hidden = false;
-  $('#usuario-nome').textContent = `${state.me.usuario.name} (${state.me.usuario.email})`;
+  const u = state.me.usuario;
+  $('#usuario-nome').textContent = u.name;
+  $('#usuario-email').textContent = u.email;
+  $('#perfil-avatar').textContent = iniciais(u.name);
   $('#horarios-txt').textContent = state.me.horarios.join(', ');
   const p = new URLSearchParams(location.search);
   if (p.get('data')) state.dia = p.get('data');
-  irPara(['agora', 'verificacoes', 'ajustes'].includes(p.get('aba')) ? p.get('aba') : 'agora');
-  if (p.get('hora') && state.aba === 'verificacoes') carregarDia(state.dia, p.get('hora'));
+  const aba = ['agora', 'verificacoes', 'ajustes'].includes(p.get('aba')) ? p.get('aba') : 'agora';
+  irPara(aba);
+  if (p.get('hora') && aba === 'verificacoes') carregarDia(state.dia, p.get('hora'));
   history.replaceState(null, '', '/');
 }
 
