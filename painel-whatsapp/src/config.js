@@ -92,6 +92,8 @@ export const config = {
     sync: bool('LABELS_SYNC', true),
     // Uma única etiqueta nas conversas pendentes (o motivo aparece no painel)
     pendencia: env('LABEL_PENDENCIA', 'pendencia'),
+    // Conversas com esta etiqueta no Chatwoot ficam fora da verificação
+    ignorar: env('LABEL_IGNORAR', 'ignorar-pendencia'),
     // Etiquetas de versões anteriores, retiradas sozinhas das conversas
     antigas: ['pendente-resposta', 'pediu-atendente', 'retorno-prometido'],
   },

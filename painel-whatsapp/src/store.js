@@ -28,6 +28,26 @@ export class Store {
     fs.renameSync(tmp, f);
   }
 
+  // Contatos que a equipe mandou ignorar na verificação de pendências
+  listIgnored() {
+    return this.read('ignorados.json', []);
+  }
+
+  ignoredIds() {
+    return new Set(this.listIgnored().map((x) => String(x.contactId)));
+  }
+
+  addIgnored(entry) {
+    const list = this.listIgnored().filter((x) => String(x.contactId) !== String(entry.contactId));
+    list.push(entry);
+    list.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
+    this.write('ignorados.json', list);
+  }
+
+  removeIgnored(contactId) {
+    this.write('ignorados.json', this.listIgnored().filter((x) => String(x.contactId) !== String(contactId)));
+  }
+
   // Verificações: verificacoes/AAAA-MM-DD/HHMM.json
   saveCheck(date, time, data) {
     this.write(path.join('verificacoes', date, `${time.replace(':', '')}.json`), data);

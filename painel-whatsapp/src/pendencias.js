@@ -11,9 +11,15 @@ const PALETTE = [
 
 const FLAG_ORDER = { pediu_atendente: 0, retorno_prometido: 1, sem_resposta: 2 };
 
+/** Conversa de grupo do WhatsApp (via Evolution o identificador termina em @g.us). */
+export function ehGrupo(c) {
+  return /@g\.us$/i.test(c.contactIdentifier || '') || /@g\.us$/i.test(c.contactPhone || '');
+}
+
 export class PendenciasEngine {
-  constructor({ client, config, logger = console }) {
+  constructor({ client, config, logger = console, ignorados = () => new Set() }) {
     this.client = client;
+    this.ignorados = ignorados; // () => Set de contactId que a equipe mandou ignorar
     this.config = config;
     this.log = logger;
     this.matchers = buildMatchers(config.rules);
@@ -60,7 +66,21 @@ export class PendenciasEngine {
 
     const items = [];
     const all = [];
-    const queue = [...convs];
+    const ignoradosSet = this.ignorados();
+    const etiquetaIgnorar = this.config.labels.ignorar;
+    let ignoradas = 0;
+    const queue = [];
+    for (const c of convs) {
+      const ignorar = ehGrupo(c)
+        || (c.contactId != null && ignoradosSet.has(String(c.contactId)))
+        || (etiquetaIgnorar && c.labels.includes(etiquetaIgnorar));
+      if (ignorar) {
+        ignoradas++;
+        all.push({ conv: c, result: { pending: false, flags: [] } }); // tira a etiqueta "pendencia" se tiver
+      } else {
+        queue.push(c);
+      }
+    }
     const workers = Array.from({ length: 4 }, async () => {
       while (queue.length) {
         const c = queue.shift();
@@ -90,6 +110,7 @@ export class PendenciasEngine {
       totals: summarize(items, inboxes),
       inboxes: inboxes.map(({ id, name, phone, color }) => ({ id, name, phone, color })),
       openConversations: convs.length,
+      ignoredConversations: ignoradas,
     };
     return this.last;
   }
@@ -108,6 +129,7 @@ export class PendenciasEngine {
     const pub = this.config.chatwoot.publicUrl;
     return {
       id: c.id,
+      contactId: c.contactId,
       contactName: c.contactName,
       contactPhone: c.contactPhone,
       assigneeName: c.assigneeName,

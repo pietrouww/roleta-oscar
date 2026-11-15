@@ -133,6 +133,7 @@ function irPara(aba) {
   if (aba === 'verificacoes') carregarDia(state.dia);
   if (aba === 'ajustes') {
     atualizarPushStatus();
+    carregarIgnorados();
     const podeQr = state.me?.usuario.admin && state.me?.qrcode;
     $('#sec-numeros').hidden = !podeQr;
     if (podeQr) carregarNumeros();
@@ -221,6 +222,7 @@ function linhaConversa(item, { podeResolver }) {
       <div class="conv-acoes">
         ${item.url ? `<a class="btn-verde btn-p" href="${esc(item.url)}" target="${EMBUTIDO ? '_top' : '_blank'}" rel="noopener">${EMBUTIDO ? 'Abrir conversa' : 'Responder no Chatwoot'}</a>` : ''}
         ${podeResolver ? `<button class="btn-contorno btn-p" data-resolver="${item.id}">Marcar resolvida</button>` : ''}
+        ${podeResolver && item.contactId != null ? `<button class="btn-contorno btn-p cinza" data-ignorar="${item.id}">Ignorar contato</button>` : ''}
       </div>
     </div>` : ''}
   </li>`;
@@ -232,6 +234,21 @@ function ligarLista(el, redesenhar) {
     if (state.abertos.has(id)) state.abertos.delete(id);
     else state.abertos.add(id);
     redesenhar();
+  }));
+  el.querySelectorAll('[data-ignorar]').forEach((b) => b.addEventListener('click', async () => {
+    const item = state.agora?.items.find((i) => i.id === Number(b.dataset.ignorar));
+    if (!item) return;
+    if (!confirm(`${item.contactName} não vai mais aparecer nas pendências (bom para fornecedores e mensagens diárias de valores).\n\nDá para desfazer em Ajustes → Contatos ignorados.`)) return;
+    b.disabled = true;
+    try {
+      await api('/api/ignorados', { method: 'POST', body: { contactId: item.contactId, nome: item.contactName, telefone: item.contactPhone } });
+      toast(`${item.contactName} ignorado nas pendências`);
+      state.abertos.delete(item.id);
+      await carregarAgora(true);
+    } catch (err) {
+      toast(err.message);
+      b.disabled = false;
+    }
   }));
   el.querySelectorAll('[data-resolver]').forEach((b) => b.addEventListener('click', async () => {
     if (!confirm('Marcar esta conversa como resolvida no Chatwoot?')) return;
@@ -305,7 +322,8 @@ function desenharAgora() {
     ? itens.map((i) => linhaConversa(i, { podeResolver: true })).join('')
     : vazio(t.total ? 'Nada com esse filtro' : 'Tudo respondido', t.total ? 'Tente outro filtro ou pesquisa.' : 'Nenhum cliente aguardando retorno.');
   ligarLista(lista, desenharAgora);
-  $('#agora-rodape').textContent = `${d.openConversations} conversas abertas · toque numa conversa para ver as mensagens`;
+  const ign = d.ignoredConversations ? ` · ${d.ignoredConversations} fora da verificação (grupos e contatos ignorados)` : '';
+  $('#agora-rodape').textContent = `${d.openConversations} conversas abertas${ign} · toque numa conversa para ver as mensagens`;
   desenharConversaAtual();
 }
 
@@ -574,6 +592,29 @@ $('#btn-sair').addEventListener('click', async () => {
   await api('/api/logout', { method: 'POST' }).catch(() => {});
   location.reload();
 });
+
+// ---------- Contatos ignorados ----------
+async function carregarIgnorados() {
+  const box = $('#lista-ignorados');
+  try {
+    const { ignorados } = await api('/api/ignorados');
+    box.innerHTML = ignorados.length
+      ? ignorados.map((x) => `<div class="num-linha">
+          <span class="avatar" style="background:${corAvatar(x.nome)}" aria-hidden="true">${esc(iniciais(x.nome))}</span>
+          <div class="num-texto"><p>${esc(x.nome || 'Contato')}</p><p class="sec pequeno">${esc(fone(x.telefone))}${x.por ? ` · por ${esc(x.por)}` : ''}</p></div>
+          <div class="num-acoes"><button class="link-btn" data-voltar="${esc(x.contactId)}">Verificar de novo</button></div>
+        </div>`).join('')
+      : '<div class="linha"><p class="sec pequeno">Nenhum contato ignorado. Use “Ignorar contato” numa conversa pendente.</p></div>';
+  } catch (err) {
+    box.innerHTML = `<div class="linha"><p class="sec pequeno">${esc(err.message)}</p></div>`;
+    return;
+  }
+  box.querySelectorAll('[data-voltar]').forEach((b) => b.addEventListener('click', async () => {
+    await api(`/api/ignorados/${b.dataset.voltar}`, { method: 'DELETE' }).catch((e) => toast(e.message));
+    toast('Contato volta a ser verificado');
+    carregarIgnorados();
+  }));
+}
 
 // ---------- Aparência (claro / escuro) ----------
 const midiaEscura = window.matchMedia('(prefers-color-scheme: dark)');

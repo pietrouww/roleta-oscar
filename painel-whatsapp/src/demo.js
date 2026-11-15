@@ -86,6 +86,16 @@ export class DemoChatwootClient {
           ia(24, 'Sou a assistente virtual, mas já avisei a equipe.'),
         ],
       },
+      {
+        // Grupo: sempre fora da verificação
+        id: 108, inbox: 1, name: 'Grupo Obras Centro', phone: '', identifier: '120363000000000001@g.us', assignee: '',
+        messages: [cli(90, 'Alguém confirma a entrega de amanhã?')],
+      },
+      {
+        // Fornecedor que manda tabela todo dia: dá para "Ignorar contato"
+        id: 109, inbox: 2, name: 'Distribuidora Aço Forte', phone: '+5541988887777', assignee: '',
+        messages: [cli(180, 'Bom dia! Segue a tabela de preços de hoje: vergalhão 10mm R$ 52,90…')],
+      },
     ];
   }
 
@@ -103,8 +113,10 @@ export class DemoChatwootClient {
         status: 'open',
         labels: this.labels.get(c.id) || [],
         lastActivityAt: c.messages[c.messages.length - 1].created_at * 1000,
+        contactId: c.id + 5000,
         contactName: c.name,
         contactPhone: c.phone,
+        contactIdentifier: c.identifier || '',
         assigneeName: c.assignee,
       }));
   }

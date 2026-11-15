@@ -57,8 +57,10 @@ export class ChatwootClient {
       status: c.status,
       labels: c.labels || [],
       lastActivityAt: (c.last_activity_at || c.timestamp || 0) * 1000,
+      contactId: c.meta?.sender?.id ?? null,
       contactName: c.meta?.sender?.name || c.meta?.sender?.phone_number || 'Sem nome',
       contactPhone: c.meta?.sender?.phone_number || '',
+      contactIdentifier: c.meta?.sender?.identifier || '',
       assigneeName: c.meta?.assignee?.name || '',
     }));
   }

@@ -17,6 +17,16 @@ export async function prepararChatwoot({ client, config, logger = console }) {
       });
       feito.push(`etiqueta ${title}`);
     }
+    const ign = config.labels.ignorar;
+    if (ign && !existentes.has(ign)) {
+      await client.createLabel({
+        title: ign,
+        color: '#8D8D8D',
+        description: 'Conversa fora da verificação de pendências (fornecedores, cotações diárias…)',
+        showOnSidebar: false,
+      });
+      feito.push(`etiqueta ${ign}`);
+    }
   }
   if (config.publicUrl) {
     const url = `${config.publicUrl}/?embed=1`;

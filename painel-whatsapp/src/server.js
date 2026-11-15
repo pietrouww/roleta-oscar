@@ -22,7 +22,7 @@ if (problems.length) {
 
 const store = new Store(config.dataDir);
 const client = config.demo ? new DemoChatwootClient() : new ChatwootClient(config.chatwoot);
-const engine = new PendenciasEngine({ client, config });
+const engine = new PendenciasEngine({ client, config, ignorados: () => store.ignoredIds() });
 const evolution = config.demo
   ? new DemoEvolutionClient()
   : new EvolutionClient({
@@ -105,6 +105,29 @@ app.post('/api/conversas/:id/resolver', auth.require, async (req, res) => {
     console.error('[resolver]', err.message);
     res.status(502).json({ erro: 'Não foi possível marcar como resolvida' });
   }
+});
+
+// ---- Contatos ignorados (fornecedores, cotações diárias...) ----
+app.get('/api/ignorados', auth.require, (req, res) => res.json({ ignorados: store.listIgnored() }));
+
+app.post('/api/ignorados', auth.require, (req, res) => {
+  const { contactId, nome, telefone } = req.body || {};
+  if (contactId == null || !/^\d+$/.test(String(contactId))) return res.status(400).json({ erro: 'Contato inválido' });
+  store.addIgnored({
+    contactId: String(contactId),
+    nome: String(nome || '').slice(0, 120),
+    telefone: String(telefone || '').slice(0, 40),
+    por: req.user.name,
+    em: new Date().toISOString(),
+  });
+  engine.last = null; // próxima consulta já sai sem ele
+  res.json({ ok: true });
+});
+
+app.delete('/api/ignorados/:contactId', auth.require, (req, res) => {
+  store.removeIgnored(req.params.contactId);
+  engine.last = null;
+  res.json({ ok: true });
 });
 
 // ---- Verificações agendadas ----

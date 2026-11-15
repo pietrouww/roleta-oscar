@@ -299,3 +299,4 @@ html.escuro .num-dot { border-color: #111B21; }
 .segmento button { min-height: 36px; border: none; border-radius: 8px; background: transparent; color: var(--pilula-texto); font: inherit; font-size: 15px; cursor: pointer; }
 .segmento button[aria-checked="true"] { background: var(--fundo); color: var(--texto); font-weight: 600; box-shadow: 0 1px 3px rgba(11,20,26,0.15); }
 html.escuro .segmento button[aria-checked="true"] { background: #2A3942; }
+.btn-contorno.cinza { color: var(--pilula-texto); }

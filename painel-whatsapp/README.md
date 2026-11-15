@@ -7,6 +7,11 @@ App para iPhone (PWA) que mostra **quais clientes estão esperando retorno** da 
 - **Sem resposta**: o cliente mandou a última mensagem (que não seja só "ok", "obrigado" ou 👍) e ninguém respondeu, nem a IA.
 - **Selo IA**: a conversa teve respostas da inteligência artificial. Uma resposta da IA conta como respondida, **a não ser** que o cliente peça um atendente.
 
+**Fora da verificação:**
+- **Grupos** de WhatsApp são sempre ignorados.
+- **Contatos ignorados**: na conversa pendente, toque em **Ignorar contato** (ideal para fornecedores e quem manda valores todo dia). A lista fica em *Ajustes → Contatos ignorados*, com **Verificar de novo** para desfazer.
+- No Chatwoot, colocar a etiqueta **`ignorar-pendencia`** numa conversa tem o mesmo efeito (só para aquela conversa).
+
 Verificações automáticas às **08:30, 12:00 e 17:00, de segunda a sábado**. O resultado de cada uma fica guardado com o histórico por dia, e a equipe recebe um alerta no celular. Também chega um **alerta na hora** quando alguém pede atendente e quando um retorno prometido passa de 2 horas sem resposta.
 
 As conversas pendentes também ganham a etiqueta **`pendencia`** no próprio Chatwoot, que sai sozinha quando a conversa é respondida. O motivo (pediu atendente, retorno prometido, sem resposta) aparece no painel.
