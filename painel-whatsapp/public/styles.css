@@ -21,10 +21,10 @@
   --e-ia-bg: #ECE6FF; --e-ia: #4B2BB3;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
-  color-scheme: light dark;
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
+/* Tema escuro: aplicado pela classe "escuro" no <html> (Automático segue o celular; Claro/Escuro em Ajustes) */
+html.escuro {
     --fundo: #0B141A;
     --fundo-agrupado: #0B141A;
     --texto: #E9EDEF;
@@ -43,12 +43,12 @@
     --e-promessa-bg: #43260C; --e-promessa: #FFC48A;
     --e-sem-bg: #3D3209; --e-sem: #FFE07A;
     --e-ia-bg: #2B2350; --e-ia: #CDBEFF;
-  }
-  .secao { background: #111B21 !important; }
-  html .e-numero { color: var(--c-d); }
-  html .pilula .pt { background: var(--c-d); }
-  html .btn-verde { color: #0B141A; }
+  color-scheme: dark;
 }
+html.escuro .secao { background: #111B21 !important; }
+html.escuro .e-numero { color: var(--c-d); }
+html.escuro .pilula .pt { background: var(--c-d); }
+html.escuro .btn-verde { color: #0B141A; }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--fundo); color: var(--texto); }
@@ -281,9 +281,7 @@ p { margin: 0; }
 .parear[open] { display: flex; flex-direction: column; gap: 10px; }
 .parear .grupo { border: 1px solid var(--linha); }
 .codigo { font-size: 30px; font-weight: 700; letter-spacing: 4px; text-align: center; font-variant-numeric: tabular-nums; }
-@media (prefers-color-scheme: dark) {
-  html .num-dot { border-color: #111B21; }
-}
+html.escuro .num-dot { border-color: #111B21; }
 .num-acoes { flex-direction: column; align-items: flex-end; gap: 0; }
 .num-acoes .link-btn { min-height: 34px; font-size: 15px; }
 
@@ -295,3 +293,9 @@ p { margin: 0; }
 .embutido .topo-acoes { min-height: 36px; }
 .embutido .conv-detalhe { margin-left: 16px; }
 .embutido .avatar:not(.avatar-g) { width: 42px; height: 42px; font-size: 15px; }
+
+/* Seletor de aparência (Ajustes) */
+.segmento { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; padding: 4px; margin: 4px 16px 12px; background: var(--pilula); border-radius: 10px; }
+.segmento button { min-height: 36px; border: none; border-radius: 8px; background: transparent; color: var(--pilula-texto); font: inherit; font-size: 15px; cursor: pointer; }
+.segmento button[aria-checked="true"] { background: var(--fundo); color: var(--texto); font-weight: 600; box-shadow: 0 1px 3px rgba(11,20,26,0.15); }
+html.escuro .segmento button[aria-checked="true"] { background: #2A3942; }

@@ -4,8 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pendências</title>
-<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B141A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" id="cor-tema" content="#FFFFFF">
+<script>
+  // Aplica o tema antes de desenhar a tela (sem piscar)
+  (function () {
+    var t = 'auto';
+    try { t = localStorage.getItem('tema') || 'auto'; } catch (e) {}
+    var escuro = t === 'escuro' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    if (escuro) document.documentElement.classList.add('escuro');
+    document.getElementById('cor-tema').setAttribute('content', escuro ? '#0B141A' : '#FFFFFF');
+  })();
+</script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -95,6 +104,16 @@
       </section>
       <p class="secao-nota sec pequeno">Cada número vira uma caixa de entrada no Chatwoot. As respostas saem com o nome do atendente.</p>
     </div>
+
+    <h2 class="secao-titulo">Aparência</h2>
+    <section class="secao">
+      <div id="tema-opcoes" class="segmento" role="radiogroup" aria-label="Aparência">
+        <button role="radio" data-tema="auto">Automático</button>
+        <button role="radio" data-tema="claro">Claro</button>
+        <button role="radio" data-tema="escuro">Escuro</button>
+      </div>
+    </section>
+    <p class="secao-nota sec pequeno">Automático acompanha o modo claro/escuro do celular.</p>
 
     <h2 class="secao-titulo">Notificações</h2>
     <section class="secao">

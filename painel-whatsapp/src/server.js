@@ -41,7 +41,8 @@ app.use(express.json({ limit: '100kb' }));
 
 const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
 app.use(express.static(publicDir, { index: 'index.html', maxAge: '1h', setHeaders: (res, p) => {
-  if (p.endsWith('sw.js') || p.endsWith('index.html')) res.setHeader('Cache-Control', 'no-cache');
+  // Telas e scripts sempre conferem se há versão nova (atualizações aparecem na hora no iPhone)
+  if (/\.(html|js|css|webmanifest)$/.test(p)) res.setHeader('Cache-Control', 'no-cache');
 } }));
 
 app.get('/health', (req, res) => res.json({ ok: true, demo: config.demo }));

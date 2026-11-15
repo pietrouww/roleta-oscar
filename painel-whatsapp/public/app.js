@@ -575,6 +575,25 @@ $('#btn-sair').addEventListener('click', async () => {
   location.reload();
 });
 
+// ---------- Aparência (claro / escuro) ----------
+const midiaEscura = window.matchMedia('(prefers-color-scheme: dark)');
+function lerTema() {
+  try { return localStorage.getItem('tema') || 'auto'; } catch { return 'auto'; }
+}
+function aplicarTema() {
+  const t = lerTema();
+  const escuro = t === 'escuro' || (t === 'auto' && midiaEscura.matches);
+  document.documentElement.classList.toggle('escuro', escuro);
+  $('#cor-tema').setAttribute('content', escuro ? '#0B141A' : '#FFFFFF');
+  document.querySelectorAll('#tema-opcoes button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.tema === t)));
+}
+document.querySelectorAll('#tema-opcoes button').forEach((b) => b.addEventListener('click', () => {
+  try { localStorage.setItem('tema', b.dataset.tema); } catch { /* sem armazenamento: vale só nesta visita */ }
+  aplicarTema();
+}));
+midiaEscura.addEventListener('change', aplicarTema);
+aplicarTema();
+
 // ---------- Início ----------
 // Dentro do Chatwoot: descobre qual conversa está aberta e mostra se ela está pendente
 function desenharConversaAtual() {
