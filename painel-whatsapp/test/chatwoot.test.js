@@ -31,7 +31,7 @@ function fakeChatwoot() {
       if (u.pathname === '/api/v1/accounts/3/conversations') {
         const st = u.searchParams.get('status');
         if (st !== 'open') return json(200, { data: { payload: [] } });
-        return json(200, { data: { payload: [{ id: 99, inbox_id: 11, status: 'open', labels: ['vip'], last_activity_at: now - 3000, meta: { sender: { name: 'Mariana', phone_number: '+5541999990000' }, assignee: { name: 'Ana Souza' } } }] } });
+        return json(200, { data: { payload: [{ id: 99, inbox_id: 11, status: 'open', labels: ['vip', 'pediu-atendente'], last_activity_at: now - 3000, meta: { sender: { name: 'Mariana', phone_number: '+5541999990000' }, assignee: { name: 'Ana Souza' } } }] } });
       }
       if (u.pathname === '/api/v1/accounts/3/conversations/99/messages') {
         const before = Number(u.searchParams.get('before') || 0);
@@ -61,7 +61,7 @@ test('cliente Chatwoot + varredura completa', async () => {
     const config = {
       chatwoot: { url, publicUrl: 'https://cw.exemplo', accountId: '3', token: 'tok', inboxIds: [], maxMessages: 60 },
       rules: { waitMinMinutes: 15, promiseMinMinutes: 30 },
-      labels: { sync: true, semResposta: 'pendente-resposta', pediuAtendente: 'pediu-atendente', retornoPrometido: 'retorno-prometido' },
+      labels: { sync: true, pendencia: 'pendencia', antigas: ['pediu-atendente'] },
     };
     const engine = new PendenciasEngine({ client, config, logger: { error() {}, info() {} } });
     const r = await engine.scan();
@@ -70,7 +70,7 @@ test('cliente Chatwoot + varredura completa', async () => {
     assert.equal(r.items[0].inbox.name, 'Comercial');
     assert.equal(r.items[0].url, 'https://cw.exemplo/app/accounts/3/conversations/99');
     const labelCall = calls.find((c) => c.url.endsWith('/labels'));
-    assert.deepEqual(JSON.parse(labelCall.body).labels, ['pediu-atendente', 'vip'], 'mantém etiquetas existentes');
+    assert.deepEqual(JSON.parse(labelCall.body).labels, ['pendencia', 'vip'], 'uma etiqueta só, mantém as outras e tira as antigas');
     assert.ok(calls.filter((c) => c.url.startsWith('/api/')).every((c) => c.token === 'tok'));
 
     // Segunda varredura usa cache (sem buscar mensagens de novo)

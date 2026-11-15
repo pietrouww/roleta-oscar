@@ -9,7 +9,7 @@ App para iPhone (PWA) que mostra **quais clientes estão esperando retorno** da 
 
 Verificações automáticas às **08:30, 12:00 e 17:00, de segunda a sábado**. O resultado de cada uma fica guardado com o histórico por dia, e a equipe recebe um alerta no celular. Também chega um **alerta na hora** quando alguém pede atendente e quando um retorno prometido passa de 2 horas sem resposta.
 
-As conversas pendentes também ganham **etiquetas no próprio Chatwoot** (`pediu-atendente`, `retorno-prometido`, `pendente-resposta`), que saem sozinhas quando a conversa é respondida.
+As conversas pendentes também ganham a etiqueta **`pendencia`** no próprio Chatwoot, que sai sozinha quando a conversa é respondida. O motivo (pediu atendente, retorno prometido, sem resposta) aparece no painel.
 
 Os atendentes entram no painel com o **mesmo e-mail e senha do Chatwoot**.
 
@@ -138,7 +138,7 @@ curl https://evolution.suaempresa.com.br   # deve responder (mensagem de boas-vi
 
 Ao iniciar, o painel prepara o Chatwoot sozinho (desligue com `CHATWOOT_SETUP=false`):
 
-- **Etiquetas no menu lateral**: cria `pediu-atendente` (vermelho), `retorno-prometido` (laranja) e `pendente-resposta` (amarelo), visíveis na barra lateral do Chatwoot. **Clicou na etiqueta, viu a lista** do que está pendente. Elas entram e saem das conversas sozinhas.
+- **Etiqueta `pendencia`** (vermelha): aparece na própria conversa, na lista de conversas do Chatwoot (no computador e no celular), do jeito das etiquetas do WhatsApp Business. Entra e sai sozinha. Não fica no menu lateral.
 - **Aba "Pendências" em cada conversa**: cadastra o painel como *Dashboard App* (precisa de `PAINEL_PUBLIC_URL`). Dentro de qualquer conversa aparece a aba **Pendências** com a lista completa e um aviso dizendo se **aquela conversa** está pendente.
 
 > O painel e o Chatwoot precisam estar no **mesmo domínio** (ex.: `atendimento.efiscus.com.br` e `pendencias.efiscus.com.br`) para o login funcionar dentro da aba. Na primeira vez, cada atendente entra com o e-mail e a senha do Chatwoot dentro da própria aba.
@@ -222,7 +222,7 @@ cd /opt/painel-whatsapp && docker compose up -d --build
 ```
 src/classifier.js   regras de pendência (frases de promessa e de pedido de atendente)
 src/chatwoot.js     comunicação com a API do Chatwoot
-src/pendencias.js   varredura das conversas abertas, cache e etiquetas
+src/pendencias.js   varredura das conversas abertas, cache e etiqueta "pendencia"
 src/scheduler.js    verificações 08:30/12:00/17:00 e alertas imediatos
 src/push.js         notificações no celular
 src/evolution.js    conexão dos números por QR Code (Evolution API)

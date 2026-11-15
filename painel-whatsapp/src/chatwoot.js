@@ -96,8 +96,8 @@ export class ChatwootClient {
     return (r?.payload || (Array.isArray(r) ? r : [])).map((l) => ({ id: l.id, title: l.title, showOnSidebar: l.show_on_sidebar }));
   }
 
-  async createLabel({ title, description, color }) {
-    return this.request('POST', this.acc('/labels'), { title, description, color, show_on_sidebar: true });
+  async createLabel({ title, description, color, showOnSidebar = false }) {
+    return this.request('POST', this.acc('/labels'), { title, description, color, show_on_sidebar: showOnSidebar });
   }
 
   async listDashboardApps() {

@@ -27,12 +27,12 @@ test('cria etiquetas que faltam e a aba Pendências só uma vez', async () => {
     const config = {
       publicUrl: 'https://pendencias.efiscus.com.br',
       dashboardAppTitle: 'Pendências',
-      labels: { sync: true, semResposta: 'pendente-resposta', pediuAtendente: 'pediu-atendente', retornoPrometido: 'retorno-prometido' },
+      labels: { sync: true, pendencia: 'pendencia', antigas: [] },
     };
     const log = { info() {} };
     const primeira = await prepararChatwoot({ client, config, logger: log });
-    assert.deepEqual(primeira, ['etiqueta retorno-prometido', 'etiqueta pendente-resposta', 'aba "Pendências" nas conversas']);
-    assert.ok(labels.every((l) => l.show_on_sidebar), 'etiquetas aparecem no menu lateral');
+    assert.deepEqual(primeira, ['etiqueta pendencia', 'aba "Pendências" nas conversas']);
+    assert.equal(labels.find((l) => l.title === 'pendencia').show_on_sidebar, false, 'não polui o menu lateral');
     assert.equal(apps[0].content[0].url, 'https://pendencias.efiscus.com.br/?embed=1');
     assert.equal(apps[0].content[0].type, 'frame');
 

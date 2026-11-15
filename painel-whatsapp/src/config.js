@@ -90,9 +90,10 @@ export const config = {
 
   labels: {
     sync: bool('LABELS_SYNC', true),
-    semResposta: env('LABEL_SEM_RESPOSTA', 'pendente-resposta'),
-    pediuAtendente: env('LABEL_PEDIU_ATENDENTE', 'pediu-atendente'),
-    retornoPrometido: env('LABEL_RETORNO_PROMETIDO', 'retorno-prometido'),
+    // Uma única etiqueta nas conversas pendentes (o motivo aparece no painel)
+    pendencia: env('LABEL_PENDENCIA', 'pendencia'),
+    // Etiquetas de versões anteriores, retiradas sozinhas das conversas
+    antigas: ['pendente-resposta', 'pediu-atendente', 'retorno-prometido'],
   },
 
   push: {

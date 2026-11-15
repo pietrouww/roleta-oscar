@@ -124,10 +124,9 @@ export class PendenciasEngine {
 
   async syncLabels(all) {
     const L = this.config.labels;
-    const managed = [L.semResposta, L.pediuAtendente, L.retornoPrometido];
-    const map = { sem_resposta: L.semResposta, pediu_atendente: L.pediuAtendente, retorno_prometido: L.retornoPrometido };
+    const managed = [L.pendencia, ...(L.antigas || [])];
     for (const { conv, result } of all) {
-      const wanted = result.flags.map((f) => map[f.type]);
+      const wanted = result.pending ? [L.pendencia] : [];
       const kept = conv.labels.filter((l) => !managed.includes(l));
       const next = [...new Set([...kept, ...wanted])].sort();
       const current = [...new Set(conv.labels)].sort();
