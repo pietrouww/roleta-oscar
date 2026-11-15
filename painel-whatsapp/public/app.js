@@ -10,7 +10,12 @@ const AVATAR_CORES = ['#0F7A5C', '#2563A8', '#7E3FA0', '#B4363F', '#3D5A80', '#6
 const CHECKS = '<svg aria-hidden="true" width="17" height="11" viewBox="0 0 17 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6l3 3 6-7.5"></path><path d="M7 9l1 1 6-8.5"></path></svg>';
 const ICONE_PESSOA = '<svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>';
 
+// Modo embutido: aberto como aba "Pendências" dentro do Chatwoot (Dashboard App)
+const EMBUTIDO = new URLSearchParams(location.search).get('embed') === '1' || window.self !== window.top;
+if (EMBUTIDO) document.documentElement.classList.add('embutido');
+
 const state = {
+  convAtual: null,
   me: null,
   aba: 'agora',
   agora: null,
@@ -214,7 +219,7 @@ function linhaConversa(item, { podeResolver }) {
       ${baloes(item)}
       <p class="sec pequeno">${esc(fone(item.contactPhone))}</p>
       <div class="conv-acoes">
-        ${item.url ? `<a class="btn-verde btn-p" href="${esc(item.url)}" target="_blank" rel="noopener">Responder no Chatwoot</a>` : ''}
+        ${item.url ? `<a class="btn-verde btn-p" href="${esc(item.url)}" target="${EMBUTIDO ? '_top' : '_blank'}" rel="noopener">${EMBUTIDO ? 'Abrir conversa' : 'Responder no Chatwoot'}</a>` : ''}
         ${podeResolver ? `<button class="btn-contorno btn-p" data-resolver="${item.id}">Marcar resolvida</button>` : ''}
       </div>
     </div>` : ''}
@@ -301,6 +306,7 @@ function desenharAgora() {
     : vazio(t.total ? 'Nada com esse filtro' : 'Tudo respondido', t.total ? 'Tente outro filtro ou pesquisa.' : 'Nenhum cliente aguardando retorno.');
   ligarLista(lista, desenharAgora);
   $('#agora-rodape').textContent = `${d.openConversations} conversas abertas · toque numa conversa para ver as mensagens`;
+  desenharConversaAtual();
 }
 
 // ---------- Aba Verificações ----------
@@ -570,6 +576,38 @@ $('#btn-sair').addEventListener('click', async () => {
 });
 
 // ---------- Início ----------
+// Dentro do Chatwoot: descobre qual conversa está aberta e mostra se ela está pendente
+function desenharConversaAtual() {
+  const el = $('#conv-atual');
+  if (!EMBUTIDO || !state.convAtual || !state.agora) {
+    el.hidden = true;
+    return;
+  }
+  const item = state.agora.items.find((i) => i.id === state.convAtual);
+  el.hidden = false;
+  if (item) {
+    el.className = 'faixa faixa-alerta';
+    el.textContent = `Esta conversa está pendente: ${item.flags.map((f) => FLAG[f.type].label.toLowerCase()).join(' e ')}, há ${tempo(item.waitingMinutes)}.`;
+  } else {
+    el.className = 'faixa faixa-ok';
+    el.textContent = 'Esta conversa não tem pendência.';
+  }
+}
+
+if (EMBUTIDO) {
+  window.addEventListener('message', (e) => {
+    let msg = e.data;
+    if (typeof msg === 'string') {
+      try { msg = JSON.parse(msg); } catch { return; }
+    }
+    if (msg?.event === 'appContext' && msg.data?.conversation?.id) {
+      state.convAtual = Number(msg.data.conversation.id);
+      desenharConversaAtual();
+    }
+  });
+  try { window.parent.postMessage('chatwoot-dashboard-app:fetch-info', '*'); } catch { /* fora do Chatwoot */ }
+}
+
 async function iniciar() {
   try {
     state.me = await api('/api/me');
@@ -588,7 +626,7 @@ async function iniciar() {
   const aba = ['agora', 'verificacoes', 'ajustes'].includes(p.get('aba')) ? p.get('aba') : 'agora';
   irPara(aba);
   if (p.get('hora') && aba === 'verificacoes') carregarDia(state.dia, p.get('hora'));
-  history.replaceState(null, '', '/');
+  history.replaceState(null, '', EMBUTIDO ? '/?embed=1' : '/');
 }
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});

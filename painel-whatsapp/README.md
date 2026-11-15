@@ -134,9 +134,14 @@ docker compose logs -f evolution   # a Evolution API deve subir sem erros de ban
 curl https://evolution.suaempresa.com.br   # deve responder (mensagem de boas-vindas da Evolution)
 ```
 
-### 2.5 Criar as etiquetas no Chatwoot
+### 2.5 Pendências dentro do Chatwoot (automático)
 
-Em *Configurações → Etiquetas*, crie `pediu-atendente` (vermelho), `retorno-prometido` (laranja) e `pendente-resposta` (amarelo). Para não usar etiquetas, defina `LABELS_SYNC=false`.
+Ao iniciar, o painel prepara o Chatwoot sozinho (desligue com `CHATWOOT_SETUP=false`):
+
+- **Etiquetas no menu lateral**: cria `pediu-atendente` (vermelho), `retorno-prometido` (laranja) e `pendente-resposta` (amarelo), visíveis na barra lateral do Chatwoot. **Clicou na etiqueta, viu a lista** do que está pendente. Elas entram e saem das conversas sozinhas.
+- **Aba "Pendências" em cada conversa**: cadastra o painel como *Dashboard App* (precisa de `PAINEL_PUBLIC_URL`). Dentro de qualquer conversa aparece a aba **Pendências** com a lista completa e um aviso dizendo se **aquela conversa** está pendente.
+
+> O painel e o Chatwoot precisam estar no **mesmo domínio** (ex.: `atendimento.efiscus.com.br` e `pendencias.efiscus.com.br`) para o login funcionar dentro da aba. Na primeira vez, cada atendente entra com o e-mail e a senha do Chatwoot dentro da própria aba.
 
 ### 2.6 Instalar no iPhone de cada atendente
 

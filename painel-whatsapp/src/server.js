@@ -11,6 +11,7 @@ import { PushService } from './push.js';
 import { Scheduler } from './scheduler.js';
 import { createAuth } from './auth.js';
 import { zonedParts } from './time.js';
+import { prepararChatwoot } from './setup.js';
 
 const problems = validateConfig();
 if (problems.length) {
@@ -230,4 +231,7 @@ app.listen(config.port, () => {
   console.log(`Painel de pendências rodando na porta ${config.port}${config.demo ? ' (MODO DEMONSTRAÇÃO)' : ''}`);
   scheduler.start();
   engine.scan().catch((e) => console.error('[inicio] primeira varredura falhou:', e.message));
+  if (!config.demo && config.chatwootSetup) {
+    prepararChatwoot({ client, config }).catch((e) => console.error('[chatwoot] preparação falhou:', e.message));
+  }
 });

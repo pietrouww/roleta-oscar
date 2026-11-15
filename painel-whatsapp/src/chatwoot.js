@@ -91,6 +91,28 @@ export class ChatwootClient {
     return this.request('POST', this.acc(`/conversations/${conversationId}/toggle_status`), { status: 'resolved' });
   }
 
+  async listLabels() {
+    const r = await this.request('GET', this.acc('/labels'));
+    return (r?.payload || (Array.isArray(r) ? r : [])).map((l) => ({ id: l.id, title: l.title, showOnSidebar: l.show_on_sidebar }));
+  }
+
+  async createLabel({ title, description, color }) {
+    return this.request('POST', this.acc('/labels'), { title, description, color, show_on_sidebar: true });
+  }
+
+  async listDashboardApps() {
+    const r = await this.request('GET', this.acc('/dashboard_apps'));
+    return (Array.isArray(r) ? r : r?.payload || []).map((a) => ({
+      id: a.id,
+      title: a.title,
+      urls: (a.content || []).map((c) => c.url),
+    }));
+  }
+
+  async createDashboardApp({ title, url }) {
+    return this.request('POST', this.acc('/dashboard_apps'), { title, content: [{ type: 'frame', url }] });
+  }
+
   /** Login com e-mail e senha do Chatwoot. Retorna o usuário ou null. */
   async signIn(email, password) {
     const res = await fetch(`${this.url}/auth/sign_in`, {

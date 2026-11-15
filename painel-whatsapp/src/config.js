@@ -59,6 +59,13 @@ export const config = {
     chatwootUrl: env('EVOLUTION_CHATWOOT_URL', env('CHATWOOT_URL', '')).replace(/\/+$/, ''),
   },
 
+  // Endereço público do painel (ex.: https://pendencias.efiscus.com.br). Usado para criar a aba
+  // "Pendências" dentro das conversas do Chatwoot (Dashboard App).
+  publicUrl: env('PAINEL_PUBLIC_URL', '').replace(/\/+$/, ''),
+  // Cria sozinho no Chatwoot as etiquetas de pendência (no menu lateral) e a aba "Pendências"
+  chatwootSetup: bool('CHATWOOT_SETUP', true),
+  dashboardAppTitle: env('DASHBOARD_APP_TITLE', 'Pendências'),
+
   checks: {
     times: list('CHECK_TIMES', '08:30,12:00,17:00'),
     days: env('CHECK_DAYS', '1-6'), // 1=segunda ... 6=sábado (formato cron)
