@@ -65,6 +65,7 @@ export class PendenciasEngine {
     ].filter((c) => inboxById.has(c.inboxId));
 
     const items = [];
+    const respondidas = [];
     const all = [];
     const ignoradosSet = this.ignorados();
     const etiquetaIgnorar = this.config.labels.ignorar;
@@ -89,6 +90,7 @@ export class PendenciasEngine {
           const result = classify(messages, { now, rules: this.config.rules, matchers: this.matchers });
           all.push({ conv: c, result });
           if (result.pending) items.push(this.toItem(c, result, inboxById.get(c.inboxId)));
+          else if (messages.length) respondidas.push(this.toResp(c, result, inboxById.get(c.inboxId)));
         } catch (err) {
           this.log.error(`[pendencias] conversa ${c.id}:`, err.message);
         }
@@ -104,9 +106,12 @@ export class PendenciasEngine {
 
     if (this.config.labels.sync) await this.syncLabels(all).catch((e) => this.log.error('[labels]', e.message));
 
+    respondidas.sort((a, b) => b.lastAt - a.lastAt);
+
     this.last = {
       updatedAt: now,
       items,
+      respondidas,
       totals: summarize(items, inboxes),
       inboxes: inboxes.map(({ id, name, phone, color }) => ({ id, name, phone, color })),
       openConversations: convs.length,
@@ -122,6 +127,48 @@ export class PendenciasEngine {
     const messages = toClassifierMessages(raw, this.config.rules);
     this.cache.set(c.id, { lastActivityAt: c.lastActivityAt, messages });
     return messages;
+  }
+
+  /** Conversa aberta que não está pendente (respondida pela equipe, IA ou celular). */
+  toResp(c, r, inbox) {
+    const pub = this.config.chatwoot.publicUrl;
+    const lm = r.lastMessage || {};
+    return {
+      id: c.id,
+      contactId: c.contactId,
+      contactName: c.contactName,
+      contactPhone: c.contactPhone,
+      assigneeName: c.assigneeName,
+      inbox: inbox ? { id: inbox.id, name: inbox.name, color: inbox.color } : null,
+      flags: [],
+      lastAt: lm.at || c.lastActivityAt,
+      last: { dir: lm.dir, author: lm.author, name: lm.name || '', text: lm.text || (lm.hasMedia ? '[mídia]' : '') },
+      aiInvolved: r.aiInvolved,
+      lastHumanName: r.lastHumanName,
+      url: pub ? `${pub}/app/accounts/${this.config.chatwoot.accountId}/conversations/${c.id}` : '',
+    };
+  }
+
+  /** Histórico da conversa para ler no painel. */
+  async historico(id) {
+    const raw = await this.client.listMessages(Number(id), 80);
+    const base = new Map(toClassifierMessages(raw, this.config.rules).map((m) => [m.id, m]));
+    return raw
+      .filter((x) => base.has(x.id))
+      .map((x) => {
+        const m = base.get(x.id);
+        return {
+          id: m.id, at: m.at, dir: m.dir, author: m.author, name: m.name, text: m.text,
+          auto: m.dir === 'out' && m.author !== 'humano' && this.matchers.isAutoReply(m.text),
+          anexos: (x.attachments || []).map((a) => ({ tipo: a.file_type || 'file', url: a.data_url || '', thumb: a.thumb_url || '' })),
+        };
+      });
+  }
+
+  async responder(id, texto, token) {
+    await this.client.sendMessage(Number(id), texto, token);
+    this.cache.delete(Number(id));
+    if (this.last) this.last.updatedAt = 0; // força nova varredura na próxima consulta
   }
 
   toItem(c, r, inbox) {
@@ -141,6 +188,7 @@ export class PendenciasEngine {
       aiInvolved: r.aiInvolved,
       lastHumanName: r.lastHumanName,
       url: pub ? `${pub}/app/accounts/${this.config.chatwoot.accountId}/conversations/${c.id}` : '',
+      last: r.lastMessage ? { dir: r.lastMessage.dir, author: r.lastMessage.author, name: r.lastMessage.name || '', text: r.lastMessage.text || '' } : null,
     };
   }
 
@@ -164,6 +212,7 @@ export class PendenciasEngine {
     this.cache.delete(Number(id));
     if (this.last) {
       this.last.items = this.last.items.filter((i) => i.id !== Number(id));
+      if (this.last.respondidas) this.last.respondidas = this.last.respondidas.filter((i) => i.id !== Number(id));
       this.last.totals = summarize(this.last.items, this.inboxes);
     }
   }

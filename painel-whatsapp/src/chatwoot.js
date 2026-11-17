@@ -8,11 +8,11 @@ export class ChatwootClient {
     this.token = token;
   }
 
-  async request(method, path, body) {
+  async request(method, path, body, token) {
     const res = await fetch(`${this.url}${path}`, {
       method,
       headers: {
-        api_access_token: this.token,
+        api_access_token: token || this.token,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
@@ -89,6 +89,13 @@ export class ChatwootClient {
     return this.request('POST', this.acc(`/conversations/${conversationId}/labels`), { labels });
   }
 
+  /** Envia resposta ao cliente como o atendente dono do token (assinatura com o nome dele). */
+  async sendMessage(conversationId, content, token) {
+    return this.request('POST', this.acc(`/conversations/${conversationId}/messages`), {
+      content, message_type: 'outgoing', private: false,
+    }, token);
+  }
+
   async resolve(conversationId) {
     return this.request('POST', this.acc(`/conversations/${conversationId}/toggle_status`), { status: 'resolved' });
   }
@@ -131,7 +138,7 @@ export class ChatwootClient {
     if (accounts.length && !conta) return null;
     // O papel (administrator / agent) vem por conta; versões antigas mandam no próprio usuário
     const role = conta?.role || u.role || '';
-    return { id: u.id, name: u.available_name || u.name || u.email, email: u.email, role };
+    return { id: u.id, name: u.available_name || u.name || u.email, email: u.email, role, token: u.access_token || '' };
   }
 }
 

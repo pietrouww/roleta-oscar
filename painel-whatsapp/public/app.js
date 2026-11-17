@@ -24,6 +24,8 @@ const state = {
   filtroTipo: 'todos',
   busca: '',
   abertos: new Set(),
+  msgs: new Map(), // conversa -> mensagens carregadas
+  rascunho: {}, // conversa -> texto sendo digitado
   dia: null,
   hora: null,
 };
@@ -161,14 +163,21 @@ $('#busca').addEventListener('input', (e) => {
 
 const bateBusca = (i) => {
   if (!state.busca) return true;
-  const alvo = [i.contactName, i.contactPhone, fone(i.contactPhone), i.assigneeName, i.inbox?.name, ...i.flags.map((f) => f.text)]
+  const alvo = [i.contactName, i.contactPhone, fone(i.contactPhone), i.assigneeName, i.inbox?.name, i.last?.text, ...i.flags.map((f) => f.text)]
     .join(' ').toLowerCase();
   return alvo.includes(state.busca);
 };
 
 // ---------- Linha de conversa ----------
+const nomeAutor = (m) => (m.author === 'ia' ? '✦ IA' : m.author === 'cliente' ? '' : m.name || 'Equipe');
+
 function previa(item) {
   const f = item.flags[0];
+  if (!f) {
+    const l = item.last || {};
+    const quem = l.dir === 'out' ? nomeAutor(l) : '';
+    return `<span class="conv-prev">${l.dir === 'out' ? CHECKS : ''}<span>${quem ? `<b>${esc(quem)}:</b> ` : ''}${esc(l.text || 'Mídia')}</span></span>`;
+  }
   if (f.type === 'retorno_prometido') {
     return `<span class="conv-prev">${CHECKS}<span><b>${esc(autorPromessa(f))}:</b> ${esc(f.text)}</span></span>`;
   }
@@ -190,9 +199,44 @@ function baloes(item) {
   return `<div class="papel"><span class="aviso-sis">Aguardando há ${tempo(item.waitingMinutes)} · ${esc(resp)}</span>${partes.join('')}</div>`;
 }
 
+function balaoMsg(m) {
+  const anexos = (m.anexos || []).map((a) => (a.tipo === 'image' && a.url
+    ? `<a href="${esc(a.url)}" target="_blank" rel="noopener"><img class="anexo-img" src="${esc(a.thumb || a.url)}" alt="Imagem enviada" loading="lazy"></a>`
+    : a.url ? `<a class="anexo" href="${esc(a.url)}" target="_blank" rel="noopener">📎 ${esc({ audio: 'Áudio', video: 'Vídeo', file: 'Arquivo' }[a.tipo] || 'Arquivo')}</a>` : '')).join('');
+  const texto = m.text ? `<span class="txt">${esc(m.text)}</span>` : '';
+  if (m.dir === 'in') return `<div class="balao in">${anexos}${texto}<span class="meta">${quando(m.at)} ${hhmm(m.at)}</span></div>`;
+  const autor = m.auto ? 'Resposta automática' : nomeAutor(m);
+  const cor = m.auto ? 'var(--sec)' : m.author === 'ia' ? 'var(--e-ia)' : 'var(--verde-texto)';
+  return `<div class="balao out${m.auto ? ' auto' : ''}"><span class="autor" style="color:${cor}">${esc(autor)}</span>${anexos}${texto}<span class="meta">${hhmm(m.at)} ${CHECKS}</span></div>`;
+}
+
+function historico(item) {
+  const msgs = state.msgs.get(item.id);
+  const topo = item.flags.length
+    ? `<span class="aviso-sis aviso-pend">Pendente há ${tempo(item.waitingMinutes)}: ${esc(item.flags.map((f) => FLAG[f.type].label.toLowerCase()).join(' e '))}</span>`
+    : '<span class="aviso-sis">Conversa respondida · sem pendência</span>';
+  const resp = item.assigneeName ? `Responsável: ${item.assigneeName}` : item.lastHumanName ? `Último atendente: ${item.lastHumanName}` : 'Sem atendente atribuído';
+  let corpo;
+  if (msgs === undefined) corpo = '<span class="aviso-sis">Carregando mensagens…</span>';
+  else if (msgs === null) corpo = baloes(item); // falhou: mostra pelo menos o resumo
+  else corpo = msgs.slice(-40).map(balaoMsg).join('') || '<span class="aviso-sis">Sem mensagens</span>';
+  return `<div class="papel" data-hist="${item.id}">${topo}<span class="aviso-sis">${esc(resp)}</span>${corpo}</div>`;
+}
+
+function caixaResposta(item) {
+  return `<form class="responder" data-enviar="${item.id}">
+    <label class="sr" for="resp-${item.id}">Responder ${esc(item.contactName)}</label>
+    <textarea id="resp-${item.id}" rows="2" placeholder="Responder pelo painel…" data-rascunho="${item.id}">${esc(state.rascunho[item.id] || '')}</textarea>
+    <button type="submit" class="btn-verde btn-enviar" aria-label="Enviar">
+      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20.5l18-8.5L3 3.5l.01 6.6L15 12 3.01 13.9z"></path></svg>
+    </button>
+  </form>`;
+}
+
 function linhaConversa(item, { podeResolver }) {
   const aberto = state.abertos.has(item.id);
-  const atraso = item.waitingMinutes >= 120;
+  const pend = item.flags.length > 0;
+  const atraso = pend && item.waitingMinutes >= 120;
   const etqs = [];
   if (item.inbox) etqs.push(`<span class="etq e-numero" style="--c:${esc(item.inbox.color.fg)};--c-d:${esc(item.inbox.color.bg)}">${esc(item.inbox.name)}</span>`);
   for (const f of item.flags) etqs.push(`<span class="etq ${FLAG[f.type].cls}">${FLAG[f.type].label}</span>`);
@@ -206,21 +250,22 @@ function linhaConversa(item, { podeResolver }) {
       <span class="conv-corpo">
         <span class="conv-l1">
           <span class="conv-nome">${esc(item.contactName)}</span>
-          <span class="conv-hora ${atraso ? 'atraso' : ''}">${quando(item.since)}</span>
+          <span class="conv-hora ${atraso ? 'atraso' : ''} ${pend ? '' : 'sec'}">${quando(pend ? item.since : item.lastAt)}</span>
         </span>
         <span class="conv-l2">
           ${previa(item)}
-          <span class="espera ${atraso ? 'atraso' : ''}" aria-label="aguardando há ${tempo(item.waitingMinutes)}">${tempo(item.waitingMinutes)}</span>
+          ${pend ? `<span class="espera ${atraso ? 'atraso' : ''}" aria-label="aguardando há ${tempo(item.waitingMinutes)}">${tempo(item.waitingMinutes)}</span>` : ''}
         </span>
         <span class="etqs">${etqs.join('')}</span>
       </span>
     </button>
     ${aberto ? `
     <div class="conv-detalhe">
-      ${baloes(item)}
+      ${podeResolver ? historico(item) : baloes(item)}
+      ${podeResolver ? caixaResposta(item) : ''}
       <p class="sec pequeno">${esc(fone(item.contactPhone))}</p>
       <div class="conv-acoes">
-        ${item.url ? `<a class="btn-verde btn-p" href="${esc(item.url)}" target="${EMBUTIDO ? '_top' : '_blank'}" rel="noopener">${EMBUTIDO ? 'Abrir conversa' : 'Responder no Chatwoot'}</a>` : ''}
+        ${item.url ? `<a class="btn-contorno btn-p" href="${esc(item.url)}" target="${EMBUTIDO ? '_top' : '_blank'}" rel="noopener">${EMBUTIDO ? 'Abrir conversa' : 'Abrir no Chatwoot'}</a>` : ''}
         ${podeResolver ? `<button class="btn-contorno btn-p" data-resolver="${item.id}">Marcar resolvida</button>` : ''}
         ${podeResolver && item.contactId != null ? `<button class="btn-contorno btn-p cinza" data-ignorar="${item.id}">Ignorar contato</button>` : ''}
       </div>
@@ -228,15 +273,56 @@ function linhaConversa(item, { podeResolver }) {
   </li>`;
 }
 
+async function carregarMsgs(id, redesenhar) {
+  try {
+    const r = await api(`/api/conversas/${id}/mensagens`);
+    state.msgs.set(id, r.mensagens);
+  } catch {
+    state.msgs.set(id, null);
+  }
+  if (state.abertos.has(id)) {
+    redesenhar();
+    const p = document.querySelector(`[data-hist="${id}"]`);
+    if (p) p.scrollTop = p.scrollHeight;
+  }
+}
+
 function ligarLista(el, redesenhar) {
   el.querySelectorAll('[data-abrir]').forEach((b) => b.addEventListener('click', () => {
     const id = Number(b.dataset.abrir);
     if (state.abertos.has(id)) state.abertos.delete(id);
-    else state.abertos.add(id);
+    else {
+      state.abertos.add(id);
+      if (el.id !== 'lista-verif') carregarMsgs(id, redesenhar);
+    }
     redesenhar();
   }));
+  el.querySelectorAll('[data-rascunho]').forEach((t) => t.addEventListener('input', () => {
+    state.rascunho[t.dataset.rascunho] = t.value;
+  }));
+  el.querySelectorAll('[data-enviar]').forEach((f) => f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = Number(f.dataset.enviar);
+    const t = f.querySelector('textarea');
+    const texto = t.value.trim();
+    if (!texto) return;
+    const b = f.querySelector('button');
+    b.disabled = true;
+    t.disabled = true;
+    try {
+      await api(`/api/conversas/${id}/responder`, { method: 'POST', body: { texto } });
+      delete state.rascunho[id];
+      toast('Mensagem enviada');
+      await carregarMsgs(id, redesenhar);
+      carregarAgora(true);
+    } catch (err) {
+      toast(err.message);
+      b.disabled = false;
+      t.disabled = false;
+    }
+  }));
   el.querySelectorAll('[data-ignorar]').forEach((b) => b.addEventListener('click', async () => {
-    const item = state.agora?.items.find((i) => i.id === Number(b.dataset.ignorar));
+    const item = [...(state.agora?.items || []), ...(state.agora?.respondidas || [])].find((i) => i.id === Number(b.dataset.ignorar));
     if (!item) return;
     if (!confirm(`${item.contactName} não vai mais aparecer nas pendências (bom para fornecedores e mensagens diárias de valores).\n\nDá para desfazer em Ajustes → Contatos ignorados.`)) return;
     b.disabled = true;
@@ -322,6 +408,16 @@ function desenharAgora() {
     ? itens.map((i) => linhaConversa(i, { podeResolver: true })).join('')
     : vazio(t.total ? 'Nada com esse filtro' : 'Tudo respondido', t.total ? 'Tente outro filtro ou pesquisa.' : 'Nenhum cliente aguardando retorno.');
   ligarLista(lista, desenharAgora);
+
+  // Conversas abertas já respondidas (equipe, IA ou celular): para acompanhar e responder pelo painel
+  const resp = (d.respondidas || []).filter((i) =>
+    (state.filtroNumero === 'todos' || String(i.inbox?.id) === String(state.filtroNumero)) && bateBusca(i));
+  const mostrarResp = state.filtroTipo === 'todos' && resp.length > 0;
+  $('#resp-titulo').hidden = !mostrarResp;
+  $('#resp-titulo').textContent = `Respondidas · em andamento (${resp.length})`;
+  const listaResp = $('#lista-resp');
+  listaResp.innerHTML = mostrarResp ? resp.map((i) => linhaConversa(i, { podeResolver: true })).join('') : '';
+  ligarLista(listaResp, desenharAgora);
   const ign = d.ignoredConversations ? ` · ${d.ignoredConversations} fora da verificação (grupos e contatos ignorados)` : '';
   $('#agora-rodape').textContent = `${d.openConversations} conversas abertas${ign} · toque numa conversa para ver as mensagens`;
   desenharConversaAtual();
@@ -692,7 +788,8 @@ async function iniciar() {
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
 // Atualiza sozinho a cada 2 minutos e ao voltar para o app
-setInterval(() => { if (!document.hidden && state.me && state.aba === 'agora') carregarAgora(); }, 120000);
+const digitando = () => document.activeElement?.tagName === 'TEXTAREA';
+setInterval(() => { if (!document.hidden && state.me && state.aba === 'agora' && !digitando()) carregarAgora(); }, 120000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && state.me && state.aba === 'agora') carregarAgora(); });
 
 fetch('/health').then((r) => r.json()).then((h) => { $('#demo-hint').hidden = !h.demo; }).catch(() => {});

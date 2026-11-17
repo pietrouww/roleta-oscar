@@ -64,6 +64,13 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
     }
     attempts.delete(ip);
+    // Guarda no servidor (nunca no navegador) o token do atendente para responder pelo painel com o nome dele
+    if (user.token) {
+      const tokens = store.read('tokens.json', {});
+      tokens[user.id] = user.token;
+      store.write('tokens.json', tokens, 0o600);
+    }
+    delete user.token;
     auth.issue(res, user);
     res.json({ usuario: { name: user.name, email: user.email } });
   } catch (err) {
@@ -104,6 +111,31 @@ app.post('/api/conversas/:id/resolver', auth.require, async (req, res) => {
   } catch (err) {
     console.error('[resolver]', err.message);
     res.status(502).json({ erro: 'Não foi possível marcar como resolvida' });
+  }
+});
+
+// ---- Ler e responder conversas pelo painel ----
+app.get('/api/conversas/:id/mensagens', auth.require, async (req, res) => {
+  try {
+    res.json({ mensagens: await engine.historico(Number(req.params.id)) });
+  } catch (err) {
+    console.error('[mensagens]', err.message);
+    res.status(502).json({ erro: 'Não foi possível carregar as mensagens' });
+  }
+});
+
+app.post('/api/conversas/:id/responder', auth.require, async (req, res) => {
+  const texto = String(req.body?.texto || '').trim();
+  if (!texto) return res.status(400).json({ erro: 'Escreva a mensagem' });
+  if (texto.length > 4000) return res.status(400).json({ erro: 'Mensagem muito longa' });
+  const token = config.demo ? 'demo' : store.read('tokens.json', {})[req.user.id];
+  if (!token) return res.status(409).json({ erro: 'Para responder por aqui, saia do painel (Ajustes → Sair) e entre de novo uma vez.' });
+  try {
+    await engine.responder(Number(req.params.id), texto, token);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[responder]', err.message);
+    res.status(502).json({ erro: 'Não foi possível enviar. Tente pelo Chatwoot.' });
   }
 });
 

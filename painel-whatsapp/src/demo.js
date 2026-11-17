@@ -129,6 +129,10 @@ export class DemoChatwootClient {
     this.labels.set(Number(id), labels);
   }
 
+  async sendMessage(id, content) {
+    return { id: Date.now(), content };
+  }
+
   async resolve(id) {
     this.resolved.add(Number(id));
   }

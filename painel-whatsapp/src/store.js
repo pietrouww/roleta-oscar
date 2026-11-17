@@ -20,11 +20,11 @@ export class Store {
     }
   }
 
-  write(name, data) {
+  write(name, data, mode) {
     const f = this.file(name);
     fs.mkdirSync(path.dirname(f), { recursive: true });
     const tmp = `${f}.tmp`;
-    fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), mode ? { mode } : undefined);
     fs.renameSync(tmp, f);
   }
 
