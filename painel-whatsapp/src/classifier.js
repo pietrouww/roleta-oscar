@@ -41,6 +41,20 @@ const ATTENDANT_PATTERNS = [
   /\bme (transfere|transfira|passa para|passe para)\b/,
 ];
 
+// Respostas automáticas do WhatsApp Business (ausência / saudação / "recebemos sua mensagem").
+// Não contam como resposta: a conversa continua pendente até alguém responder de verdade.
+const AUTO_REPLY_PATTERNS = [
+  /\b(no momento|neste momento|agora) (nao|nao) (estamos|podemos|conseguimos|e possivel)\b/,
+  /\bfora do (nosso )?horario\b/,
+  /\bhorario de (atendimento|funcionamento)\b/,
+  /\b(estamos|estou) (ausentes?|fechados?|indisponiveis?|offline)\b/,
+  /\bmensagem (automatica|de ausencia)\b/,
+  /\bobrigad[oa] (por|pelo|pela) (entrar em |seu |sua |o |a )?(contato|mensagem)\b/,
+  /\b(recebemos|recebi) (a |sua |tua )?mensagem\b/,
+  /\b(retornaremos|responderemos|entraremos em contato)\b.{0,30}\b(em breve|assim que|o mais (breve|rapido)|logo|possivel)\b/,
+  /^(ola|oi|bom dia|boa tarde|boa noite)\W+aqui e (a|o)\b/,
+];
+
 const CLOSING = /^(ok|okay|okk+|ok obrigad[oa]|ok muito obrigad[oa]|obrigad[oa]|muito obrigad[oa]|obg|brigad[oa]|valeu|vlw|blz|beleza|show|perfeito|certo|combinado|tudo bem|tudo certo|ta bom|ta|ta certo|joia|top|otimo|entendi|entendido|beleza obrigad[oa]|de nada|bom dia|boa tarde|boa noite|ate mais|ate logo|tchau|amem|sim obrigad[oa]|perfeito obrigad[oa])$/;
 const ONLY_EMOJI = /^[\p{Extended_Pictographic}\p{Emoji_Component}\s!.]+$/u;
 
@@ -49,7 +63,13 @@ export function buildMatchers(rules = {}) {
   const extraAttendant = (rules.extraAttendantTerms || []).map((t) => new RegExp(`\\b${escape(normalize(t))}\\b`));
   const promise = [...PROMISE_PATTERNS, ...extraPromise];
   const attendant = [...ATTENDANT_PATTERNS, ...extraAttendant];
+  const extraAuto = (rules.autoReplyTerms || []).map((t) => new RegExp(`\\b${escape(normalize(t))}\\b`));
+  const auto = [...AUTO_REPLY_PATTERNS, ...extraAuto];
   return {
+    isAutoReply: (text) => {
+      const n = normalize(text).replace(/[*_~]/g, '').replace(/\s+/g, ' ').trim();
+      return !!n && auto.some((re) => re.test(n));
+    },
     isPromise: (text) => {
       const n = normalize(text);
       return !!n && promise.some((re) => re.test(n));
@@ -80,7 +100,10 @@ export function classify(messages, opts = {}) {
   const waitMin = (rules.waitMinMinutes ?? 15) * 60000;
   const promiseMin = (rules.promiseMinMinutes ?? 30) * 60000;
 
-  const msgs = [...messages].sort((a, b) => a.at - b.at);
+  // Respostas automáticas (ausência/saudação) enviadas fora do Chatwoot são ignoradas
+  const msgs = [...messages]
+    .filter((x) => !(x.dir === 'out' && x.author !== 'humano' && m.isAutoReply && m.isAutoReply(x.text)))
+    .sort((a, b) => a.at - b.at);
   const isHuman = (x) => x.dir === 'out' && x.author !== 'ia';
   const lastIdx = (pred) => {
     for (let i = msgs.length - 1; i >= 0; i--) if (pred(msgs[i])) return i;

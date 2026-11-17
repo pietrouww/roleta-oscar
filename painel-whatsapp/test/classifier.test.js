@@ -114,3 +114,32 @@ test('IA dizendo "vou chamar alguém" não duplica o pedido de atendente', () =>
   const r = run([cli(80, 'Quero falar com um atendente'), ia(79, 'Claro! Vou chamar alguém da equipe.')]);
   assert.deepEqual(types(r), ['pediu_atendente']);
 });
+
+test('mensagem de ausência/saudação automática não conta como resposta', () => {
+  const saud = 'Olá!\nAqui é a ***i2Brothers Assistência Apple*** 🍏.\nPara facilitar seu atendimento...';
+  const aus = 'No momento não estamos disponíveis. Retornaremos assim que possível.';
+  const r1 = run([cli(40, 'Quanto custa a troca de tela?'), ia(40, saud)]);
+  assert.deepEqual(types(r1), ['sem_resposta']);
+  const r2 = run([cli(60, 'Meu aparelho já está pronto?'), ia(60, aus)]);
+  assert.deepEqual(types(r2), ['sem_resposta']); // e não vira "retorno prometido"
+  const r3 = run([cli(60, 'Meu aparelho já está pronto?'), ia(60, aus), ia(30, 'Sim! Pode retirar hoje.')]);
+  assert.deepEqual(types(r3), []);
+});
+
+test('frase própria de resposta automática (AUTO_REPLY_TERMS)', () => {
+  const rules = { waitMinMinutes: 15, promiseMinMinutes: 30, autoReplyTerms: ['clique aqui para orçamentos'] };
+  const r = classify([cli(40, 'Oi, preciso de ajuda'), ia(40, 'Clique aqui para orçamentos: wa.me/55...')], { now: NOW, rules, matchers: buildMatchers(rules) });
+  assert.deepEqual(types(r), ['sem_resposta']);
+});
+
+test('o que sai do celular (usuário "Celular" da Evolution) é IA/celular, não atendente', () => {
+  const raw = [
+    { id: 1, message_type: 0, created_at: 100, content: 'oi', sender: { name: 'Cli' } },
+    { id: 2, message_type: 1, created_at: 101, content: 'Resposta da IA', sender_type: 'User', sender: { name: 'Celular', type: 'user' } },
+    { id: 3, message_type: 1, created_at: 102, content: 'Respondi pelo Chatwoot', sender_type: 'User', sender: { name: 'Dayane Faria', type: 'user' } },
+  ];
+  const a = toClassifierMessages(raw, { aiDetection: 'sem_usuario' });
+  assert.deepEqual(a.map((m) => m.author), ['cliente', 'ia', 'humano']);
+  const b = toClassifierMessages(raw, { aiDetection: 'assinatura', aiSignatureRegex: '^\\[IA\\]' });
+  assert.equal(b[1].author, 'celular');
+});

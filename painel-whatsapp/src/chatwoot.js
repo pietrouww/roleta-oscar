@@ -155,7 +155,11 @@ export function toClassifierMessages(raw, rules) {
     const senderType = (x.sender_type || x.sender?.type || '').toLowerCase();
     let author;
     let name = x.sender?.available_name || x.sender?.name || '';
-    if (senderType === 'user') {
+    // A Evolution registra tudo o que sai do próprio celular (IA da Meta, resposta automática ou
+    // alguém digitando no aparelho) com o usuário "Celular": não é atendente do Chatwoot.
+    const celularNome = (rules.celularSenderName || 'Celular').toLowerCase();
+    const doCelular = senderType === 'user' && name.toLowerCase() === celularNome;
+    if (senderType === 'user' && !doCelular) {
       author = 'humano';
     } else if (senderType === 'agentbot' || senderType === 'agent_bot') {
       author = 'ia';
