@@ -204,17 +204,20 @@ function balaoMsg(m) {
     ? `<a href="${esc(a.url)}" target="_blank" rel="noopener"><img class="anexo-img" src="${esc(a.thumb || a.url)}" alt="Imagem enviada" loading="lazy"></a>`
     : a.url ? `<a class="anexo" href="${esc(a.url)}" target="_blank" rel="noopener">📎 ${esc({ audio: 'Áudio', video: 'Vídeo', file: 'Arquivo' }[a.tipo] || 'Arquivo')}</a>` : '')).join('');
   const texto = m.text ? `<span class="txt">${esc(m.text)}</span>` : '';
-  if (m.dir === 'in') return `<div class="balao in">${anexos}${texto}<span class="meta">${quando(m.at)} ${hhmm(m.at)}</span></div>`;
+  const dataHora = new Date(m.at).toDateString() === new Date().toDateString() ? hhmm(m.at) : `${quando(m.at)} ${hhmm(m.at)}`;
+  if (m.dir === 'in') return `<div class="balao in">${anexos}${texto}<span class="meta">${dataHora}</span></div>`;
   const autor = m.auto ? 'Resposta automática' : nomeAutor(m);
   const cor = m.auto ? 'var(--sec)' : m.author === 'ia' ? 'var(--e-ia)' : 'var(--verde-texto)';
-  return `<div class="balao out${m.auto ? ' auto' : ''}"><span class="autor" style="color:${cor}">${esc(autor)}</span>${anexos}${texto}<span class="meta">${hhmm(m.at)} ${CHECKS}</span></div>`;
+  return `<div class="balao out${m.auto ? ' auto' : ''}"><span class="autor" style="color:${cor}">${esc(autor)}</span>${anexos}${texto}<span class="meta">${dataHora} ${CHECKS}</span></div>`;
 }
 
 function historico(item) {
   const msgs = state.msgs.get(item.id);
   const topo = item.flags.length
     ? `<span class="aviso-sis aviso-pend">Pendente há ${tempo(item.waitingMinutes)}: ${esc(item.flags.map((f) => FLAG[f.type].label.toLowerCase()).join(' e '))}</span>`
-    : '<span class="aviso-sis">Conversa respondida · sem pendência</span>';
+    : item.last?.dir === 'in'
+      ? '<span class="aviso-sis">Cliente escreveu por último · vira pendência após 15 min sem resposta</span>'
+      : '<span class="aviso-sis">Conversa respondida · sem pendência</span>';
   const resp = item.assigneeName ? `Responsável: ${item.assigneeName}` : item.lastHumanName ? `Último atendente: ${item.lastHumanName}` : 'Sem atendente atribuído';
   let corpo;
   if (msgs === undefined) corpo = '<span class="aviso-sis">Carregando mensagens…</span>';
