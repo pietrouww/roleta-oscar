@@ -9,7 +9,7 @@
   // Aplica o tema antes de desenhar a tela (sem piscar)
   (function () {
     var t = 'auto';
-    try { t = localStorage.getItem('tema') || 'auto'; } catch (e) {}
+    try { t = localStorage.getItem('tema') || 'claro'; } catch (e) {}
     var escuro = t === 'escuro' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (escuro) document.documentElement.classList.add('escuro');
     document.getElementById('cor-tema').setAttribute('content', escuro ? '#0B141A' : '#FFFFFF');

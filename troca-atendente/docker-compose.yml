@@ -1,0 +1,17 @@
+services:
+  troca:
+    image: node:20-alpine
+    container_name: troca-atendente
+    restart: unless-stopped
+    network_mode: host
+    working_dir: /app
+    command: ["node", "server.js"]
+    env_file: .env
+    environment:
+      - PORT=3300
+      - CHATWOOT_INTERNAL=http://127.0.0.1:3200
+      - DATA_DIR=/app/data
+    volumes:
+      - ./server.js:/app/server.js:ro
+      - ./data:/app/data
+    mem_limit: 128m

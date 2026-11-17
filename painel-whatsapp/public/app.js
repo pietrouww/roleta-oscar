@@ -619,7 +619,7 @@ async function carregarIgnorados() {
 // ---------- Aparência (claro / escuro) ----------
 const midiaEscura = window.matchMedia('(prefers-color-scheme: dark)');
 function lerTema() {
-  try { return localStorage.getItem('tema') || 'auto'; } catch { return 'auto'; }
+  try { return localStorage.getItem('tema') || 'claro'; } catch { return 'claro'; }
 }
 function aplicarTema() {
   const t = lerTema();
