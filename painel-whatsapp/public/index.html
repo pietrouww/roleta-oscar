@@ -82,6 +82,10 @@
     </div>
     <div id="horarios" class="pilulas horarios" role="tablist" aria-label="Horário da verificação"></div>
     <p id="verif-resumo" class="faixa" hidden></p>
+    <div id="verif-barra" class="verif-barra" hidden>
+      <label class="sel-todos"><input type="checkbox" id="sel-todos"> Selecionar todos</label>
+      <button id="btn-relatorio" class="btn-verde btn-p" disabled>Gerar relatório</button>
+    </div>
     <ul id="lista-verif" class="lista"></ul>
   </main>
 
@@ -178,6 +182,22 @@
     </button>
   </nav>
 </div>
+
+<dialog id="rel-dialog" class="folha" aria-labelledby="rel-titulo">
+  <div class="folha-topo">
+    <button id="rel-fechar" class="link-btn">Fechar</button>
+    <h2 id="rel-titulo">Relatório para a recepção</h2>
+    <span class="folha-esp"></span>
+  </div>
+  <div class="folha-corpo">
+    <p class="sec pequeno">Clientes selecionados que estavam sem resposta. Envie para a recepção entrar em contato.</p>
+    <label class="sr" for="rel-texto">Texto do relatório</label>
+    <textarea id="rel-texto" class="rel-texto" rows="14"></textarea>
+    <button id="rel-whats" class="btn-verde">Enviar pelo WhatsApp</button>
+    <button id="rel-copiar" class="btn-contorno">Copiar texto</button>
+    <button id="rel-compartilhar" class="btn-contorno" hidden>Compartilhar…</button>
+  </div>
+</dialog>
 
 <dialog id="qr-dialog" class="folha" aria-labelledby="qr-titulo">
   <div class="folha-topo">

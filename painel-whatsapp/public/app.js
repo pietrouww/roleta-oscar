@@ -25,6 +25,7 @@ const state = {
   busca: '',
   abertos: new Set(),
   msgs: new Map(), // conversa -> mensagens carregadas
+  sel: new Set(), // conversas marcadas para o relatório (aba Verificações)
   rascunho: {}, // conversa -> texto sendo digitado
   dia: null,
   hora: null,
@@ -236,18 +237,23 @@ function caixaResposta(item) {
   </form>`;
 }
 
-function linhaConversa(item, { podeResolver }) {
+function linhaConversa(item, { podeResolver, selecionavel = false }) {
   const aberto = state.abertos.has(item.id);
   const pend = item.flags.length > 0;
   const atraso = pend && item.waitingMinutes >= 120;
   const etqs = [];
   if (item.inbox) etqs.push(`<span class="etq e-numero" style="--c:${esc(item.inbox.color.fg)};--c-d:${esc(item.inbox.color.bg)}">${esc(item.inbox.name)}</span>`);
   for (const f of item.flags) etqs.push(`<span class="etq ${FLAG[f.type].cls}">${FLAG[f.type].label}</span>`);
+  const mot = item.flags.find((f) => f.motivo)?.motivo;
+  if (mot === 'pergunta') etqs.push('<span class="etq e-resp">❓ Pergunta</span>');
+  else if (mot === 'midia') etqs.push('<span class="etq e-resp">🎤 Áudio/foto</span>');
+  else if (mot === 'pedido') etqs.push('<span class="etq e-resp">Pedido</span>');
   if (item.aiInvolved) etqs.push('<span class="etq e-ia" title="A IA participou da conversa">✦ IA</span>');
   if (item.assigneeName) etqs.push(`<span class="etq e-resp">${esc(item.assigneeName)}</span>`);
 
   return `
-  <li class="conv">
+  <li class="conv${selecionavel ? ' com-sel' : ''}">
+    ${selecionavel ? `<label class="conv-sel"><input type="checkbox" data-sel="${item.id}" ${state.sel.has(item.id) ? 'checked' : ''}><span class="sr">Selecionar ${esc(item.contactName)}</span></label>` : ''}
     <button class="conv-linha" data-abrir="${item.id}" aria-expanded="${aberto}">
       <span class="avatar" style="background:${corAvatar(item.contactName)}" aria-hidden="true">${esc(iniciais(item.contactName))}</span>
       <span class="conv-corpo">
@@ -270,7 +276,7 @@ function linhaConversa(item, { podeResolver }) {
       <div class="conv-acoes">
         ${item.url ? `<a class="btn-contorno btn-p" href="${esc(item.url)}" target="${EMBUTIDO ? '_top' : '_blank'}" rel="noopener">${EMBUTIDO ? 'Abrir conversa' : 'Abrir no Chatwoot'}</a>` : ''}
         ${podeResolver ? `<button class="btn-contorno btn-p" data-resolver="${item.id}">Marcar resolvida</button>` : ''}
-        ${podeResolver && item.contactId != null ? `<button class="btn-contorno btn-p cinza" data-ignorar="${item.id}">Ignorar contato</button>` : ''}
+        ${podeResolver && item.contactId != null ? `<button class="btn-contorno btn-p cinza" data-ignorar="${item.id}">Ignorar (fornecedor)</button>` : ''}
       </div>
     </div>` : ''}
   </li>`;
@@ -440,6 +446,7 @@ async function carregarDia(dia, horaEscolhida) {
   $('#dia-label').textContent = r.data === r.hoje ? `Hoje, ${label}` : label.charAt(0).toUpperCase() + label.slice(1);
   $('#dia-proximo').disabled = r.data >= r.hoje;
   state.verif = null;
+  if ($('#verif-barra')) $('#verif-barra').hidden = true;
 
   if (!r.horarios.length) {
     $('#horarios').innerHTML = '';
@@ -467,6 +474,7 @@ async function carregarDia(dia, horaEscolhida) {
   }
   try {
     state.verif = await api(`/api/verificacoes/${r.data}/${escolhida.replace(':', '')}`);
+    state.sel.clear();
     desenharVerif();
   } catch (err) {
     $('#lista-verif').innerHTML = vazio('Erro', err.message);
@@ -488,10 +496,78 @@ function desenharVerif() {
   const itens = snap.items.filter(bateBusca);
   const lista = $('#lista-verif');
   lista.innerHTML = itens.length
-    ? itens.map((i) => linhaConversa(i, { podeResolver: false })).join('')
+    ? itens.map((i) => linhaConversa(i, { podeResolver: false, selecionavel: true })).join('')
     : vazio(t.total ? 'Nada com essa pesquisa' : 'Nenhuma pendência', t.total ? 'Tente outra pesquisa.' : 'Tudo respondido neste horário.');
   ligarLista(lista, desenharVerif);
+  // Seleção para o relatório
+  $('#verif-barra').hidden = !itens.length;
+  const atualizarBarra = () => {
+    const n = state.sel.size;
+    $('#btn-relatorio').disabled = !n;
+    $('#btn-relatorio').textContent = n ? `Gerar relatório (${n})` : 'Gerar relatório';
+    $('#sel-todos').checked = itens.length > 0 && itens.every((i) => state.sel.has(i.id));
+  };
+  lista.querySelectorAll('[data-sel]').forEach((c) => c.addEventListener('change', () => {
+    const id = Number(c.dataset.sel);
+    if (c.checked) state.sel.add(id);
+    else state.sel.delete(id);
+    atualizarBarra();
+  }));
+  $('#sel-todos').onchange = (e) => {
+    for (const i of itens) (e.target.checked ? state.sel.add(i.id) : state.sel.delete(i.id));
+    desenharVerif();
+  };
+  atualizarBarra();
 }
+
+// ---------- Relatório para a recepção ----------
+function textoRelatorio(itens, snap) {
+  const [a, m, d] = snap.date.split('-');
+  const linhas = [`*Clientes aguardando resposta*`, `Verificação de ${d}/${m} às ${snap.time} · ${itens.length} cliente${itens.length > 1 ? 's' : ''}`, ''];
+  itens.forEach((i, n) => {
+    const f = i.flags[0] || {};
+    const motivo = { pergunta: 'pergunta', pedido: 'pedido', midia: 'áudio/foto' }[i.flags.find((x) => x.motivo)?.motivo] || '';
+    const sit = i.flags.map((x) => FLAG[x.type].label.toLowerCase()).join(' e ');
+    const digitos = String(i.contactPhone || '').replace(/\D/g, '');
+    linhas.push(`${n + 1}. *${i.contactName}*${i.contactPhone ? ` — ${fone(i.contactPhone)}` : ''}`);
+    linhas.push(`   ${i.inbox ? `Número: ${i.inbox.name} · ` : ''}${sit}${motivo ? ` (${motivo})` : ''} há ${tempo(i.waitingMinutes)}`);
+    const txt = String(f.text || '').replace(/\s+/g, ' ').trim();
+    if (txt) linhas.push(`   Última mensagem: "${txt.length > 140 ? `${txt.slice(0, 140)}…` : txt}"`);
+    if (i.assigneeName || i.lastHumanName) linhas.push(`   Atendente: ${i.assigneeName || i.lastHumanName}`);
+    if (digitos) linhas.push(`   Chamar: https://wa.me/${digitos}`);
+    linhas.push('');
+  });
+  linhas.push('_Gerado pelo painel de pendências_');
+  return linhas.join('\n');
+}
+
+const relDialog = $('#rel-dialog');
+$('#btn-relatorio').addEventListener('click', () => {
+  const snap = state.verif;
+  if (!snap) return;
+  const itens = snap.items.filter((i) => state.sel.has(i.id));
+  if (!itens.length) return;
+  $('#rel-texto').value = textoRelatorio(itens, snap);
+  $('#rel-compartilhar').hidden = !navigator.share;
+  relDialog.showModal();
+});
+$('#rel-fechar').addEventListener('click', () => relDialog.close());
+$('#rel-copiar').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('#rel-texto').value);
+    toast('Relatório copiado');
+  } catch {
+    $('#rel-texto').select();
+    document.execCommand('copy');
+    toast('Relatório copiado');
+  }
+});
+$('#rel-whats').addEventListener('click', () => {
+  window.open(`https://wa.me/?text=${encodeURIComponent($('#rel-texto').value)}`, '_blank', 'noopener');
+});
+$('#rel-compartilhar').addEventListener('click', () => {
+  navigator.share({ title: 'Clientes aguardando resposta', text: $('#rel-texto').value }).catch(() => {});
+});
 $('#dia-anterior').addEventListener('click', () => carregarDia(somarDias(state.dia, -1)));
 $('#dia-proximo').addEventListener('click', () => carregarDia(somarDias(state.dia, 1)));
 

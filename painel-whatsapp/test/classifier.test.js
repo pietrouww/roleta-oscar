@@ -169,3 +169,25 @@ test('áudio ou imagem do cliente sem resposta depois fica pendente; "ok" após 
   assert.deepEqual(types(run([cli(80, 'Já está pronto?'), cel(70, 'Sim, pode retirar'), cli(60, 'ok')])), []);
   assert.deepEqual(types(run([cel(90, 'Estou com ele na bancada'), cli(40, 'Puts, que estranho'), cli(39, 'O último aviso foi o modo de recuperação')])), ['sem_resposta']);
 });
+
+test('só fica pendente o que pede resposta', () => {
+  const cel = (min, text) => ({ at: ago(min), dir: 'out', author: 'celular', name: 'Equipe (celular)', text });
+  const base = [cli(200, 'Oi, meu iPhone não liga'), cel(190, 'Pode trazer que olhamos')];
+  // pergunta
+  const r1 = run([...base, cli(40, 'Vocês abrem sábado?')]);
+  assert.deepEqual(types(r1), ['sem_resposta']);
+  assert.equal(r1.flags[0].motivo, 'pergunta');
+  // confirmações e avisos não pedem resposta
+  for (const t of ['ok, aguardo', 'Combinado, obrigado!', 'Beleza 👍', 'Estou chegando', 'Já fiz o pix', 'Vou ver com meu marido e te aviso', 'sim']) {
+    assert.deepEqual(types(run([...base, cli(40, t)])), [], t);
+  }
+  // cotação de fornecedor (sem pergunta) não pede resposta; pergunta com preço pede
+  assert.deepEqual(types(run([cel(300, 'Tem tela do 13?'), cli(40, 'Tela iPhone 13 incell R$ 280,00\nOLED R$ 420,00\nPronta entrega')])), []);
+  assert.deepEqual(types(run([cel(300, 'Tem tela do 13?'), cli(40, 'Bateria 13 R$ 150,00 à vista')])), []);
+  assert.deepEqual(types(run([...base, cli(40, 'Ficou R$ 350,00? Pode parcelar?')])), ['sem_resposta']);
+  // relato do cliente (sem pergunta) ainda pede retorno
+  assert.deepEqual(types(run([...base, cli(40, 'O último aviso que apareceu foi o modo de recuperação, depois nada mais')])), ['sem_resposta']);
+  // "boa tarde" abrindo conversa nova pede resposta; logo após nossa mensagem, não
+  assert.deepEqual(types(run([cli(40, 'Boa tarde')])), ['sem_resposta']);
+  assert.deepEqual(types(run([cel(50, 'Seu aparelho está pronto'), cli(40, 'Boa tarde')])), []);
+});
