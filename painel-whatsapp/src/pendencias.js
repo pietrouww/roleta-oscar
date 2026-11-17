@@ -16,6 +16,11 @@ export function ehGrupo(c) {
   return /@g\.us$/i.test(c.contactIdentifier || '') || /@g\.us$/i.test(c.contactPhone || '');
 }
 
+/** Conversa interna da Evolution (status da conexão), não é cliente. */
+export function ehSistema(c) {
+  return c.contactName === 'EvolutionAPI' || /^\+?123456$/.test(c.contactPhone || '');
+}
+
 export class PendenciasEngine {
   constructor({ client, config, logger = console, ignorados = () => new Set() }) {
     this.client = client;
@@ -72,7 +77,7 @@ export class PendenciasEngine {
     let ignoradas = 0;
     const queue = [];
     for (const c of convs) {
-      const ignorar = ehGrupo(c)
+      const ignorar = ehGrupo(c) || ehSistema(c)
         || (c.contactId != null && ignoradosSet.has(String(c.contactId)))
         || (etiquetaIgnorar && c.labels.includes(etiquetaIgnorar));
       if (ignorar) {

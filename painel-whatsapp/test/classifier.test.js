@@ -161,3 +161,11 @@ test('resposta de pessoa pelo celular atende o pedido de atendente; da IA não',
   assert.deepEqual(types(run([cli(60, 'Quero falar com um atendente'), ia(59, 'Claro, já te ajudo!')])), ['pediu_atendente']);
   assert.deepEqual(types(run([cli(60, 'Quero falar com um atendente'), cel(50, 'Oi, aqui é a Dayane, pode falar')])), []);
 });
+
+test('áudio ou imagem do cliente sem resposta depois fica pendente; "ok" após nossa resposta não', () => {
+  const audio = { at: ago(40), dir: 'in', author: 'cliente', text: '', hasMedia: true };
+  const cel = (min, text) => ({ at: ago(min), dir: 'out', author: 'celular', name: 'Equipe (celular)', text });
+  assert.deepEqual(types(run([cel(60, 'Pode mandar foto?'), audio])), ['sem_resposta']);
+  assert.deepEqual(types(run([cli(80, 'Já está pronto?'), cel(70, 'Sim, pode retirar'), cli(60, 'ok')])), []);
+  assert.deepEqual(types(run([cel(90, 'Estou com ele na bancada'), cli(40, 'Puts, que estranho'), cli(39, 'O último aviso foi o modo de recuperação')])), ['sem_resposta']);
+});
