@@ -166,7 +166,22 @@ export function toClassifierMessages(raw, rules) {
     // alguém digitando no aparelho) com o usuário "Celular": não é atendente do Chatwoot.
     const celularNome = (rules.celularSenderName || 'Celular').toLowerCase();
     const doCelular = senderType === 'user' && name.toLowerCase() === celularNome;
-    if (senderType === 'user' && !doCelular) {
+    // Para o que sai do celular, o código da mensagem no WhatsApp mostra a origem:
+    // "CE…" = IA da Meta; "3EB0…" = WhatsApp Web/sistema; demais ("2A…", "3A"…) = pessoa no app.
+    const waId = String(x.source_id || '').replace(/^WAID:/i, '').toUpperCase();
+    const prefixosIa = (rules.aiIdPrefixes || ['CE']).map((p) => String(p).toUpperCase()).filter(Boolean);
+    if (doCelular && rules.aiDetection !== 'assinatura' && waId) {
+      if (prefixosIa.some((p) => waId.startsWith(p))) {
+        author = 'ia';
+        name = 'IA';
+      } else if (waId.startsWith('3EB0')) {
+        author = 'celular';
+        name = 'WhatsApp Web';
+      } else {
+        author = 'celular';
+        name = 'Equipe (celular)';
+      }
+    } else if (senderType === 'user' && !doCelular) {
       author = 'humano';
     } else if (senderType === 'agentbot' || senderType === 'agent_bot') {
       author = 'ia';

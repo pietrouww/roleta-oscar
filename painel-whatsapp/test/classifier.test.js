@@ -143,3 +143,21 @@ test('o que sai do celular (usuário "Celular" da Evolution) é IA/celular, não
   const b = toClassifierMessages(raw, { aiDetection: 'assinatura', aiSignatureRegex: '^\\[IA\\]' });
   assert.equal(b[1].author, 'celular');
 });
+
+test('origem pelo código da mensagem: CE = IA, 2A = pessoa no celular, 3EB0 = WhatsApp Web', () => {
+  const cel = { name: 'Celular', type: 'user' };
+  const raw = [
+    { id: 1, message_type: 0, created_at: 100, content: 'oi', sender: { name: 'Cli' } },
+    { id: 2, message_type: 1, created_at: 101, content: 'Oii! Que bom falar com você', sender_type: 'User', sender: cel, source_id: 'WAID:CE12C1AABBCCDDEEFF00' },
+    { id: 3, message_type: 1, created_at: 102, content: 'Estou com ele na bancada', sender_type: 'User', sender: cel, source_id: 'WAID:2A0EAEAABBCCDDEEFF00' },
+    { id: 4, message_type: 1, created_at: 103, content: 'Sua OS está pronta', sender_type: 'User', sender: cel, source_id: 'WAID:3EB0B7AABBCCDDEEFF0011' },
+  ];
+  const a = toClassifierMessages(raw, { aiDetection: 'sem_usuario', aiIdPrefixes: ['CE'] });
+  assert.deepEqual(a.map((m) => `${m.author}:${m.name}`), ['cliente:Cli', 'ia:IA', 'celular:Equipe (celular)', 'celular:WhatsApp Web']);
+});
+
+test('resposta de pessoa pelo celular atende o pedido de atendente; da IA não', () => {
+  const cel = (min, text) => ({ at: ago(min), dir: 'out', author: 'celular', name: 'Equipe (celular)', text });
+  assert.deepEqual(types(run([cli(60, 'Quero falar com um atendente'), ia(59, 'Claro, já te ajudo!')])), ['pediu_atendente']);
+  assert.deepEqual(types(run([cli(60, 'Quero falar com um atendente'), cel(50, 'Oi, aqui é a Dayane, pode falar')])), []);
+});

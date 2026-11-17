@@ -52,7 +52,8 @@ const AUTO_REPLY_PATTERNS = [
   /\bobrigad[oa] (por|pelo|pela) (entrar em |seu |sua |o |a )?(contato|mensagem)\b/,
   /\b(recebemos|recebi) (a |sua |tua )?mensagem\b/,
   /\b(retornaremos|responderemos|entraremos em contato)\b.{0,30}\b(em breve|assim que|o mais (breve|rapido)|logo|possivel)\b/,
-  /^(ola|oi|bom dia|boa tarde|boa noite)\W+aqui e (a|o)\b/,
+  /^(ola|oi|bom dia|boa tarde|boa noite)\W+aqui e (a|o)\b.{60,}/, // saudação longa da empresa (não "oi, aqui é a Dayane")
+  /\bpara facilitar (o |seu )?atendimento\b/,
 ];
 
 const CLOSING = /^(ok|okay|okk+|ok obrigad[oa]|ok muito obrigad[oa]|obrigad[oa]|muito obrigad[oa]|obg|brigad[oa]|valeu|vlw|blz|beleza|show|perfeito|certo|combinado|tudo bem|tudo certo|ta bom|ta|ta certo|joia|top|otimo|entendi|entendido|beleza obrigad[oa]|de nada|bom dia|boa tarde|boa noite|ate mais|ate logo|tchau|amem|sim obrigad[oa]|perfeito obrigad[oa])$/;
