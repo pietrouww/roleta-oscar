@@ -50,6 +50,9 @@ services:
       - CHATWOOT_MESSAGE_READ=true
       - CHATWOOT_MESSAGE_DELETE=true
       - CHATWOOT_IMPORT_PLACEHOLDER_MEDIA_MESSAGE=true
+      # Vazia de propósito: a imagem traz um endereço de exemplo que faz a Evolution
+      # travar 5 s depois de cada envio e o Chatwoot marcar a resposta como "Não enviada".
+      - CHATWOOT_IMPORT_DATABASE_CONNECTION_URI=
       - CONFIG_SESSION_PHONE_CLIENT=Painel de Atendimento
       - CONFIG_SESSION_PHONE_NAME=Chrome
       - QRCODE_LIMIT=30
