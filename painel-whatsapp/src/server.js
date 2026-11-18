@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
+import compression from 'compression';
 import { config, validateConfig } from './config.js';
 import { ChatwootClient, toDisplayMessages, acharAnexo, tipoMidia } from './chatwoot.js';
 import { Analisador } from './ia.js';
@@ -8,6 +9,7 @@ import { Midia } from './midia.js';
 import { DemoChatwootClient, DemoEvolutionClient, DemoAnalisador, prepararMidiaDemo } from './demo.js';
 import { EvolutionClient, slug } from './evolution.js';
 import { PendenciasEngine, ehSistema } from './pendencias.js';
+import { CacheMensagens } from './mensagens.js';
 import { Store } from './store.js';
 import { PushService } from './push.js';
 import { Scheduler } from './scheduler.js';
@@ -28,7 +30,8 @@ const client = config.demo ? new DemoChatwootClient({ midiaUrl: demoMidiaUrl }) 
 const ia = config.demo
   ? new DemoAnalisador()
   : new Analisador({ apiKey: config.ia.apiKey, model: config.ia.model, effort: config.ia.effort, timeZone: config.timezone, store });
-const engine = new PendenciasEngine({ client, config, ia, marcas: store, ignorados: () => store.ignoredIds() });
+const msgs = new CacheMensagens(client);
+const engine = new PendenciasEngine({ client, config, ia, marcas: store, ignorados: () => store.ignoredIds(), mensagens: msgs });
 const hostDe = (u) => { try { return new URL(u).host; } catch { return ''; } };
 const midia = new Midia({
   dir: config.dataDir,
@@ -48,6 +51,8 @@ const auth = createAuth({ secret: config.sessionSecret, secure: process.env.COOK
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', true);
+// Respostas compactadas (listas e mensagens chegam mais rápido no celular); mídia já é compactada
+app.use(compression({ threshold: 1024, filter: (req, res) => !req.path.startsWith('/api/midia') && compression.filter(req, res) }));
 app.use(express.json({ limit: '100kb' }));
 
 const publicDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'public');
@@ -110,7 +115,7 @@ app.get('/api/me', auth.require, (req, res) => {
 app.get('/api/pendencias', auth.require, async (req, res) => {
   try {
     const fresh = req.query.atualizar === '1';
-    res.json(await (fresh ? engine.scan() : engine.get(60000)));
+    res.json(await (fresh ? engine.scan() : engine.rapido(60000)));
   } catch (err) {
     console.error('[pendencias]', err.message);
     res.status(502).json({ erro: 'Falha ao consultar o Chatwoot' });
@@ -141,8 +146,11 @@ async function listarConversas(status) {
   const inboxes = await engine.loadInboxes();
   const porId = new Map(inboxes.map((i) => [i.id, i]));
   const paginas = status === 'resolved' ? 2 : 40;
-  let convs = await client.listConversations(status, paginas);
-  if (status === 'open') convs = [...convs, ...(await client.listConversations('pending', 4))];
+  const [principais, emEspera] = await Promise.all([
+    client.listConversations(status, paginas),
+    status === 'open' ? client.listConversations('pending', 4) : [],
+  ]);
+  const convs = [...principais, ...emEspera];
   const dados = convs
     .filter((x) => porId.has(x.inboxId) && !ehSistema(x))
     .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
@@ -179,7 +187,7 @@ const pendenciaDe = (id) => {
 app.get('/api/conversas', auth.require, async (req, res) => {
   const status = req.query.status === 'resolved' ? 'resolved' : 'open';
   try {
-    const [conversas, pend] = await Promise.all([listarConversas(status), engine.get(60000).catch(() => null)]);
+    const [conversas, pend] = await Promise.all([listarConversas(status), engine.rapido(60000).catch(() => engine.last)]);
     let fixadas = lerFixadas();
     if (status === 'open') {
       // Conversa fixada que foi resolvida libera a vaga
@@ -192,7 +200,13 @@ app.get('/api/conversas', auth.require, async (req, res) => {
     res.json({
       conversas: conversas.map((c) => {
         const p = pendentes.get(c.id);
-        return { ...c, pendente: p ? { tipo: p.primary, urgencia: p.urgencia, minutos: p.waitingMinutes } : null, adiada: adiadas.has(c.id), fixada: fixadas.includes(c.id) };
+        return {
+          ...c,
+          pendente: p ? { tipo: p.primary, urgencia: p.urgencia, minutos: p.waitingMinutes } : null,
+          adiada: adiadas.has(c.id),
+          fixada: fixadas.includes(c.id),
+          continuouEm: pend?.continuadas?.[c.id] || null,
+        };
       }).sort((a, b) => Number(b.fixada) - Number(a.fixada)), // fixadas no topo; o resto segue por mais recente
       maxFixadas: MAX_FIXADAS,
       inboxes: pend?.inboxes || [],
@@ -202,14 +216,13 @@ app.get('/api/conversas', auth.require, async (req, res) => {
   }
 });
 
-const brutoCache = new Map(); // conversaId -> { at, raw }
+const lidas = new Map(); // "usuario:conversa" -> id da última mensagem já marcada como lida
+
+// Mensagens brutas: usa o que o painel já leu (ex.: para servir uma mídia) ou busca só o que falta
 async function mensagensBrutas(id, max = 80, frescas = false) {
-  const c = brutoCache.get(id);
-  if (!frescas && c && c.max >= max && Date.now() - c.at < 60000) return c.raw;
-  const raw = await client.listMessages(id, max);
-  brutoCache.set(id, { at: Date.now(), raw, max });
-  if (brutoCache.size > 200) brutoCache.delete(brutoCache.keys().next().value);
-  return raw;
+  const c = msgs.guardado(id);
+  if (!frescas && c && (c.completo || c.raw.length >= max)) return c.raw;
+  return msgs.obter(id, { max });
 }
 
 app.get('/api/conversas/:id', auth.require, async (req, res) => {
@@ -217,13 +230,24 @@ app.get('/api/conversas/:id', auth.require, async (req, res) => {
   if (!id) return;
   const max = Math.min(400, Math.max(40, Number(req.query.max) || 80));
   try {
-    const raw = await mensagensBrutas(id, max, true);
-    await engine.get(60000).catch(() => null); // reanalisa se houve ação ou resposta recente
-    if (tokenDe(req)) client.markRead(id, tokenDe(req)).catch(() => {});
+    // Uma chamada ao Chatwoot (a página mais recente) e o resto vem do que já estava lido
+    const [{ raw, completo }] = await Promise.all([
+      msgs.obterDetalhe(id, { max }),
+      engine.rapido(60000).catch(() => null), // só espera se houve ação ou resposta agora há pouco
+    ]);
+    // Marca como lida só quando há mensagem nova (a tela consulta a cada poucos segundos)
+    const ultimaId = raw.length ? raw[raw.length - 1].id : 0;
+    const chaveLida = `${req.user.id}:${id}`;
+    if (tokenDe(req) && lidas.get(chaveLida) !== ultimaId) {
+      lidas.set(chaveLida, ultimaId);
+      if (lidas.size > 2000) lidas.delete(lidas.keys().next().value);
+      client.markRead(id, tokenDe(req)).catch(() => lidas.delete(chaveLida));
+    }
     res.json({
-      mensagens: toDisplayMessages(raw, config.rules, id, engine.matchers.isAutoReply),
-      temMais: raw.length >= max,
+      mensagens: toDisplayMessages(raw.slice(-max), config.rules, id, engine.matchers.isAutoReply),
+      temMais: !completo || raw.length > max,
       pendencia: pendenciaDe(id),
+      continuouEm: engine.last?.continuadas?.[id] || null,
       marca: store.getMarks()[id] || {},
       url: config.chatwoot.publicUrl ? `${config.chatwoot.publicUrl}/app/accounts/${config.chatwoot.accountId}/conversations/${id}` : '',
     });
@@ -242,7 +266,6 @@ app.post('/api/conversas/:id/mensagens', auth.require, async (req, res) => {
   if (!token) return res.status(409).json({ erro: 'Para responder por aqui, saia do painel (Ajustes → Sair) e entre de novo uma vez.' });
   try {
     await client.sendMessage(id, texto, token);
-    brutoCache.delete(id);
     listaCache.clear();
     engine.cache.delete(id);
     engine.invalidate();
@@ -365,7 +388,7 @@ app.get('/api/midia/:id/:msg/:anexo', auth.require, async (req, res) => {
 // ---- Indicadores para o módulo de análise ----
 app.get('/api/indicadores', auth.require, async (req, res) => {
   try {
-    const agora = await engine.get(60000);
+    const agora = await engine.rapido(60000);
     const hoje = zonedParts(new Date(), config.timezone).date;
     const dias = [];
     for (let i = 6; i >= 0; i--) {
@@ -531,7 +554,7 @@ app.listen(config.port, () => {
   midia.limpar();
   setInterval(() => midia.limpar(), 12 * 3600000).unref();
   console.log(ia.ativo ? `[ia] análise inteligente ligada (${ia.model})` : '[ia] sem ANTHROPIC_API_KEY: usando regras por palavra-chave');
-  engine.scan().catch((e) => console.error('[inicio] primeira varredura falhou:', e.message));
+  engine.scan({ iaEmFundo: true }).catch((e) => console.error('[inicio] primeira varredura falhou:', e.message));
   if (!config.demo && config.chatwootSetup) {
     prepararChatwoot({ client, config }).catch((e) => console.error('[chatwoot] preparação falhou:', e.message));
   }

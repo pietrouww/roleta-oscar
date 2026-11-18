@@ -17,6 +17,7 @@
   "private": true,
   "dependencies": {
     "@anthropic-ai/sdk": "^1.10.0",
+    "compression": "^1.8.2",
     "express": "^4.22.3",
     "node-cron": "^3.0.3",
     "web-push": "^3.6.7"

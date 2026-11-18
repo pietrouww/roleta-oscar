@@ -178,6 +178,16 @@ export class DemoChatwootClient {
     return this.conversations.find((c) => c.id === Number(id))?.messages || [];
   }
 
+  async listMessagesPage(id, before = null) {
+    const todas = await this.listMessages(id);
+    const ate = before ? todas.filter((m) => m.id < before) : todas;
+    return ate.slice(-20);
+  }
+
+  async listContactConversations() {
+    return [];
+  }
+
   async setLabels(id, labels) {
     this.labels.set(Number(id), labels);
   }

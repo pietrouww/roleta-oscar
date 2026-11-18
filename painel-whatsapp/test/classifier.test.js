@@ -191,3 +191,13 @@ test('só fica pendente o que pede resposta', () => {
   assert.deepEqual(types(run([cli(40, 'Boa tarde')])), ['sem_resposta']);
   assert.deepEqual(types(run([cel(50, 'Seu aparelho está pronto'), cli(40, 'Boa tarde')])), []);
 });
+
+test('cliente avisando que vai até a loja não pede resposta; pergunta junto pede', () => {
+  const cel = (min, text) => ({ at: ago(min), dir: 'out', author: 'celular', name: 'Equipe (celular)', text });
+  const base = [cli(200, 'Meu iPhone não liga'), cel(190, 'Pode trazer que olhamos')];
+  for (const t of ['Ok, vou levar amanhã', 'Beleza, passo aí mais tarde', 'Amanhã eu vou buscar']) {
+    assert.deepEqual(types(run([...base, cli(40, t)])), [], t);
+  }
+  assert.deepEqual(types(run([...base, cli(40, 'Vou levar amanhã, até que horas vocês ficam?')])), ['sem_resposta']);
+  assert.deepEqual(types(run([...base, cli(40, 'Fico no aguardo do orçamento')])), ['sem_resposta']);
+});

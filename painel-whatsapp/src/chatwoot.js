@@ -52,21 +52,20 @@ export class ChatwootClient {
       out.push(...items);
       if (items.length < 25) break;
     }
-    return out.map((c) => ({
-      id: c.id,
-      inboxId: c.inbox_id,
-      status: c.status,
-      labels: c.labels || [],
-      lastActivityAt: (c.last_activity_at || c.timestamp || 0) * 1000,
-      contactId: c.meta?.sender?.id ?? null,
-      contactName: c.meta?.sender?.name || c.meta?.sender?.phone_number || 'Sem nome',
-      contactPhone: c.meta?.sender?.phone_number || '',
-      contactIdentifier: c.meta?.sender?.identifier || '',
-      assigneeName: c.meta?.assignee?.name || '',
-      assigneeId: c.meta?.assignee?.id ?? null,
-      unread: c.unread_count || 0,
-      preview: previaDe(c.last_non_activity_message || (c.messages || []).filter((m) => m.message_type !== 2).pop()),
-    }));
+    return out.map(conversaDe);
+  }
+
+  /** Todas as conversas de um contato (abertas e resolvidas, de qualquer número). */
+  async listContactConversations(contactId) {
+    const r = await this.request('GET', this.acc(`/contacts/${contactId}/conversations`));
+    return (r?.payload || []).map(conversaDe);
+  }
+
+  /** Uma página (20) de mensagens no formato bruto: as mais recentes, ou as anteriores a `before`. */
+  async listMessagesPage(conversationId, before = null) {
+    const q = before ? `?before=${before}` : '';
+    const r = await this.request('GET', this.acc(`/conversations/${conversationId}/messages${q}`));
+    return r?.payload || [];
   }
 
   async sendMessage(conversationId, content, token) {
@@ -153,6 +152,24 @@ export class ChatwootClient {
     const role = conta?.role || u.role || '';
     return { id: u.id, name: u.available_name || u.name || u.email, email: u.email, role, token: u.access_token || '' };
   }
+}
+
+function conversaDe(c) {
+  return {
+    id: c.id,
+    inboxId: c.inbox_id,
+    status: c.status,
+    labels: c.labels || [],
+    lastActivityAt: (c.last_activity_at || c.timestamp || 0) * 1000,
+    contactId: c.meta?.sender?.id ?? null,
+    contactName: c.meta?.sender?.name || c.meta?.sender?.phone_number || 'Sem nome',
+    contactPhone: c.meta?.sender?.phone_number || '',
+    contactIdentifier: c.meta?.sender?.identifier || '',
+    assigneeName: c.meta?.assignee?.name || '',
+    assigneeId: c.meta?.assignee?.id ?? null,
+    unread: c.unread_count || 0,
+    preview: previaDe(c.last_non_activity_message || (c.messages || []).filter((m) => m.message_type !== 2).pop()),
+  };
 }
 
 /**

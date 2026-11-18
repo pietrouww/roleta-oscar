@@ -56,6 +56,14 @@ async function api(path, opts = {}) {
   return data;
 }
 
+/** Só mexe na tela se o conteúdo mudou (atualizações automáticas não redesenham à toa). Devolve true se mudou. */
+function setHTML(el, html) {
+  if (el._html === html) return false;
+  el.innerHTML = html;
+  el._html = html;
+  return true;
+}
+
 function toast(msg) {
   const el = document.createElement('div');
   el.className = 'toast';
@@ -139,7 +147,10 @@ function irPara(tela) {
   for (const t of ['conversas', 'pendencias', 'ajustes']) $(`#tela-${t}`).hidden = t !== tela;
   $$('.nav-btn').forEach((b) => (b.dataset.tela === tela ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current')));
   $('#app').dataset.tela = tela;
-  if (tela === 'conversas') carregarConversas();
+  if (tela === 'conversas') {
+    if (state.conversas.length) desenharConversas(); // mostra na hora o que já tem; a atualização vem em seguida
+    carregarConversas();
+  }
   if (tela === 'pendencias') abrirSub(state.sub);
   if (tela === 'ajustes') abrirAjustes();
 }
@@ -151,16 +162,28 @@ $$('.nav-btn').forEach((b) => b.addEventListener('click', () => {
 // =====================================================================
 // MÓDULO CONVERSAS
 // =====================================================================
-async function carregarConversas() {
-  try {
-    const status = state.fConv === 'resolvidas' ? 'resolved' : 'open';
-    const r = await api(`/api/conversas?status=${status}`);
-    state.conversas = r.conversas;
-    if (r.inboxes.length) state.inboxes = r.inboxes;
-    desenharConversas();
-  } catch (err) {
-    $('#lista-conversas').innerHTML = `<li>${vazio('Não foi possível carregar', err.message)}</li>`;
-  }
+let buscaConversas = null; // evita pedidos repetidos ao mesmo tempo
+let seqConversas = 0;
+/** `forcar`: depois de uma ação da equipe, pede de novo mesmo que já haja um pedido em curso. */
+function carregarConversas(forcar = false) {
+  const status = state.fConv === 'resolvidas' ? 'resolved' : 'open';
+  if (!forcar && buscaConversas?.status === status) return buscaConversas.p;
+  const seq = ++seqConversas;
+  const p = (async () => {
+    try {
+      const r = await api(`/api/conversas?status=${status}`);
+      if (seq !== seqConversas) return; // já há um pedido mais novo (outro filtro ou depois de uma ação)
+      state.conversas = r.conversas;
+      if (r.inboxes.length) state.inboxes = r.inboxes;
+      desenharConversas();
+    } catch (err) {
+      if (!state.conversas.length) setHTML($('#lista-conversas'), `<li>${vazio('Não foi possível carregar', err.message)}</li>`);
+    } finally {
+      if (buscaConversas?.p === p) buscaConversas = null;
+    }
+  })();
+  buscaConversas = { status, p };
+  return p;
 }
 
 function previaHTML(c) {
@@ -182,23 +205,13 @@ function desenharConversas() {
     { id: 'resolvidas', nome: 'Resolvidas' },
   ];
   const conta = { naolidas: lista.filter((c) => c.unread).length, pendentes: lista.filter((c) => c.pendente).length };
-  $('#filtros-conversas').innerHTML = filtros.map((f) =>
-    `<button class="pilula" data-f="${f.id}" aria-pressed="${state.fConv === f.id}">${f.nome}${conta[f.id] && state.fConv !== 'resolvidas' ? ` <span class="n">${conta[f.id]}</span>` : ''}</button>`).join('');
-  $$('#filtros-conversas .pilula').forEach((b) => b.addEventListener('click', () => {
-    const mudouStatus = (b.dataset.f === 'resolvidas') !== (state.fConv === 'resolvidas');
-    state.fConv = b.dataset.f;
-    if (mudouStatus) carregarConversas();
-    else desenharConversas();
-  }));
+  setHTML($('#filtros-conversas'), filtros.map((f) =>
+    `<button class="pilula" data-f="${f.id}" aria-pressed="${state.fConv === f.id}">${f.nome}${conta[f.id] && state.fConv !== 'resolvidas' ? ` <span class="n">${conta[f.id]}</span>` : ''}</button>`).join(''));
 
   const nums = state.inboxes;
   $('#numeros-conversas').hidden = nums.length < 2;
-  $('#numeros-conversas').innerHTML = [{ id: 'todos', name: 'Todos os números' }, ...nums].map((n) =>
-    `<button class="pilula" data-n="${n.id}" aria-pressed="${String(state.fConvNumero) === String(n.id)}">${n.color ? `<span class="pt" style="--c:${esc(n.color.fg)};--c-d:${esc(n.color.bg)}"></span>` : ''}${esc(n.name)}</button>`).join('');
-  $$('#numeros-conversas .pilula').forEach((b) => b.addEventListener('click', () => {
-    state.fConvNumero = b.dataset.n;
-    desenharConversas();
-  }));
+  setHTML($('#numeros-conversas'), [{ id: 'todos', name: 'Todos os números' }, ...nums].map((n) =>
+    `<button class="pilula" data-n="${n.id}" aria-pressed="${String(state.fConvNumero) === String(n.id)}">${n.color ? `<span class="pt" style="--c:${esc(n.color.fg)};--c-d:${esc(n.color.bg)}"></span>` : ''}${esc(n.name)}</button>`).join(''));
 
   const q = state.buscaConv;
   const itens = lista.filter((c) =>
@@ -214,19 +227,54 @@ function desenharConversas() {
   b.textContent = naoLidas;
   $('#conversas-info').textContent = `${lista.length} ${state.fConv === 'resolvidas' ? 'resolvidas recentes' : 'abertas'}`;
 
-  $('#lista-conversas').innerHTML = itens.length ? itens.map((c) => `
+  setHTML($('#lista-conversas'), itens.length ? itens.map((c) => `
     <li class="conv">
-      <button class="conv-linha ${state.chat?.id === c.id ? 'ativa' : ''} ${c.fixada ? 'fixada' : ''}" data-abrir="${c.id}">
+      <button class="conv-linha ${c.fixada ? 'fixada' : ''}" data-abrir="${c.id}">
         <span class="avatar" style="background:${corAvatar(c.contactName)}" aria-hidden="true">${esc(iniciais(c.contactName))}</span>
         <span class="conv-corpo">
           <span class="conv-l1"><span class="conv-nome">${esc(c.contactName)}</span><span class="conv-hora ${c.unread ? 'nova' : ''}">${c.fixada ? IC_PINO : ''}${quando(c.lastActivityAt)}</span></span>
           <span class="conv-l2">${previaHTML(c)}${c.unread ? `<span class="bolinha" aria-label="${c.unread} não lidas">${c.unread}</span>` : ''}</span>
-          <span class="etqs">${etqNumero(c.inbox)}${c.pendente ? `<span class="etq ${TIPO[c.pendente.tipo].cls}">${TIPO[c.pendente.tipo].label} · ${tempo(c.pendente.minutos)}</span>` : ''}${c.adiada ? '<span class="etq e-resp">Adiada</span>' : ''}${c.assigneeName ? `<span class="etq e-resp">${esc(c.assigneeName)}</span>` : ''}</span>
+          <span class="etqs">${etqNumero(c.inbox)}${c.pendente ? `<span class="etq ${TIPO[c.pendente.tipo].cls}">${TIPO[c.pendente.tipo].label} · ${tempo(c.pendente.minutos)}</span>` : ''}${c.adiada ? '<span class="etq e-resp">Adiada</span>' : ''}${c.continuouEm && !c.pendente ? `<span class="etq e-resp">Continuou no ${esc(c.continuouEm.nome || 'outro número')}</span>` : ''}${c.assigneeName ? `<span class="etq e-resp">${esc(c.assigneeName)}</span>` : ''}</span>
         </span>
       </button>
-    </li>`).join('') : `<li>${vazio('Nenhuma conversa', q ? 'Nada encontrado com essa pesquisa.' : 'Nada com esse filtro.')}</li>`;
-  $$('#lista-conversas [data-abrir]').forEach((el) => el.addEventListener('click', () => abrirChat(Number(el.dataset.abrir))));
+    </li>`).join('') : `<li>${vazio('Nenhuma conversa', q ? 'Nada encontrado com essa pesquisa.' : 'Nada com esse filtro.')}</li>`);
+  marcarAtiva();
 }
+
+/** Destaca na lista a conversa aberta, sem redesenhar a lista. */
+function marcarAtiva() {
+  const id = state.chat ? String(state.chat.id) : '';
+  for (const el of $$('#lista-conversas .conv-linha')) el.classList.toggle('ativa', el.dataset.abrir === id);
+}
+
+// Um ouvinte só para a lista e os filtros (não precisa religar a cada atualização)
+$('#lista-conversas').addEventListener('click', (e) => {
+  const el = e.target.closest('[data-abrir]');
+  if (el) abrirChat(Number(el.dataset.abrir));
+});
+// Ao encostar o dedo (ou o mouse) já começa a buscar as mensagens: quando o toque termina, a conversa abre pronta
+$('#lista-conversas').addEventListener('pointerdown', (e) => {
+  const el = e.target.closest('[data-abrir]');
+  if (el && !EMBUTIDO) buscarChat(Number(el.dataset.abrir), chatGuardado.get(Number(el.dataset.abrir))?.max || 80);
+}, { passive: true });
+$('#filtros-conversas').addEventListener('click', (e) => {
+  const b = e.target.closest('.pilula');
+  if (!b) return;
+  const mudouStatus = (b.dataset.f === 'resolvidas') !== (state.fConv === 'resolvidas');
+  state.fConv = b.dataset.f;
+  if (mudouStatus) {
+    state.conversas = [];
+    desenharConversas();
+    setHTML($('#lista-conversas'), '<li><p class="sec pequeno centro carregando">Carregando…</p></li>');
+    carregarConversas();
+  } else desenharConversas();
+});
+$('#numeros-conversas').addEventListener('click', (e) => {
+  const b = e.target.closest('.pilula');
+  if (!b) return;
+  state.fConvNumero = b.dataset.n;
+  desenharConversas();
+});
 $('#busca-conversas').addEventListener('input', (e) => {
   state.buscaConv = e.target.value.trim().toLowerCase();
   desenharConversas();
@@ -241,29 +289,57 @@ function acharConversa(id) {
     || null;
 }
 
-async function abrirChat(id) {
+// Conversas já abertas ficam guardadas: reabrir mostra as mensagens na hora e confere novidades em seguida
+const chatGuardado = new Map(); // id -> { mensagens, pendencia, marca, url, temMais, continuouEm, max }
+function guardarChat(ch) {
+  chatGuardado.delete(ch.id);
+  chatGuardado.set(ch.id, { mensagens: ch.mensagens, pendencia: ch.pendencia, marca: ch.marca, url: ch.url, temMais: ch.temMais, continuouEm: ch.continuouEm, max: ch.max });
+  if (chatGuardado.size > 40) chatGuardado.delete(chatGuardado.keys().next().value);
+}
+const buscasChat = new Map(); // "id:max" -> { p, at }: pedido em curso ou recém-chegado (pré-busca ao tocar)
+function buscarChat(id, max) {
+  const chave = `${id}:${max}`;
+  const b = buscasChat.get(chave);
+  if (b && Date.now() - b.at < 3000) return b.p;
+  const p = api(`/api/conversas/${id}?max=${max}`);
+  p.catch(() => buscasChat.delete(chave));
+  buscasChat.set(chave, { p, at: Date.now() });
+  if (buscasChat.size > 20) buscasChat.delete(buscasChat.keys().next().value);
+  return p;
+}
+
+async function abrirChat(id, dica = null) {
   if (EMBUTIDO) {
     const item = acharConversa(id);
     if (item?.url) window.open(item.url, '_top');
     return;
   }
-  const conv = acharConversa(id) || { id, contactName: `Conversa ${id}`, contactPhone: '' };
-  state.chat = { id, conv, mensagens: [], pendencia: null, marca: {}, url: '', max: 80 };
+  if (state.chat?.id === id) return;
+  $$('#chat-mensagens audio, #chat-mensagens video').forEach((m) => m.pause());
+  const conv = acharConversa(id) || dica || { id, contactName: `Conversa ${id}`, contactPhone: '' };
+  const g = chatGuardado.get(id);
+  state.chat = { id, conv, mensagens: [], pendencia: g?.pendencia || null, marca: g?.marca || {}, url: g?.url || '', temMais: g?.temMais || false, continuouEm: g?.continuouEm || null, max: g?.max || 80 };
   $('#chat').hidden = false;
   $('#app').classList.add('tem-chat');
   $('#chat-nome').textContent = conv.contactName;
   $('#chat-avatar').textContent = iniciais(conv.contactName);
   $('#chat-avatar').style.background = corAvatar(conv.contactName);
   $('#chat-sub').textContent = [fone(conv.contactPhone), conv.inbox?.name].filter(Boolean).join(' · ');
-  $('#chat-mensagens').innerHTML = '<p class="sec pequeno centro carregando">Carregando mensagens…</p>';
-  $('#chat-pendencia').hidden = true;
   $('#chat-texto').value = '';
+  campo.style.height = 'auto';
   const pode = state.me.usuario.podeResponder;
   $('#chat-como').textContent = pode ? `Respondendo como ${state.me.usuario.name}` : 'Para responder por aqui, saia e entre de novo no painel.';
   $('#chat-texto').disabled = !pode;
   $('#chat-enviar').disabled = !pode;
-  desenharConversas();
-  await atualizarChat(true);
+  if (g) {
+    desenharMensagens(g.mensagens);
+    desenharFaixaPendencia();
+  } else {
+    $('#chat-mensagens').innerHTML = '<p class="sec pequeno centro carregando">Carregando mensagens…</p>';
+    $('#chat-pendencia').hidden = true;
+  }
+  marcarAtiva();
+  await atualizarChat(!g);
 }
 
 function fecharChat() {
@@ -272,7 +348,7 @@ function fecharChat() {
   state.chat = null;
   $('#chat').hidden = true;
   $('#app').classList.remove('tem-chat');
-  if (state.tela === 'conversas') desenharConversas();
+  marcarAtiva();
 }
 $('#chat-voltar').addEventListener('click', fecharChat);
 
@@ -302,11 +378,17 @@ function mensagemHTML(m) {
 function desenharMensagens(novas) {
   const caixa = $('#chat-mensagens');
   const antigas = state.chat.mensagens;
-  const mesmoInicio = antigas.length && novas.length >= antigas.length && antigas.every((m, i) => m.id === novas[i].id);
+  // A última mensagem que já está na tela aparece na leva nova, e tudo antes dela já era conhecido: só emenda
+  const idsAntigas = new Set(antigas.map((m) => m.id));
+  const k = antigas.length ? novas.findIndex((m) => m.id === antigas[antigas.length - 1].id) : -1;
+  const mesmoInicio = k >= 0 && novas.slice(0, k).every((m) => idsAntigas.has(m.id));
   const noFim = caixa.scrollHeight - caixa.scrollTop - caixa.clientHeight < 120;
+  const frescas = novas;
+  if (!state.chat.enviando) caixa.querySelectorAll('[data-temp]').forEach((el) => el.remove());
   if (mesmoInicio) {
     // Só acrescenta o que chegou (não mexe no que já está na tela, para não parar um áudio tocando)
-    const extra = novas.slice(antigas.length);
+    const extra = novas.slice(k + 1);
+    novas = extra.length ? [...antigas, ...extra] : antigas;
     if (extra.length) {
       let anterior = antigas[antigas.length - 1];
       caixa.insertAdjacentHTML('beforeend', extra.map((m) => {
@@ -314,9 +396,11 @@ function desenharMensagens(novas) {
         anterior = m;
         return sep + mensagemHTML(m);
       }).join(''));
+      // A bolha "enviando" fica sempre por último
+      caixa.querySelectorAll('[data-temp]').forEach((el) => caixa.appendChild(el));
     }
     // Atualiza marca de "não enviada"
-    for (const m of novas) if (m.status === 'failed') caixa.querySelector(`[data-mid="${m.id}"]`)?.classList.add('falhou');
+    for (const m of frescas) if (m.status === 'failed') caixa.querySelector(`[data-mid="${m.id}"]`)?.classList.add('falhou');
   } else {
     let anterior = null;
     const mais = state.chat.temMais ? '<button id="chat-mais" class="btn-contorno btn-p mais">Ver mensagens anteriores</button>' : '';
@@ -328,18 +412,34 @@ function desenharMensagens(novas) {
     $('#chat-mais')?.addEventListener('click', async () => {
       state.chat.max = Math.min(400, state.chat.max + 120);
       state.chat.mensagens = [];
+      $('#chat-mais').textContent = 'Carregando…';
       await atualizarChat(false, true);
     });
   }
   state.chat.mensagens = novas;
-  if (!mesmoInicio || noFim) caixa.scrollTop = caixa.scrollHeight;
+  if (!mesmoInicio || noFim) {
+    caixa.scrollTop = caixa.scrollHeight;
+    grudarNoFim = Date.now() + 4000; // fotos que terminam de carregar não tiram a conversa do fim
+  }
 }
+let grudarNoFim = 0;
+$('#chat-mensagens').addEventListener('load', (e) => {
+  const caixa = e.currentTarget;
+  if (e.target.tagName === 'IMG' && Date.now() < grudarNoFim) caixa.scrollTop = caixa.scrollHeight;
+}, true);
+for (const ev of ['wheel', 'touchmove']) $('#chat-mensagens').addEventListener(ev, () => { grudarNoFim = 0; }, { passive: true });
 
 function desenharFaixaPendencia() {
   const el = $('#chat-pendencia');
   const p = state.chat.pendencia;
   if (!p) {
-    el.hidden = true;
+    const outro = state.chat.continuouEm;
+    el.hidden = !outro;
+    if (outro) {
+      el.className = 'chat-pendencia';
+      el.innerHTML = `<div class="cp-topo"><span class="sec pequeno">O cliente continuou esta conversa pelo número <b>${esc(outro.nome || 'de outro setor')}</b>. Aqui não conta como pendência.</span>
+        <button class="link-btn" data-ir-conversa="${outro.id}">Abrir a conversa de lá</button></div>`;
+    }
     return;
   }
   const adiada = p.adiadaAte && p.adiadaAte > Date.now();
@@ -355,16 +455,19 @@ async function atualizarChat(primeira = false, manterTopo = false) {
   const ch = state.chat;
   if (!ch) return;
   try {
-    const r = await api(`/api/conversas/${ch.id}?max=${ch.max}`);
+    // Na abertura aproveita a busca que começou no toque; nas atualizações sempre pede de novo
+    const r = await (primeira ? buscarChat(ch.id, ch.max) : api(`/api/conversas/${ch.id}?max=${ch.max}`));
     if (state.chat !== ch) return; // trocou de conversa enquanto carregava
     ch.temMais = r.temMais;
     ch.pendencia = r.pendencia;
     ch.marca = r.marca;
     ch.url = r.url;
+    ch.continuouEm = r.continuouEm || null;
     if (primeira) ch.mensagens = [];
     desenharMensagens(r.mensagens);
     if (manterTopo) $('#chat-mensagens').scrollTop = 0;
     desenharFaixaPendencia();
+    guardarChat(ch);
   } catch (err) {
     if (primeira) $('#chat-mensagens').innerHTML = vazio('Não foi possível abrir', err.message);
   }
@@ -394,20 +497,43 @@ campo.addEventListener('keydown', (e) => {
 $('#chat-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const texto = campo.value.trim();
-  if (!texto || !state.chat) return;
+  const ch = state.chat;
+  if (!texto || !ch) return;
   $('#chat-enviar').disabled = true;
+  // A mensagem aparece na hora, como "Enviando…", e é confirmada quando o servidor responde
+  const caixa = $('#chat-mensagens');
+  const temp = document.createElement('div');
+  temp.className = 'balao out enviando';
+  temp.dataset.temp = '1';
+  temp.innerHTML = `<span class="autor">${esc(state.me.usuario.name)}</span><span class="m-texto">${textoMsg(texto)}</span><span class="meta">Enviando…</span>`;
+  caixa.querySelector('.carregando')?.remove();
+  caixa.appendChild(temp);
+  caixa.scrollTop = caixa.scrollHeight;
+  campo.value = '';
+  campo.style.height = 'auto';
+  ch.enviando = (ch.enviando || 0) + 1;
   try {
-    await api(`/api/conversas/${state.chat.id}/mensagens`, { method: 'POST', body: { texto } });
-    campo.value = '';
-    campo.style.height = 'auto';
-    await atualizarChat();
-    $('#chat-mensagens').scrollTop = $('#chat-mensagens').scrollHeight;
+    await api(`/api/conversas/${ch.id}/mensagens`, { method: 'POST', body: { texto } });
+    ch.enviando--;
+    if (state.chat === ch) {
+      await atualizarChat();
+      caixa.scrollTop = caixa.scrollHeight;
+    }
     recarregarListas();
   } catch (err) {
+    ch.enviando--;
+    temp.remove();
+    if (state.chat === ch && !campo.value) campo.value = texto; // devolve o texto para tentar de novo
     toast(err.message);
   } finally {
     $('#chat-enviar').disabled = !state.me.usuario.podeResponder;
   }
+});
+$('#chat-pendencia').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ir-conversa]');
+  if (!b || !state.chat) return;
+  const { conv, continuouEm } = state.chat;
+  abrirChat(Number(b.dataset.irConversa), { id: Number(b.dataset.irConversa), contactName: conv.contactName, contactPhone: conv.contactPhone, contactId: conv.contactId, inbox: { name: continuouEm?.nome || '' } });
 });
 
 // ---------- Ações (conversa e pendência) ----------
@@ -441,7 +567,7 @@ async function executar(id, tipo, extra, mensagem) {
 
 function recarregarListas(forcar = false) {
   const tarefas = [carregarPendencias(forcar)];
-  if (state.tela === 'conversas') tarefas.push(carregarConversas());
+  if (state.tela === 'conversas') tarefas.push(carregarConversas(true));
   return Promise.all(tarefas);
 }
 
@@ -522,7 +648,10 @@ function abrirSub(sub) {
   state.sub = sub;
   for (const s of ['agora', 'verificacoes', 'indicadores']) $(`#sub-${s}`).hidden = s !== sub;
   $$('#sub-pendencias button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.sub === sub)));
-  if (sub === 'agora') carregarPendencias();
+  if (sub === 'agora') {
+    desenharPendencias(); // mostra na hora o que já tem
+    carregarPendencias();
+  }
   if (sub === 'verificacoes') carregarDia(state.dia, state.hora);
   if (sub === 'indicadores') carregarIndicadores();
 }
@@ -549,8 +678,11 @@ async function carregarPendencias(forcar = false) {
     b.textContent = state.pend.totals.total;
     if ('setAppBadge' in navigator) navigator.setAppBadge(state.pend.totals.total).catch(() => {});
     desenharPendencias();
+    // A IA ainda está lendo algumas conversas: busca de novo em instantes para mostrar a análise
+    clearTimeout(carregarPendencias.timer);
+    if (state.pend.analisando) carregarPendencias.timer = setTimeout(() => { if (!document.hidden) carregarPendencias(); }, 6000);
   } catch (err) {
-    if (state.tela === 'pendencias' && state.sub === 'agora') $('#lista-pendencias').innerHTML = vazio('Não foi possível carregar', err.message);
+    if (state.tela === 'pendencias' && state.sub === 'agora' && !state.pend) setHTML($('#lista-pendencias'), vazio('Não foi possível carregar', err.message));
   }
 }
 
@@ -633,17 +765,15 @@ function desenharPendencias() {
       || (state.fTipo === 'minhas' && i.assigneeId === state.me.usuario.id)
       || i.flags.some((f) => f.type === state.fTipo)));
   const lista = $('#lista-pendencias');
-  lista.innerHTML = itens.length ? itens.map((i) => cartao(i)).join('')
-    : vazio(t.total ? 'Nada com esse filtro' : 'Tudo em dia', t.total ? 'Escolha outro filtro.' : 'Nenhum cliente aguardando retorno.');
-  ligarCartoes(lista);
+  if (setHTML(lista, itens.length ? itens.map((i) => cartao(i)).join('')
+    : vazio(t.total ? 'Nada com esse filtro' : 'Tudo em dia', t.total ? 'Escolha outro filtro.' : 'Nenhum cliente aguardando retorno.'))) ligarCartoes(lista);
 
   const ad = d.adiadas || [];
   $('#bloco-adiadas').hidden = !ad.length;
   $('#adiadas-titulo').textContent = `Adiadas (${ad.length})`;
-  $('#lista-adiadas').innerHTML = ad.map((i) => cartao(i)).join('');
-  ligarCartoes($('#lista-adiadas'));
+  if (setHTML($('#lista-adiadas'), ad.map((i) => cartao(i)).join(''))) ligarCartoes($('#lista-adiadas'));
 
-  const ia = d.ia?.ativa ? (d.ia.pausada ? 'análise da IA em pausa (usando regras)' : 'analisado pela IA') : 'analisado por regras';
+  const ia = d.ia?.ativa ? (d.ia.pausada ? 'análise da IA em pausa (usando regras)' : d.analisando ? `IA analisando ${d.analisando} conversa${d.analisando > 1 ? 's' : ''}…` : 'analisado pela IA') : 'analisado por regras';
   const ign = d.ignoredConversations ? ` · ${d.ignoredConversations} fora da análise` : '';
   $('#agora-rodape').textContent = `Atualizado ${hhmm(d.updatedAt)} · ${d.openConversations} conversas abertas${ign} · ${ia}`;
   desenharConversaChatwoot();
@@ -1114,8 +1244,8 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
 
 // Atualizações automáticas (só com o app visível)
 const visivel = () => !document.hidden && state.me;
-setInterval(() => { if (visivel() && state.chat) atualizarChat(); }, 8000);
-setInterval(() => { if (visivel() && state.tela === 'conversas') carregarConversas(); }, 15000);
+setInterval(() => { if (visivel() && state.chat && !state.chat.enviando) atualizarChat(); }, 5000);
+setInterval(() => { if (visivel() && state.tela === 'conversas') carregarConversas(); }, 10000);
 setInterval(() => { if (visivel()) carregarPendencias(); }, 60000);
 document.addEventListener('visibilitychange', () => {
   if (!visivel()) return;

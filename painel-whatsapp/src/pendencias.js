@@ -24,11 +24,54 @@ export function ehSistema(c) {
   return c.contactName === 'EvolutionAPI' || /^\+?123456$/.test(c.contactPhone || '');
 }
 
+/** Chave para reconhecer o mesmo cliente em números (caixas) diferentes: DDD + 8 últimos dígitos, ou o contato. */
+export function chaveContato(c) {
+  const d = String(c.contactPhone || '').replace(/\D/g, '');
+  if (d.length >= 10) {
+    const n = d.startsWith('55') && d.length >= 12 ? d.slice(2) : d;
+    return `t:${n.slice(0, 2)}${n.slice(-8)}`;
+  }
+  return c.contactId != null ? `c:${c.contactId}` : '';
+}
+
+/** Momento da última mensagem "de verdade" (ignora resposta automática de ausência/saudação). */
+export function ultimaReal(messages, ehAuto = () => false) {
+  let at = 0;
+  for (const m of messages) {
+    if (m.dir === 'in' || m.author === 'humano' || !ehAuto(m.text)) at = Math.max(at, m.at);
+  }
+  return at;
+}
+
+/**
+ * O cliente começou a falar num número e continuou em outro?
+ * Vale quando ele escreveu em outro número da empresa DEPOIS da última mensagem desta conversa
+ * (ex.: recebeu a mensagem automática do Laboratório e seguiu no Atendimento).
+ * @param {object[]} messages mensagens desta conversa
+ * @param {Array<{id:number, nome:string, messages:object[]}>} irmas conversas do mesmo cliente em outros números
+ * @returns {{id:number, nome:string, at:number}|null}
+ */
+export function continuouEmOutro(messages, irmas, ehAuto = () => false) {
+  const ref = ultimaReal(messages, ehAuto);
+  if (!ref) return null;
+  let melhor = null;
+  for (const o of irmas || []) {
+    let at = 0;
+    for (const m of o.messages || []) if (m.dir === 'in' && m.at > ref) at = Math.max(at, m.at);
+    if (at && (!melhor || at > melhor.at)) melhor = { id: o.id, nome: o.nome || '', at };
+  }
+  return melhor;
+}
+
 const SEM_MARCAS = { getMarks: () => ({}), setMark() {} };
 
 export class PendenciasEngine {
-  constructor({ client, config, logger = console, ignorados = () => new Set(), ia = null, marcas = SEM_MARCAS }) {
+  constructor({ client, config, logger = console, ignorados = () => new Set(), ia = null, marcas = SEM_MARCAS, mensagens = null }) {
     this.client = client;
+    this.mensagens = mensagens; // cache compartilhado das mensagens brutas (opcional)
+    this.contatos = new Map(); // contactId -> { at, convs }: conversas resolvidas do cliente em outros números
+    this.filaIa = new Map(); // conversas esperando análise da IA em segundo plano
+    this.drenando = null;
     this.ignorados = ignorados; // () => Set de contactId que a equipe mandou ignorar
     this.ia = ia;
     this.marcas = marcas;
@@ -59,31 +102,55 @@ export class PendenciasEngine {
     return this.scan();
   }
 
+  /**
+   * Para as telas: nunca espera a IA nem segura a resposta à toa.
+   * - resultado recente: devolve na hora;
+   * - resultado velho: devolve o que tem e atualiza por trás;
+   * - sem resultado, ou depois de uma ação da equipe: faz a varredura rápida (a IA analisa em segundo plano).
+   */
+  async rapido(maxAgeMs = 60000) {
+    const r = this.last;
+    if (r && r.updatedAt) {
+      if (Date.now() - r.updatedAt >= maxAgeMs) this.scan({ iaEmFundo: true }).catch((e) => this.log.error('[pendencias]', e.message));
+      return r;
+    }
+    return this.scan({ iaEmFundo: true });
+  }
+
   /** Força nova varredura na próxima consulta (depois de uma ação da equipe). */
   invalidate() {
     if (this.last) this.last.updatedAt = 0;
   }
 
-  async scan() {
-    if (this.running) return this.running;
-    this.running = this._scan().finally(() => {
+  /**
+   * Varre as conversas abertas. `iaEmFundo`: não espera a IA; conversa ainda sem análise usa as regras
+   * por enquanto e a IA analisa em segundo plano (o resultado entra na varredura seguinte).
+   */
+  async scan(opts = {}) {
+    if (this.running) {
+      if (!this.runningEmFundo || opts.iaEmFundo) return this.running;
+      // Há uma varredura rápida em curso e esta precisa da análise completa: espera e refaz
+      await this.running.catch(() => {});
+      return this.scan(opts);
+    }
+    this.runningEmFundo = !!opts.iaEmFundo;
+    this.running = this._scan(opts).finally(() => {
       this.running = null;
     });
     return this.running;
   }
 
-  async _scan() {
+  async _scan({ iaEmFundo = false } = {}) {
     const now = Date.now();
     const inboxes = await this.loadInboxes();
     const inboxById = new Map(inboxes.map((i) => [i.id, i]));
-    const convs = [
-      ...(await this.client.listConversations('open')),
-      ...(await this.client.listConversations('pending')),
-    ].filter((c) => inboxById.has(c.inboxId));
+    const [abertas, emEspera] = await Promise.all([this.client.listConversations('open'), this.client.listConversations('pending')]);
+    const convs = [...abertas, ...emEspera].filter((c) => inboxById.has(c.inboxId));
 
     const items = [];
     const adiadas = [];
     const all = [];
+    const continuadas = {};
     const ignoradosSet = this.ignorados();
     const etiquetaIgnorar = this.config.labels.ignorar;
     const marcas = this.marcas.getMarks();
@@ -101,13 +168,49 @@ export class PendenciasEngine {
         queue.push(c);
       }
     }
-    const workers = Array.from({ length: 4 }, async () => {
-      while (queue.length) {
-        const c = queue.shift();
+
+    // 1) Mensagens de todas as conversas (só relê no Chatwoot as que mudaram)
+    const lidas = new Map(); // conversaId -> mensagens
+    const paraLer = [...queue];
+    await Promise.all(Array.from({ length: 6 }, async () => {
+      while (paraLer.length) {
+        const c = paraLer.shift();
         try {
-          const messages = await this.messagesFor(c);
-          const result = await this.avaliar(c, messages, now, marcas[c.id], orcamento);
+          lidas.set(c.id, await this.messagesFor(c));
+        } catch (err) {
+          this.log.error(`[pendencias] conversa ${c.id}:`, err.message);
+        }
+      }
+    }));
+
+    // 2) O mesmo cliente em números diferentes: uma conversa enxerga as outras
+    const porCliente = new Map();
+    for (const c of queue) {
+      const k = chaveContato(c);
+      if (!k || !lidas.has(c.id)) continue;
+      if (!porCliente.has(k)) porCliente.set(k, []);
+      porCliente.get(k).push(c);
+    }
+    const abertasIds = new Set(convs.map((c) => c.id));
+    const irmasDe = (c) => (porCliente.get(chaveContato(c)) || [])
+      .filter((o) => o.id !== c.id && o.inboxId !== c.inboxId)
+      .map((o) => ({ id: o.id, nome: inboxById.get(o.inboxId)?.name || '', messages: lidas.get(o.id) }));
+
+    // 3) Avaliação
+    const paraAvaliar = queue.filter((c) => lidas.has(c.id));
+    const workers = Array.from({ length: 4 }, async () => {
+      while (paraAvaliar.length) {
+        const c = paraAvaliar.shift();
+        try {
+          const messages = lidas.get(c.id);
+          const ctx = {
+            iaEmFundo,
+            irmas: irmasDe(c),
+            resolvidas: (ref) => this.irmasResolvidas(c, ref, inboxById, abertasIds),
+          };
+          const result = await this.avaliar(c, messages, now, marcas[c.id], orcamento, ctx);
           all.push({ conv: c, result });
+          if (result.continuouEm) continuadas[c.id] = result.continuouEm;
           if (!result.pending) continue;
           const item = this.toItem(c, result, inboxById.get(c.inboxId));
           if (result.adiadaAte) adiadas.push(item);
@@ -131,12 +234,17 @@ export class PendenciasEngine {
     items.sort(ordem);
     adiadas.sort((a, b) => a.adiadaAte - b.adiadaAte);
 
-    if (this.config.labels.sync) await this.syncLabels(all).catch((e) => this.log.error('[labels]', e.message));
+    // Com análises da IA ainda por chegar, as etiquetas esperam a próxima varredura (evita pôr e tirar em seguida)
+    const esperandoIa = iaEmFundo ? this.filaIa.size : 0;
+    if (this.config.labels.sync && !esperandoIa) await this.syncLabels(all).catch((e) => this.log.error('[labels]', e.message));
+    if (esperandoIa) this.drenarFilaIa();
 
     this.last = {
       updatedAt: now,
       items,
       adiadas,
+      continuadas,
+      analisando: esperandoIa,
       totals: summarize(items, inboxes),
       inboxes: inboxes.map(({ id, name, phone, color }) => ({ id, name, phone, color })),
       openConversations: convs.length,
@@ -146,8 +254,11 @@ export class PendenciasEngine {
     return this.last;
   }
 
-  /** Decide se a conversa está pendente: IA (ou regras) + marcações da equipe. */
-  async avaliar(c, messages, now, marca = {}, orcamento = { restante: 0 }) {
+  /**
+   * Decide se a conversa está pendente: IA (ou regras) + marcações da equipe.
+   * `ctx.irmas`: conversas abertas do mesmo cliente em outros números; `ctx.resolvidas(ref)`: busca as já resolvidas.
+   */
+  async avaliar(c, messages, now, marca = {}, orcamento = { restante: 0 }, ctx = {}) {
     const regras = classify(messages, { now, rules: this.config.rules, matchers: this.matchers });
     const ultimaId = messages.length ? messages[messages.length - 1].id : null;
     let r = {
@@ -160,14 +271,43 @@ export class PendenciasEngine {
       fonte: 'regras',
     };
 
-    const recente = now - c.lastActivityAt <= (this.config.ia?.maxDias ?? 14) * 864e5;
-    if (this.ia?.ativo && messages.length && recente) {
-      let analise = this.ia.emCache(c.id, messages);
-      if (!analise && orcamento.restante > 0) {
-        orcamento.restante--;
-        analise = await this.ia.analisar(c.id, this.paraIa(messages), now);
+    // Cliente começou neste número e continuou em outro (ex.: mensagem automática do Laboratório → Atendimento):
+    // o que ele deixou sem resposta aqui segue na outra conversa, então aqui não é pendência.
+    // Promessa de retorno feita pela equipe não entra nessa regra: continua valendo até ser cumprida.
+    const auto = this.matchers.isAutoReply || (() => false);
+    const irmas = ctx.irmas || [];
+    const doCliente = (flags) => flags.length > 0 && flags.every((f) => f.type === 'sem_resposta' || f.type === 'pediu_atendente');
+    const seguiu = (mig) => ({
+      pending: false, flags: [], since: null, urgencia: 'baixa', proximoPasso: '', fonte: 'regras',
+      resumo: `Cliente continuou a conversa pelo número ${mig.nome || 'de outro setor'}`,
+      continuouEm: { id: mig.id, nome: mig.nome },
+    });
+    let mig = marca.manual ? null : continuouEmOutro(messages, irmas, auto);
+
+    if (mig && regras.pending && doCliente(regras.flags)) {
+      r = seguiu(mig);
+    } else {
+      const recente = now - c.lastActivityAt <= (this.config.ia?.maxDias ?? 14) * 864e5;
+      if (this.ia?.ativo && messages.length && recente) {
+        // Contexto para a IA: o que o mesmo cliente falou em outro número nas últimas 48 horas
+        const ultimaAt = messages[messages.length - 1].at;
+        const outros = irmas
+          .filter((o) => o.messages?.length && Math.abs(o.messages[o.messages.length - 1].at - ultimaAt) <= 48 * 3600000)
+          .map((o) => ({ id: o.id, nome: o.nome, messages: this.paraIa(o.messages) }));
+        const paraIa = this.paraIa(messages);
+        let analise = this.ia.emCache(c.id, paraIa, outros);
+        if (!analise && orcamento.restante > 0) {
+          orcamento.restante--;
+          if (ctx.iaEmFundo) this.filaIa.set(c.id, { messages: paraIa, outros });
+          else analise = await this.ia.analisar(c.id, paraIa, now, outros);
+        }
+        if (analise) r = this.daAnalise(analise, messages, now);
       }
-      if (analise) r = this.daAnalise(analise, messages, now);
+      if (r.pending && !marca.manual && doCliente(r.flags)) {
+        // Também vale quando a outra conversa já foi resolvida (não está mais na lista de abertas)
+        if (!mig && ctx.resolvidas) mig = continuouEmOutro(messages, await ctx.resolvidas(ultimaReal(messages, auto)), auto);
+        if (mig) r = seguiu(mig);
+      }
     }
 
     // "Não é pendência": vale enquanto não chegar mensagem nova
@@ -195,11 +335,66 @@ export class PendenciasEngine {
 
     return {
       ...r,
+      continuouEm: r.pending ? null : r.continuouEm || null,
       waitingMinutes: r.pending && r.since ? Math.max(0, Math.round((now - r.since) / 60000)) : 0,
       aiInvolved: regras.aiInvolved,
       lastHumanName: regras.lastHumanName,
       ultimaMsg: ultimaId,
     };
+  }
+
+  /** Conversas já resolvidas do mesmo cliente em outros números, com atividade depois de `ref`. */
+  async irmasResolvidas(c, ref, inboxById, abertasIds) {
+    if (c.contactId == null || typeof this.client.listContactConversations !== 'function') return [];
+    const k = String(c.contactId);
+    let e = this.contatos.get(k);
+    if (!e || Date.now() - e.at > 3 * 60000) {
+      const convs = await this.client.listContactConversations(c.contactId).catch((err) => {
+        this.log.error(`[pendencias] conversas do contato ${k}:`, err.message);
+        return [];
+      });
+      e = { at: Date.now(), convs };
+      this.contatos.delete(k);
+      this.contatos.set(k, e);
+      while (this.contatos.size > 300) this.contatos.delete(this.contatos.keys().next().value);
+    }
+    const out = [];
+    for (const o of e.convs) {
+      if (o.id === c.id || o.inboxId === c.inboxId || !inboxById.has(o.inboxId) || abertasIds.has(o.id) || o.lastActivityAt <= ref) continue;
+      try {
+        const raw = await this.lerBrutas(o.id, { max: 20, lastActivityAt: o.lastActivityAt });
+        out.push({ id: o.id, nome: inboxById.get(o.inboxId).name, messages: toClassifierMessages(raw, this.config.rules) });
+      } catch (err) {
+        this.log.error(`[pendencias] conversa ${o.id}:`, err.message);
+      }
+    }
+    return out;
+  }
+
+  /** Manda para a IA, em segundo plano, as conversas que ficaram sem análise na varredura rápida. */
+  drenarFilaIa() {
+    if (this.drenando || !this.filaIa.size || !this.ia) return this.drenando;
+    this.drenando = (async () => {
+      let chegou = false;
+      await Promise.all(Array.from({ length: 3 }, async () => {
+        while (this.filaIa.size) {
+          const [id, t] = this.filaIa.entries().next().value;
+          this.filaIa.delete(id);
+          const r = await this.ia.analisar(id, t.messages, Date.now(), t.outros).catch(() => null);
+          if (r) chegou = true;
+        }
+      }));
+      this.ia.salvar?.();
+      if (chegou) this.invalidate(); // a próxima consulta já sai com a análise da IA
+    })().catch((e) => this.log.error('[ia] fila:', e.message)).finally(() => {
+      this.drenando = null;
+    });
+    return this.drenando;
+  }
+
+  lerBrutas(id, { max, lastActivityAt = null } = {}) {
+    if (this.mensagens) return this.mensagens.obter(id, { max, lastActivityAt });
+    return this.client.listMessages(id, max);
   }
 
   /** Respostas automáticas (ausência/saudação) vão para a IA marcadas como automáticas, não como atendente. */
@@ -234,7 +429,7 @@ export class PendenciasEngine {
   async messagesFor(c) {
     const cached = this.cache.get(c.id);
     if (cached && cached.lastActivityAt === c.lastActivityAt) return cached.messages;
-    const raw = await this.client.listMessages(c.id, this.config.chatwoot.maxMessages);
+    const raw = await this.lerBrutas(c.id, { max: this.config.chatwoot.maxMessages, lastActivityAt: c.lastActivityAt });
     const messages = toClassifierMessages(raw, this.config.rules);
     this.cache.set(c.id, { lastActivityAt: c.lastActivityAt, messages });
     return messages;

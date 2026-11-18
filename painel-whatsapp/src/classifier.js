@@ -71,6 +71,8 @@ const NO_REPLY_PATTERNS = [
   /\b(fiz|fizemos|feito|mandei|enviei|ja fiz|ja mandei|ja enviei) (o )?(pix|pagamento|transferencia|deposito)\b(?!.*\?)/,
   /^(vou|vamos) (ver|pensar|verificar|conversar|falar)( com\b.*)? e (te |lhe )?(aviso|falo|retorno|digo)\b/,
   /^(depois|amanha|mais tarde) (te |lhe )?(aviso|falo|retorno|chamo)\b/,
+  // Cliente avisando que vai até a loja ("ok, vou levar amanhã", "passo aí mais tarde")
+  /^((ok|blz|beleza|certo|ta bom|combinado|entao|dai|ai|amanha|hoje|mais tarde|depois|eu|ja) )*(vou (ai|la|levar|passar|buscar|retirar|pegar|deixar)|passo (ai|la)|levo|busco|retiro|apareco|dou uma passada)\b/,
 ];
 
 // Pergunta ou pedido explícito
