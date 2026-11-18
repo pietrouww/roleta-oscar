@@ -176,7 +176,26 @@ export function toClassifierMessages(raw, rules) {
     const senderType = (x.sender_type || x.sender?.type || '').toLowerCase();
     let author;
     let name = x.sender?.available_name || x.sender?.name || '';
-    if (senderType === 'user') {
+    // A Evolution registra tudo o que sai do próprio celular (IA da Meta, resposta automática ou
+    // alguém digitando no aparelho) com o usuário "Celular": não é atendente do Chatwoot.
+    const celularNome = (rules.celularSenderName || 'Celular').toLowerCase();
+    const doCelular = senderType === 'user' && name.toLowerCase() === celularNome;
+    // Para o que sai do celular, o código da mensagem no WhatsApp mostra a origem:
+    // "CE…" = IA da Meta; "3EB0…" = WhatsApp Web/sistema; demais ("2A…", "3A"…) = pessoa no app.
+    const waId = String(x.source_id || '').replace(/^WAID:/i, '').toUpperCase();
+    const prefixosIa = (rules.aiIdPrefixes || ['CE']).map((p) => String(p).toUpperCase()).filter(Boolean);
+    if (doCelular && rules.aiDetection !== 'assinatura' && waId) {
+      if (prefixosIa.some((p) => waId.startsWith(p))) {
+        author = 'ia';
+        name = 'IA';
+      } else if (waId.startsWith('3EB0')) {
+        author = 'celular';
+        name = 'WhatsApp Web';
+      } else {
+        author = 'celular';
+        name = 'Equipe (celular)';
+      }
+    } else if (senderType === 'user' && !doCelular) {
       author = 'humano';
     } else if (senderType === 'agentbot' || senderType === 'agent_bot') {
       author = 'ia';
@@ -226,7 +245,7 @@ function nomeArquivo(a) {
 }
 
 /** Mensagens no formato da tela de conversa (com mídias, notas internas e avisos do sistema). */
-export function toDisplayMessages(raw, rules, convId) {
+export function toDisplayMessages(raw, rules, convId, ehAutomatica = () => false) {
   const autores = new Map(toClassifierMessages(raw, rules).map((m) => [m.id, m]));
   return raw.map((x) => {
     const c = autores.get(x.id);
@@ -251,6 +270,8 @@ export function toDisplayMessages(raw, rules, convId) {
       tipo: c?.dir === 'in' ? 'recebida' : 'enviada',
       autor: c?.dir === 'in' ? '' : c?.name || '',
       autorTipo: c?.author || '',
+      // Resposta automática do WhatsApp Business (ausência/saudação): não conta como resposta
+      auto: c?.dir === 'out' && c.author !== 'humano' && ehAutomatica(c.text),
       status: x.status || '',
       anexos,
     };

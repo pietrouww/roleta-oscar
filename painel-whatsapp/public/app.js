@@ -35,6 +35,7 @@ const state = {
   verif: null,
   dia: null,
   hora: null,
+  sel: new Set(), // conversas marcadas para o relatório (Verificações)
   chat: null, // { id, conv, mensagens, pendencia, marca, url, max }
   convAtualChatwoot: null,
 };
@@ -294,9 +295,9 @@ function mensagemHTML(m) {
     return `<div class="balao nota" data-mid="${m.id}"><span class="autor">Nota interna · ${esc(m.autor)}</span>${anexos}${texto}<span class="meta">${hhmm(m.at)}</span></div>`;
   }
   if (m.tipo === 'recebida') return `<div class="balao in" data-mid="${m.id}">${anexos}${texto}<span class="meta">${hhmm(m.at)}</span></div>`;
-  const ia = m.autorTipo === 'ia';
+  const ia = m.autorTipo === 'ia' && !m.auto;
   const falhou = m.status === 'failed';
-  return `<div class="balao out ${falhou ? 'falhou' : ''}" data-mid="${m.id}"><span class="autor ${ia ? 'autor-ia' : ''}">${ia ? '✦ ' : ''}${esc(m.autor || 'Equipe')}</span>${anexos}${texto}<span class="meta">${falhou ? 'Não enviada · ' : ''}${hhmm(m.at)} ${CHECKS}</span></div>`;
+  return `<div class="balao out ${falhou ? 'falhou' : ''} ${m.auto ? 'auto' : ''}" data-mid="${m.id}"><span class="autor ${m.auto ? 'autor-auto' : ia ? 'autor-ia' : ''}">${m.auto ? 'Resposta automática' : `${ia ? '✦ ' : ''}${esc(m.autor || 'Equipe')}`}</span>${anexos}${texto}<span class="meta">${falhou ? 'Não enviada · ' : ''}${hhmm(m.at)} ${CHECKS}</span></div>`;
 }
 
 function desenharMensagens(novas) {
@@ -556,17 +557,21 @@ function origemHTML(item) {
   return `<p class="origem"><span class="sec">${esc(quem)} · ${quando(f.since)}${mesmoDia(f.since, Date.now()) ? '' : ` ${hhmm(f.since)}`}:</span> “${esc(f.text.slice(0, 220))}”</p>`;
 }
 
-function cartao(item, { acoes = true } = {}) {
+const MOTIVO = { pergunta: 'Pergunta', pedido: 'Pedido', midia: 'Áudio ou foto' };
+
+function cartao(item, { acoes = true, selecionavel = false } = {}) {
+  const motivo = item.motivo || item.flags.find((f) => f.motivo)?.motivo;
   const adiada = item.adiadaAte && item.adiadaAte > Date.now();
   const fonte = item.fonte === 'ia' ? '<span class="etq e-ia">✦ Análise da IA</span>' : item.fonte === 'equipe' ? '' : '<span class="etq e-resp">Regra automática</span>';
   return `
   <article class="cartao ${URG[item.urgencia]?.cls || ''}" data-id="${item.id}">
     <div class="cartao-topo">
+      ${selecionavel ? `<label class="cartao-sel"><input type="checkbox" data-sel="${item.id}" ${state.sel.has(item.id) ? 'checked' : ''}><span class="sr">Selecionar ${esc(item.contactName)}</span></label>` : ''}
       <span class="avatar avatar-p" style="background:${corAvatar(item.contactName)}" aria-hidden="true">${esc(iniciais(item.contactName))}</span>
       <div class="cartao-quem"><p class="cartao-nome">${esc(item.contactName)}</p><p class="sec pequeno">${[esc(fone(item.contactPhone)), item.assigneeName ? `Resp.: ${esc(item.assigneeName)}` : 'Sem responsável'].filter(Boolean).join(' · ')}</p></div>
       <span class="espera ${item.waitingMinutes >= 120 ? 'atraso' : ''}">${adiada ? `até ${hhmm(item.adiadaAte)}` : tempo(item.waitingMinutes)}</span>
     </div>
-    <div class="etqs">${etqNumero(item.inbox)}${item.flags.map((f) => `<span class="etq ${TIPO[f.type].cls}">${TIPO[f.type].label}</span>`).join('')}${item.urgencia === 'alta' ? '<span class="etq u-chip">Urgente</span>' : ''}${fonte}</div>
+    <div class="etqs">${etqNumero(item.inbox)}${item.flags.map((f) => `<span class="etq ${TIPO[f.type].cls}">${TIPO[f.type].label}</span>`).join('')}${MOTIVO[motivo] ? `<span class="etq e-resp">${MOTIVO[motivo]}</span>` : ''}${item.urgencia === 'alta' ? '<span class="etq u-chip">Urgente</span>' : ''}${fonte}</div>
     ${item.resumo ? `<p class="resumo">${esc(item.resumo)}</p>` : ''}
     ${item.proximoPasso ? `<p class="passo"><b>Próximo passo:</b> ${esc(item.proximoPasso)}</p>` : ''}
     ${origemHTML(item)}
@@ -659,6 +664,8 @@ async function carregarDia(dia, horaEscolhida) {
   $('#dia-label').textContent = r.data === r.hoje ? `Hoje, ${label}` : label.charAt(0).toUpperCase() + label.slice(1);
   $('#dia-proximo').disabled = r.data >= r.hoje;
   state.verif = null;
+  state.sel.clear();
+  $('#verif-barra').hidden = true;
   if (!r.horarios.length) {
     $('#horarios').innerHTML = '';
     $('#verif-resumo').hidden = true;
@@ -688,14 +695,81 @@ async function carregarDia(dia, horaEscolhida) {
       ? `Às ${snap.time}: ${t.total} cliente${t.total > 1 ? 's' : ''} aguardando${t.urgentes ? `, ${t.urgentes} urgente${t.urgentes > 1 ? 's' : ''}` : ''}`
       : `Às ${snap.time}, todas as conversas estavam respondidas`;
     const lista = $('#lista-verif');
-    lista.innerHTML = snap.items.length ? snap.items.map((i) => cartao({ urgencia: 'media', ...i }, { acoes: false })).join('') : vazio('Nenhuma pendência', 'Tudo respondido neste horário.');
+    lista.innerHTML = snap.items.length ? snap.items.map((i) => cartao({ urgencia: 'media', ...i }, { acoes: false, selecionavel: true })).join('') : vazio('Nenhuma pendência', 'Tudo respondido neste horário.');
     ligarCartoes(lista);
+    // Seleção para o relatório da recepção
+    $('#verif-barra').hidden = !snap.items.length;
+    const atualizarBarra = () => {
+      const n = state.sel.size;
+      $('#btn-relatorio').disabled = !n;
+      $('#btn-relatorio').textContent = n ? `Gerar relatório (${n})` : 'Gerar relatório';
+      $('#sel-todos').checked = snap.items.length > 0 && snap.items.every((i) => state.sel.has(i.id));
+    };
+    lista.querySelectorAll('[data-sel]').forEach((c) => c.addEventListener('change', () => {
+      const id = Number(c.dataset.sel);
+      if (c.checked) state.sel.add(id);
+      else state.sel.delete(id);
+      atualizarBarra();
+    }));
+    $('#sel-todos').onchange = (e) => {
+      for (const i of snap.items) (e.target.checked ? state.sel.add(i.id) : state.sel.delete(i.id));
+      lista.querySelectorAll('[data-sel]').forEach((c) => { c.checked = e.target.checked; });
+      atualizarBarra();
+    };
+    atualizarBarra();
   } catch (err) {
     $('#lista-verif').innerHTML = vazio('Erro', err.message);
   }
 }
 $('#dia-anterior').addEventListener('click', () => carregarDia(somarDias(state.dia, -1)));
 $('#dia-proximo').addEventListener('click', () => carregarDia(somarDias(state.dia, 1)));
+
+// ---------- Relatório para a recepção ----------
+function textoRelatorio(itens, snap) {
+  const [, m, d] = snap.date.split('-');
+  const linhas = ['*Clientes aguardando resposta*', `Verificação de ${d}/${m} às ${snap.time} · ${itens.length} cliente${itens.length > 1 ? 's' : ''}`, ''];
+  itens.forEach((i, n) => {
+    const f = i.flags.find((x) => x.type !== 'manual') || i.flags[0] || {};
+    const motivo = { pergunta: 'pergunta', pedido: 'pedido', midia: 'áudio/foto' }[i.motivo || i.flags.find((x) => x.motivo)?.motivo] || '';
+    const sit = i.flags.map((x) => TIPO[x.type].label.toLowerCase()).join(' e ');
+    const digitos = String(i.contactPhone || '').replace(/\D/g, '');
+    linhas.push(`${n + 1}. *${i.contactName}*${i.contactPhone ? ` — ${fone(i.contactPhone)}` : ''}`);
+    linhas.push(`   ${i.inbox ? `Número: ${i.inbox.name} · ` : ''}${sit}${motivo ? ` (${motivo})` : ''} há ${tempo(i.waitingMinutes)}`);
+    if (i.resumo) linhas.push(`   O que espera: ${i.resumo}`);
+    if (i.proximoPasso) linhas.push(`   Próximo passo: ${i.proximoPasso}`);
+    const txt = String(f.text || '').replace(/\s+/g, ' ').trim();
+    if (txt && !i.resumo) linhas.push(`   Última mensagem: "${txt.length > 140 ? `${txt.slice(0, 140)}…` : txt}"`);
+    if (i.assigneeName || i.lastHumanName) linhas.push(`   Atendente: ${i.assigneeName || i.lastHumanName}`);
+    if (digitos) linhas.push(`   Chamar: https://wa.me/${digitos}`);
+    linhas.push('');
+  });
+  linhas.push('_Gerado pelo painel de pendências_');
+  return linhas.join('\n');
+}
+$('#btn-relatorio').addEventListener('click', () => {
+  const snap = state.verif;
+  if (!snap) return;
+  const itens = snap.items.filter((i) => state.sel.has(i.id));
+  if (!itens.length) return;
+  $('#rel-texto').value = textoRelatorio(itens, snap);
+  $('#rel-compartilhar').hidden = !navigator.share;
+  $('#rel-dialog').showModal();
+});
+$('#rel-copiar').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('#rel-texto').value);
+  } catch {
+    $('#rel-texto').select();
+    document.execCommand('copy');
+  }
+  toast('Relatório copiado');
+});
+$('#rel-whats').addEventListener('click', () => {
+  window.open(`https://wa.me/?text=${encodeURIComponent($('#rel-texto').value)}`, '_blank', 'noopener');
+});
+$('#rel-compartilhar').addEventListener('click', () => {
+  navigator.share({ title: 'Clientes aguardando resposta', text: $('#rel-texto').value }).catch(() => {});
+});
 
 // ---------- Indicadores ----------
 function barras(titulo, linhas, total) {
@@ -929,7 +1003,7 @@ async function carregarIgnorados() {
 // Aparência
 const midiaEscura = window.matchMedia('(prefers-color-scheme: dark)');
 function lerTema() {
-  try { return localStorage.getItem('tema') || 'auto'; } catch { return 'auto'; }
+  try { return localStorage.getItem('tema') || 'claro'; } catch { return 'claro'; }
 }
 function aplicarTema() {
   const t = lerTema();

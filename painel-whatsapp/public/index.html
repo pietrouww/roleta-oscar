@@ -9,7 +9,7 @@
   // Aplica o tema antes de desenhar a tela (sem piscar)
   (function () {
     var t = 'auto';
-    try { t = localStorage.getItem('tema') || 'auto'; } catch (e) {}
+    try { t = localStorage.getItem('tema') || 'claro'; } catch (e) {}
     var escuro = t === 'escuro' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (escuro) document.documentElement.classList.add('escuro');
     document.getElementById('cor-tema').setAttribute('content', escuro ? '#0B141A' : '#FFFFFF');
@@ -22,7 +22,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
 <link rel="icon" href="/icons/icon-192.png">
-<link rel="stylesheet" href="/styles.css?v=20261118a">
+<link rel="stylesheet" href="/styles.css?v=20261118b">
 </head>
 <body>
 
@@ -111,6 +111,10 @@
       </div>
       <div id="horarios" class="pilulas horarios" role="tablist" aria-label="Horário da verificação"></div>
       <p id="verif-resumo" class="faixa" hidden></p>
+      <div id="verif-barra" class="verif-barra" hidden>
+        <label class="sel-todos"><input type="checkbox" id="sel-todos"> Selecionar todos</label>
+        <button id="btn-relatorio" class="btn-verde btn-p" disabled>Gerar relatório</button>
+      </div>
       <div id="lista-verif" class="cartoes"></div>
     </div>
 
@@ -210,6 +214,19 @@
   <div id="acoes-lista" class="folha-corpo acoes"></div>
 </dialog>
 
+<!-- Relatório para a recepção -->
+<dialog id="rel-dialog" class="folha" aria-labelledby="rel-titulo">
+  <div class="folha-topo"><button class="link-btn" data-fechar>Fechar</button><h2 id="rel-titulo">Relatório para a recepção</h2><span></span></div>
+  <div class="folha-corpo">
+    <p class="sec pequeno">Clientes selecionados que estavam sem resposta. Envie para a recepção entrar em contato.</p>
+    <label class="sr" for="rel-texto">Texto do relatório</label>
+    <textarea id="rel-texto" class="rel-texto" rows="14"></textarea>
+    <button id="rel-whats" class="btn-verde">Enviar pelo WhatsApp</button>
+    <button id="rel-copiar" class="btn-contorno">Copiar texto</button>
+    <button id="rel-compartilhar" class="btn-contorno" hidden>Compartilhar…</button>
+  </div>
+</dialog>
+
 <!-- Foto ampliada -->
 <dialog id="foto" class="foto"><button class="foto-fechar" data-fechar aria-label="Fechar foto">✕</button><img id="foto-img" alt="Foto da conversa"></dialog>
 
@@ -247,6 +264,6 @@
   </div>
 </dialog>
 
-<script src="/app.js?v=20261118a" type="module"></script>
+<script src="/app.js?v=20261118b" type="module"></script>
 </body>
 </html>

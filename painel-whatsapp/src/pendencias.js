@@ -19,6 +19,11 @@ export function ehGrupo(c) {
   return /@g\.us$/i.test(c.contactIdentifier || '') || /@g\.us$/i.test(c.contactPhone || '');
 }
 
+/** Conversa interna da Evolution (status da conexão), não é cliente. */
+export function ehSistema(c) {
+  return c.contactName === 'EvolutionAPI' || /^\+?123456$/.test(c.contactPhone || '');
+}
+
 const SEM_MARCAS = { getMarks: () => ({}), setMark() {} };
 
 export class PendenciasEngine {
@@ -86,7 +91,7 @@ export class PendenciasEngine {
     let ignoradas = 0;
     const queue = [];
     for (const c of convs) {
-      const ignorar = ehGrupo(c)
+      const ignorar = ehGrupo(c) || ehSistema(c)
         || (c.contactId != null && ignoradosSet.has(String(c.contactId)))
         || (etiquetaIgnorar && c.labels.includes(etiquetaIgnorar));
       if (ignorar) {
@@ -160,7 +165,7 @@ export class PendenciasEngine {
       let analise = this.ia.emCache(c.id, messages);
       if (!analise && orcamento.restante > 0) {
         orcamento.restante--;
-        analise = await this.ia.analisar(c.id, messages, now);
+        analise = await this.ia.analisar(c.id, this.paraIa(messages), now);
       }
       if (analise) r = this.daAnalise(analise, messages, now);
     }
@@ -195,6 +200,13 @@ export class PendenciasEngine {
       lastHumanName: regras.lastHumanName,
       ultimaMsg: ultimaId,
     };
+  }
+
+  /** Respostas automáticas (ausência/saudação) vão para a IA marcadas como automáticas, não como atendente. */
+  paraIa(messages) {
+    const auto = this.matchers.isAutoReply;
+    if (!auto) return messages;
+    return messages.map((m) => (m.dir === 'out' && m.author !== 'humano' && auto(m.text) ? { ...m, author: 'ia' } : m));
   }
 
   daAnalise(a, messages, now) {
@@ -241,6 +253,7 @@ export class PendenciasEngine {
       inbox: inbox ? { id: inbox.id, name: inbox.name, color: inbox.color } : null,
       primary: flags[0].type,
       flags,
+      motivo: flags.find((f) => f.motivo)?.motivo || '',
       since: r.since,
       waitingMinutes: r.waitingMinutes,
       urgencia: r.urgencia || 'media',

@@ -7,7 +7,7 @@ import { Analisador } from './ia.js';
 import { Midia } from './midia.js';
 import { DemoChatwootClient, DemoEvolutionClient, DemoAnalisador, prepararMidiaDemo } from './demo.js';
 import { EvolutionClient, slug } from './evolution.js';
-import { PendenciasEngine } from './pendencias.js';
+import { PendenciasEngine, ehSistema } from './pendencias.js';
 import { Store } from './store.js';
 import { PushService } from './push.js';
 import { Scheduler } from './scheduler.js';
@@ -77,6 +77,12 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
     }
     attempts.delete(ip);
+    // Guarda também no servidor o token do atendente, para responder pelo painel com o nome dele
+    if (user.token) {
+      const tokens = store.read('tokens.json', {});
+      tokens[user.id] = user.token;
+      store.write('tokens.json', tokens, 0o600);
+    }
     auth.issue(res, user);
     res.json({ usuario: { name: user.name, email: user.email } });
   } catch (err) {
@@ -92,7 +98,7 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/me', auth.require, (req, res) => {
   res.json({
-    usuario: { id: req.user.id, name: req.user.name, email: req.user.email, admin: req.user.role === 'administrator', podeResponder: !!req.user.token },
+    usuario: { id: req.user.id, name: req.user.name, email: req.user.email, admin: req.user.role === 'administrator', podeResponder: !!tokenDe(req) },
     ia: ia.status(),
     demo: config.demo,
     horarios: config.checks.times,
@@ -122,6 +128,11 @@ app.post('/api/conversas/:id/resolver', auth.require, async (req, res) => {
   }
 });
 
+// Token do atendente no Chatwoot: do login atual (cookie cifrado) ou guardado no servidor em logins anteriores
+function tokenDe(req) {
+  return req.user.token || store.read('tokens.json', {})[req.user.id] || '';
+}
+
 // ---- Módulo Conversas: acompanhar tudo, ver mídias e responder ----
 const listaCache = new Map(); // status -> { at, dados }
 async function listarConversas(status) {
@@ -133,7 +144,7 @@ async function listarConversas(status) {
   let convs = await client.listConversations(status, paginas);
   if (status === 'open') convs = [...convs, ...(await client.listConversations('pending', 4))];
   const dados = convs
-    .filter((x) => porId.has(x.inboxId))
+    .filter((x) => porId.has(x.inboxId) && !ehSistema(x))
     .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
     .map((x) => {
       const i = porId.get(x.inboxId);
@@ -197,9 +208,9 @@ app.get('/api/conversas/:id', auth.require, async (req, res) => {
   try {
     const raw = await mensagensBrutas(id, max, true);
     await engine.get(60000).catch(() => null); // reanalisa se houve ação ou resposta recente
-    if (req.user.token) client.markRead(id, req.user.token).catch(() => {});
+    if (tokenDe(req)) client.markRead(id, tokenDe(req)).catch(() => {});
     res.json({
-      mensagens: toDisplayMessages(raw, config.rules, id),
+      mensagens: toDisplayMessages(raw, config.rules, id, engine.matchers.isAutoReply),
       temMais: raw.length >= max,
       pendencia: pendenciaDe(id),
       marca: store.getMarks()[id] || {},
@@ -216,9 +227,10 @@ app.post('/api/conversas/:id/mensagens', auth.require, async (req, res) => {
   const texto = String(req.body?.texto || '').trim();
   if (!texto) return res.status(400).json({ erro: 'Escreva a mensagem' });
   if (texto.length > 4000) return res.status(400).json({ erro: 'Mensagem longa demais' });
-  if (!req.user.token) return res.status(409).json({ erro: 'Saia e entre de novo no painel para poder responder por aqui.' });
+  const token = tokenDe(req);
+  if (!token) return res.status(409).json({ erro: 'Para responder por aqui, saia do painel (Ajustes → Sair) e entre de novo uma vez.' });
   try {
-    await client.sendMessage(id, texto, req.user.token);
+    await client.sendMessage(id, texto, token);
     brutoCache.delete(id);
     listaCache.clear();
     engine.cache.delete(id);

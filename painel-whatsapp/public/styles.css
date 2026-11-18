@@ -322,3 +322,12 @@ html.escuro .toast { background: #E9EDEF; color: #111B21; }
   .folha { margin: auto; border-radius: 14px; }
   .toast { bottom: 24px; }
 }
+
+/* Resposta automática e relatório para a recepção */
+.balao.auto { opacity: 0.75; font-style: italic; }
+.balao .autor-auto { color: var(--sec); }
+.verif-barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; }
+.sel-todos { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; min-height: 44px; cursor: pointer; }
+.sel-todos input, .cartao-sel input { width: 22px; height: 22px; accent-color: var(--verde-texto); }
+.cartao-sel { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin: -6px -6px -6px -10px; cursor: pointer; }
+.rel-texto { width: 100%; border: 1px solid var(--linha); border-radius: 12px; padding: 12px; font-size: 15px; line-height: 1.4; background: var(--cartao); resize: vertical; }

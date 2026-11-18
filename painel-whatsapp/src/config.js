@@ -90,6 +90,12 @@ export const config = {
     // "assinatura": só recebe o selo IA quem bater com AI_SIGNATURE_REGEX; o resto vira "Celular".
     aiDetection: env('AI_DETECTION', 'sem_usuario'),
     aiSignatureRegex: env('AI_SIGNATURE_REGEX', ''),
+    // Início do código da mensagem (WhatsApp) que indica resposta da IA da Meta
+    aiIdPrefixes: list('AI_ID_PREFIXES', 'CE'),
+    // Frases de mensagens automáticas (ausência/saudação) que não contam como resposta
+    autoReplyTerms: list('AUTO_REPLY_TERMS'),
+    // Nome do usuário do Chatwoot usado pela Evolution para o que sai do celular
+    celularSenderName: env('CELULAR_SENDER_NAME', 'Celular'),
   },
 
   live: {
