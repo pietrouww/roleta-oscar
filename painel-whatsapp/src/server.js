@@ -26,7 +26,9 @@ if (problems.length) {
 
 const store = new Store(config.dataDir);
 const demoMidiaUrl = `http://127.0.0.1:${config.port}/demo-midia`;
-const client = config.demo ? new DemoChatwootClient({ midiaUrl: demoMidiaUrl }) : new ChatwootClient(config.chatwoot);
+const client = config.demo
+  ? new DemoChatwootClient({ midiaUrl: demoMidiaUrl, midiaDir: path.join(config.dataDir, 'demo-midia') })
+  : new ChatwootClient(config.chatwoot);
 const ia = config.demo
   ? new DemoAnalisador()
   : new Analisador({ apiKey: config.ia.apiKey, model: config.ia.model, effort: config.ia.effort, timeZone: config.timezone, store });
@@ -266,6 +268,71 @@ app.post('/api/conversas/:id/mensagens', auth.require, async (req, res) => {
   if (!token) return res.status(409).json({ erro: 'Para responder por aqui, saia do painel (Ajustes → Sair) e entre de novo uma vez.' });
   try {
     await client.sendMessage(id, texto, token);
+    listaCache.clear();
+    engine.cache.delete(id);
+    engine.invalidate();
+    res.json({ ok: true });
+  } catch (err) {
+    falhaChatwoot(res, err, 'Não foi possível enviar. Confira se você é colaborador desta caixa de entrada no Chatwoot.');
+  }
+});
+
+// ---- Enviar foto, vídeo, arquivo ou áudio gravado ----
+// O arquivo sobe em partes pequenas (passa por qualquer limite de tamanho do proxy) e, na última
+// chamada, é montado, preparado (áudio gravado vira mp3) e entregue ao Chatwoot em nome do atendente.
+const MAX_ENVIO = 40 * 1024 * 1024; // limite de anexo do Chatwoot
+const MAX_PARTE = 800 * 1024;
+const envios = new Map(); // "usuario:conversa:envio" -> { partes, bytes, at }
+setInterval(() => {
+  for (const [k, e] of envios) if (Date.now() - e.at > 15 * 60000) envios.delete(k);
+}, 5 * 60000).unref();
+const chaveEnvio = (req, id, envio) => `${req.user.id}:${id}:${String(envio || '').replace(/[^\w-]/g, '').slice(0, 48)}`;
+
+app.post('/api/conversas/:id/anexo/parte', auth.require, express.raw({ type: () => true, limit: MAX_PARTE + 1024 }), (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  const n = Number(req.query.n);
+  const parte = req.body;
+  if (!req.query.envio || !Number.isInteger(n) || n < 0 || !Buffer.isBuffer(parte) || !parte.length) return res.status(400).json({ erro: 'Envio inválido' });
+  if (!tokenDe(req)) return res.status(409).json({ erro: 'Para enviar por aqui, saia do painel (Ajustes → Sair) e entre de novo uma vez.' });
+  const chave = chaveEnvio(req, id, req.query.envio);
+  let e = envios.get(chave);
+  if (n === 0) {
+    if (envios.size >= 60) envios.delete(envios.keys().next().value);
+    e = { partes: [], bytes: 0, at: Date.now() };
+    envios.set(chave, e);
+  }
+  if (!e || e.partes.length !== n) return res.status(409).json({ erro: 'O envio se perdeu no caminho. Tente de novo.' });
+  e.partes.push(parte);
+  e.bytes += parte.length;
+  e.at = Date.now();
+  if (e.bytes > MAX_ENVIO) {
+    envios.delete(chave);
+    return res.status(413).json({ erro: 'Arquivo grande demais (máximo 40 MB).' });
+  }
+  res.json({ ok: true, recebido: e.partes.length });
+});
+
+app.post('/api/conversas/:id/anexo/enviar', auth.require, async (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  const token = tokenDe(req);
+  if (!token) return res.status(409).json({ erro: 'Para enviar por aqui, saia do painel (Ajustes → Sair) e entre de novo uma vez.' });
+  const chave = chaveEnvio(req, id, req.body?.envio);
+  const e = envios.get(chave);
+  if (!e || !e.partes.length) return res.status(409).json({ erro: 'O envio se perdeu no caminho. Tente de novo.' });
+  envios.delete(chave);
+  const legenda = String(req.body?.legenda || '').trim().slice(0, 4000);
+  const voz = req.body?.voz === true;
+  try {
+    let arquivo;
+    try {
+      arquivo = await midia.prepararEnvio({ dados: Buffer.concat(e.partes), nome: req.body?.nome, tipo: req.body?.tipo }, { voz });
+    } catch (err) {
+      console.error('[anexo] preparo falhou:', err.message);
+      return res.status(422).json({ erro: voz ? 'Não foi possível preparar o áudio. Grave de novo.' : 'Não foi possível preparar o arquivo.' });
+    }
+    await client.sendAttachment(id, { texto: voz ? '' : legenda, arquivo }, token);
     listaCache.clear();
     engine.cache.delete(id);
     engine.invalidate();

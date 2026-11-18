@@ -194,9 +194,20 @@
     <div id="chat-mensagens" class="chat-mensagens" tabindex="0"></div>
     <form id="chat-form" class="chat-form">
       <p id="chat-como" class="sec pequeno"></p>
-      <div class="chat-compor">
+      <div id="chat-anexos" class="chat-anexos" hidden></div>
+      <div id="chat-gravando" class="chat-gravando" hidden>
+        <button type="button" id="grav-cancelar" class="icone-btn grav-lixo" aria-label="Cancelar gravação"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M6 7l1 13h10l1-13"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>
+        <span class="grav-ponto" aria-hidden="true"></span>
+        <span id="grav-tempo" class="grav-tempo" role="timer" aria-label="Tempo de gravação">0:00</span>
+        <span class="sec pequeno grav-dica">Gravando áudio…</span>
+        <button type="button" id="grav-enviar" class="enviar" aria-label="Enviar áudio"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.5-7.5a1 1 0 0 0 0-1.8L3.4 3.6a1 1 0 0 0-1.4 1.1L4 11l9 1-9 1-2 6.3a1 1 0 0 0 1.4 1.1z"></path></svg></button>
+      </div>
+      <div class="chat-compor" id="chat-compor">
+        <input type="file" id="chat-arquivo" hidden multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip">
+        <button type="button" id="chat-anexar" class="icone-btn anexar" aria-label="Anexar foto, vídeo ou arquivo"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"></path></svg></button>
         <label class="sr" for="chat-texto">Mensagem</label>
         <textarea id="chat-texto" rows="1" placeholder="Mensagem" maxlength="4000"></textarea>
+        <button type="button" id="chat-mic" class="enviar" aria-label="Gravar áudio" hidden><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg></button>
         <button type="submit" id="chat-enviar" class="enviar" aria-label="Enviar"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.5-7.5a1 1 0 0 0 0-1.8L3.4 3.6a1 1 0 0 0-1.4 1.1L4 11l9 1-9 1-2 6.3a1 1 0 0 0 1.4 1.1z"></path></svg></button>
       </div>
     </form>

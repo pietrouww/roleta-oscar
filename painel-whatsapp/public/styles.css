@@ -432,3 +432,23 @@ html.escuro .balao.out .autor:not(.autor-ia) { color: rgba(255,255,255,0.75); }
 .chat-mensagens { overscroll-behavior: contain; }
 .balao.enviando { opacity: 0.6; }
 .chat-pendencia .link-btn { min-height: 32px; font-size: 14px; padding: 0; text-align: left; }
+
+/* Enviar anexos e áudio gravado */
+.chat-compor[hidden], .chat-gravando[hidden], .chat-anexos[hidden], .enviar[hidden] { display: none; }
+.anexar { flex-shrink: 0; color: var(--sec); }
+.chat-anexos { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 4px; }
+.anexo-item { position: relative; display: flex; align-items: center; gap: 8px; flex-shrink: 0; max-width: 220px; background: var(--cartao); border: 1px solid var(--linha); border-radius: 12px; padding: 6px 30px 6px 6px; }
+.anexo-item img { width: 48px; height: 48px; object-fit: cover; border-radius: 8px; }
+.anexo-ic { width: 48px; height: 48px; border-radius: 8px; background: var(--pilula); display: flex; align-items: center; justify-content: center; color: var(--sec); }
+.anexo-ic svg { width: 20px; height: 20px; }
+.anexo-nome { display: flex; flex-direction: column; min-width: 0; max-width: 130px; font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.anexo-tirar { position: absolute; top: -2px; right: -2px; width: 32px; height: 32px; border: none; background: transparent; color: var(--sec); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.anexo-tirar svg { background: var(--pilula); border-radius: 50%; padding: 4px; width: 22px; height: 22px; }
+.chat-gravando { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.grav-lixo { color: var(--vermelho); flex-shrink: 0; }
+.grav-ponto { width: 10px; height: 10px; border-radius: 50%; background: var(--vermelho); flex-shrink: 0; animation: pisca 1.1s ease-in-out infinite; }
+@keyframes pisca { 50% { opacity: 0.25; } }
+.grav-tempo { font-variant-numeric: tabular-nums; font-size: 17px; font-weight: 600; min-width: 44px; }
+.grav-dica { flex: 1; }
+.m-previa { max-width: 200px; max-height: 200px; border-radius: 12px; display: block; margin-bottom: 4px; }
+@media (prefers-reduced-motion: reduce) { .grav-ponto { animation: none; } }

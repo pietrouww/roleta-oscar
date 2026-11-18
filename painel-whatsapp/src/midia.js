@@ -82,6 +82,51 @@ export class Midia {
     return { arquivo: final, tipo: TIPOS[ext] || tipoOrigem || 'application/octet-stream' };
   }
 
+  /**
+   * Prepara um arquivo para envio pelo WhatsApp: nome seguro com a extensão certa e, para áudio gravado
+   * no app (webm no Android/computador, mp4 no iPhone), conversão para mp3. A Evolution decide o tipo da
+   * mensagem pela extensão: áudio com extensão de áudio chega ao cliente como mensagem de voz.
+   * @param {{dados: Buffer, nome: string, tipo: string}} arquivo
+   * @param {{voz?: boolean}} opcoes `voz`: áudio gravado na hora
+   */
+  async prepararEnvio(arquivo, { voz = false } = {}) {
+    let { dados } = arquivo;
+    let tipo = String(arquivo.tipo || '').split(';')[0].trim().toLowerCase();
+    if (!/^[\w.+-]+\/[\w.+-]+$/.test(tipo)) tipo = 'application/octet-stream';
+    let nome = nomeSeguro(arquivo.nome);
+    let ext = path.extname(nome).toLowerCase();
+    const ehAudio = voz || tipo.startsWith('audio/');
+    if (ehAudio && (voz || !AUDIO_PRONTO.includes(ext))) {
+      const base = voz ? `audio-${carimbo()}` : path.basename(nome, ext) || 'audio';
+      if (await this.ffmpegDisponivel()) {
+        dados = await this.converterBuffer(dados, ['-vn', '-ac', '1', '-ar', '44100', '-c:a', 'libmp3lame', '-b:a', '64k', '-f', 'mp3']);
+        nome = `${base}.mp3`;
+        tipo = 'audio/mpeg';
+      } else {
+        // Sem conversor: manda como está, com extensão de áudio para não virar "vídeo" no WhatsApp
+        nome = `${base}${tipo.includes('mp4') ? '.m4a' : '.ogg'}`;
+      }
+      ext = path.extname(nome);
+    }
+    if (!ext) nome += EXT_POR_TIPO[tipo] || '';
+    return { dados, nome, tipo };
+  }
+
+  /** Passa um arquivo em memória pelo ffmpeg e devolve o resultado. */
+  async converterBuffer(dados, args) {
+    const base = path.join(this.dir, `envio-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    const entrada = `${base}.in.tmp`;
+    const saida = `${base}.out.tmp`;
+    fs.writeFileSync(entrada, dados);
+    try {
+      await ffmpeg(['-y', '-loglevel', 'error', '-i', entrada, ...args, saida]);
+      return fs.readFileSync(saida);
+    } finally {
+      fs.rmSync(entrada, { force: true });
+      fs.rmSync(saida, { force: true });
+    }
+  }
+
   async ffmpegDisponivel() {
     if (this.temFfmpeg === null) {
       this.temFfmpeg = await new Promise((ok) => {
@@ -107,11 +152,32 @@ export class Midia {
 }
 
 function converter(origem, destino) {
+  return ffmpeg(['-y', '-loglevel', 'error', '-i', origem, '-vn', '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart', '-f', 'mp4', destino]);
+}
+
+function ffmpeg(args) {
   return new Promise((ok, falha) => {
-    const p = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-i', origem, '-vn', '-c:a', 'aac', '-b:a', '64k', '-movflags', '+faststart', '-f', 'mp4', destino]);
+    const p = spawn('ffmpeg', args);
     let erro = '';
     p.stderr.on('data', (d) => { erro += d; });
     p.on('error', falha);
     p.on('close', (c) => (c === 0 ? ok() : falha(new Error(erro.slice(0, 200) || `ffmpeg saiu com ${c}`))));
   });
+}
+
+// Áudios que o WhatsApp (via Evolution) já reconhece como áudio pela extensão
+const AUDIO_PRONTO = ['.mp3', '.m4a', '.ogg', '.oga', '.opus', '.wav', '.aac'];
+
+const carimbo = () => new Date().toISOString().replace(/[-:T]/g, '').slice(0, 14);
+
+/** Nome de arquivo sem acentos, barras ou caracteres estranhos (vai parar no endereço do arquivo no Chatwoot). */
+export function nomeSeguro(nome) {
+  const limpo = String(nome || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\\/]/g, '-')
+    .replace(/[^\w.\- ]+/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/^[.-]+/, '')
+    .slice(-80);
+  return limpo || 'arquivo';
 }

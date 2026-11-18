@@ -19,7 +19,9 @@ export function prepararMidiaDemo(dir) {
 }
 
 export class DemoChatwootClient {
-  constructor({ midiaUrl = '' } = {}) {
+  constructor({ midiaUrl = '', midiaDir = '' } = {}) {
+    this.midiaUrl = midiaUrl;
+    this.midiaDir = midiaDir;
     this.base = Date.now();
     let aid = 1;
     const anexo = (file_type, arquivo) => ({ id: aid++, file_type, data_url: `${midiaUrl}/${arquivo}`, file_size: 48000 });
@@ -160,6 +162,20 @@ export class DemoChatwootClient {
     c.messages.push({
       id: this.nextId(), message_type: 1, created_at: Math.round(Date.now() / 1000), content, private: false,
       sender_type: 'User', sender: { name: this.usuario || 'Atendente', type: 'user' }, attachments: [], status: 'sent',
+    });
+  }
+
+  async sendAttachment(id, { texto = '', arquivo }) {
+    const c = this.conversations.find((x) => x.id === Number(id));
+    if (!c) throw new Error('Conversa não encontrada');
+    const mid = this.nextId();
+    const nome = `envio-${mid}-${arquivo.nome}`;
+    if (this.midiaDir) fs.writeFileSync(path.join(this.midiaDir, nome), arquivo.dados);
+    const grupo = arquivo.tipo.split('/')[0];
+    c.messages.push({
+      id: mid, message_type: 1, created_at: Math.round(Date.now() / 1000), content: texto, private: false,
+      sender_type: 'User', sender: { name: this.usuario || 'Atendente', type: 'user' }, status: 'sent',
+      attachments: [{ id: 900000 + mid, file_type: ['image', 'audio', 'video'].includes(grupo) ? grupo : 'file', data_url: `${this.midiaUrl}/${encodeURIComponent(nome)}`, file_size: arquivo.dados.length }],
     });
   }
 

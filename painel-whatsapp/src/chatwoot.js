@@ -72,6 +72,30 @@ export class ChatwootClient {
     return this.request('POST', this.acc(`/conversations/${conversationId}/messages`), { content, message_type: 'outgoing', private: false }, token);
   }
 
+  /**
+   * Envia um arquivo (foto, vídeo, áudio, documento) com legenda opcional, em nome do atendente dono do token.
+   * @param {{dados: Buffer, nome: string, tipo: string}} arquivo
+   */
+  async sendAttachment(conversationId, { texto = '', arquivo }, token) {
+    const form = new FormData();
+    if (texto) form.append('content', texto);
+    form.append('message_type', 'outgoing');
+    form.append('private', 'false');
+    form.append('attachments[]', new Blob([arquivo.dados], { type: arquivo.tipo }), arquivo.nome);
+    const path = this.acc(`/conversations/${conversationId}/messages`);
+    const res = await fetch(`${this.url}${path}`, {
+      method: 'POST',
+      headers: { api_access_token: token || this.token, Accept: 'application/json' },
+      body: form,
+      signal: AbortSignal.timeout(120000),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      throw new Error(`Chatwoot POST ${path} (anexo) -> ${res.status} ${text.slice(0, 200)}`);
+    }
+    return res.json().catch(() => null);
+  }
+
   async assign(conversationId, assigneeId) {
     return this.request('POST', this.acc(`/conversations/${conversationId}/assignments`), { assignee_id: assigneeId });
   }
