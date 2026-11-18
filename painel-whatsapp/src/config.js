@@ -66,6 +66,15 @@ export const config = {
   chatwootSetup: bool('CHATWOOT_SETUP', true),
   dashboardAppTitle: env('DASHBOARD_APP_TITLE', 'Pendências'),
 
+  // Análise inteligente das conversas (Claude). Sem chave, o painel usa as regras por palavra-chave.
+  ia: {
+    apiKey: env('ANTHROPIC_API_KEY', ''),
+    model: env('AI_MODEL', 'claude-opus-5-5'),
+    effort: env('AI_EFFORT', 'low'),
+    maxDias: int('AI_MAX_DIAS', 14),
+    maxPorVarredura: int('AI_MAX_POR_VARREDURA', 40),
+  },
+
   checks: {
     times: list('CHECK_TIMES', '08:30,12:00,17:00'),
     days: env('CHECK_DAYS', '1-6'), // 1=segunda ... 6=sábado (formato cron)

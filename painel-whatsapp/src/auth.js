@@ -10,9 +10,30 @@ export function createAuth({ secret, secure }) {
 
   const sign = (data) => crypto.createHmac('sha256', key).update(data).digest('base64url');
 
+  // O token do atendente no Chatwoot (para responder em nome dele) vai cifrado no cookie
+  const chaveCifra = crypto.createHash('sha256').update(`cifra:${key}`).digest();
+  const cifrar = (texto) => {
+    if (!texto) return '';
+    const iv = crypto.randomBytes(12);
+    const c = crypto.createCipheriv('aes-256-gcm', chaveCifra, iv);
+    const corpo = Buffer.concat([c.update(texto, 'utf8'), c.final()]);
+    return Buffer.concat([iv, c.getAuthTag(), corpo]).toString('base64url');
+  };
+  const decifrar = (dado) => {
+    if (!dado) return '';
+    try {
+      const b = Buffer.from(dado, 'base64url');
+      const d = crypto.createDecipheriv('aes-256-gcm', chaveCifra, b.subarray(0, 12));
+      d.setAuthTag(b.subarray(12, 28));
+      return Buffer.concat([d.update(b.subarray(28)), d.final()]).toString('utf8');
+    } catch {
+      return '';
+    }
+  };
+
   function issue(res, user) {
     const payload = Buffer.from(
-      JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role || '', exp: Date.now() + MAX_AGE_DAYS * 864e5 }),
+      JSON.stringify({ id: user.id, name: user.name, email: user.email, role: user.role || '', tk: cifrar(user.token), exp: Date.now() + MAX_AGE_DAYS * 864e5 }),
     ).toString('base64url');
     const value = `${payload}.${sign(payload)}`;
     res.setHeader('Set-Cookie', [
@@ -36,7 +57,9 @@ export function createAuth({ secret, secure }) {
     if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
     try {
       const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-      return data.exp > Date.now() ? data : null;
+      if (data.exp <= Date.now()) return null;
+      const { tk, ...resto } = data;
+      return { ...resto, token: decifrar(tk) };
     } catch {
       return null;
     }

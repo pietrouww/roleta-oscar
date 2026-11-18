@@ -2,8 +2,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import express from 'express';
 import { config, validateConfig } from './config.js';
-import { ChatwootClient } from './chatwoot.js';
-import { DemoChatwootClient, DemoEvolutionClient } from './demo.js';
+import { ChatwootClient, toDisplayMessages, acharAnexo, tipoMidia } from './chatwoot.js';
+import { Analisador } from './ia.js';
+import { Midia } from './midia.js';
+import { DemoChatwootClient, DemoEvolutionClient, DemoAnalisador, prepararMidiaDemo } from './demo.js';
 import { EvolutionClient, slug } from './evolution.js';
 import { PendenciasEngine } from './pendencias.js';
 import { Store } from './store.js';
@@ -21,8 +23,17 @@ if (problems.length) {
 }
 
 const store = new Store(config.dataDir);
-const client = config.demo ? new DemoChatwootClient() : new ChatwootClient(config.chatwoot);
-const engine = new PendenciasEngine({ client, config, ignorados: () => store.ignoredIds() });
+const demoMidiaUrl = `http://127.0.0.1:${config.port}/demo-midia`;
+const client = config.demo ? new DemoChatwootClient({ midiaUrl: demoMidiaUrl }) : new ChatwootClient(config.chatwoot);
+const ia = config.demo
+  ? new DemoAnalisador()
+  : new Analisador({ apiKey: config.ia.apiKey, model: config.ia.model, effort: config.ia.effort, timeZone: config.timezone, store });
+const engine = new PendenciasEngine({ client, config, ia, marcas: store, ignorados: () => store.ignoredIds() });
+const hostDe = (u) => { try { return new URL(u).host; } catch { return ''; } };
+const midia = new Midia({
+  dir: config.dataDir,
+  hostsPermitidos: config.demo ? [hostDe(demoMidiaUrl)] : [hostDe(config.chatwoot.url), hostDe(config.chatwoot.publicUrl)],
+});
 const evolution = config.demo
   ? new DemoEvolutionClient()
   : new EvolutionClient({
@@ -44,6 +55,8 @@ app.use(express.static(publicDir, { index: 'index.html', maxAge: '1h', setHeader
   // Telas e scripts sempre conferem se há versão nova (atualizações aparecem na hora no iPhone)
   if (/\.(html|js|css|webmanifest)$/.test(p)) res.setHeader('Cache-Control', 'no-cache');
 } }));
+
+if (config.demo) app.use('/demo-midia', express.static(prepararMidiaDemo(config.dataDir)));
 
 app.get('/health', (req, res) => res.json({ ok: true, demo: config.demo }));
 
@@ -79,7 +92,8 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/me', auth.require, (req, res) => {
   res.json({
-    usuario: { name: req.user.name, email: req.user.email, admin: req.user.role === 'administrator' },
+    usuario: { id: req.user.id, name: req.user.name, email: req.user.email, admin: req.user.role === 'administrator', podeResponder: !!req.user.token },
+    ia: ia.status(),
     demo: config.demo,
     horarios: config.checks.times,
     qrcode: evolution.configured,
@@ -100,10 +114,228 @@ app.get('/api/pendencias', auth.require, async (req, res) => {
 app.post('/api/conversas/:id/resolver', auth.require, async (req, res) => {
   try {
     await engine.resolve(Number(req.params.id));
+    listaCache.clear();
     res.json({ ok: true });
   } catch (err) {
     console.error('[resolver]', err.message);
     res.status(502).json({ erro: 'Não foi possível marcar como resolvida' });
+  }
+});
+
+// ---- Módulo Conversas: acompanhar tudo, ver mídias e responder ----
+const listaCache = new Map(); // status -> { at, dados }
+async function listarConversas(status) {
+  const c = listaCache.get(status);
+  if (c && Date.now() - c.at < 8000) return c.dados;
+  const inboxes = await engine.loadInboxes();
+  const porId = new Map(inboxes.map((i) => [i.id, i]));
+  const paginas = status === 'resolved' ? 2 : 40;
+  let convs = await client.listConversations(status, paginas);
+  if (status === 'open') convs = [...convs, ...(await client.listConversations('pending', 4))];
+  const dados = convs
+    .filter((x) => porId.has(x.inboxId))
+    .sort((a, b) => b.lastActivityAt - a.lastActivityAt)
+    .map((x) => {
+      const i = porId.get(x.inboxId);
+      return {
+        id: x.id, status: x.status, contactId: x.contactId, contactName: x.contactName, contactPhone: x.contactPhone,
+        assigneeName: x.assigneeName, assigneeId: x.assigneeId, unread: x.unread, preview: x.preview, lastActivityAt: x.lastActivityAt,
+        inbox: { id: i.id, name: i.name, color: i.color },
+      };
+    });
+  listaCache.set(status, { at: Date.now(), dados });
+  return dados;
+}
+
+const falhaChatwoot = (res, err, msg = 'Falha ao consultar o Chatwoot') => {
+  console.error('[conversas]', err.message);
+  res.status(502).json({ erro: msg });
+};
+const idConv = (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) { res.status(400).json({ erro: 'Conversa inválida' }); return null; }
+  return id;
+};
+const pendenciaDe = (id) => {
+  const r = engine.last;
+  if (!r) return null;
+  return r.items.find((i) => i.id === id) || (r.adiadas || []).find((i) => i.id === id) || null;
+};
+
+app.get('/api/conversas', auth.require, async (req, res) => {
+  const status = req.query.status === 'resolved' ? 'resolved' : 'open';
+  try {
+    const [conversas, pend] = await Promise.all([listarConversas(status), engine.get(60000).catch(() => null)]);
+    const pendentes = new Map((pend?.items || []).map((i) => [i.id, i]));
+    const adiadas = new Set((pend?.adiadas || []).map((i) => i.id));
+    res.json({
+      conversas: conversas.map((c) => {
+        const p = pendentes.get(c.id);
+        return { ...c, pendente: p ? { tipo: p.primary, urgencia: p.urgencia, minutos: p.waitingMinutes } : null, adiada: adiadas.has(c.id) };
+      }),
+      inboxes: pend?.inboxes || [],
+    });
+  } catch (err) {
+    falhaChatwoot(res, err);
+  }
+});
+
+const brutoCache = new Map(); // conversaId -> { at, raw }
+async function mensagensBrutas(id, max = 80, frescas = false) {
+  const c = brutoCache.get(id);
+  if (!frescas && c && c.max >= max && Date.now() - c.at < 60000) return c.raw;
+  const raw = await client.listMessages(id, max);
+  brutoCache.set(id, { at: Date.now(), raw, max });
+  if (brutoCache.size > 200) brutoCache.delete(brutoCache.keys().next().value);
+  return raw;
+}
+
+app.get('/api/conversas/:id', auth.require, async (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  const max = Math.min(400, Math.max(40, Number(req.query.max) || 80));
+  try {
+    const raw = await mensagensBrutas(id, max, true);
+    await engine.get(60000).catch(() => null); // reanalisa se houve ação ou resposta recente
+    if (req.user.token) client.markRead(id, req.user.token).catch(() => {});
+    res.json({
+      mensagens: toDisplayMessages(raw, config.rules, id),
+      temMais: raw.length >= max,
+      pendencia: pendenciaDe(id),
+      marca: store.getMarks()[id] || {},
+      url: config.chatwoot.publicUrl ? `${config.chatwoot.publicUrl}/app/accounts/${config.chatwoot.accountId}/conversations/${id}` : '',
+    });
+  } catch (err) {
+    falhaChatwoot(res, err);
+  }
+});
+
+app.post('/api/conversas/:id/mensagens', auth.require, async (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  const texto = String(req.body?.texto || '').trim();
+  if (!texto) return res.status(400).json({ erro: 'Escreva a mensagem' });
+  if (texto.length > 4000) return res.status(400).json({ erro: 'Mensagem longa demais' });
+  if (!req.user.token) return res.status(409).json({ erro: 'Saia e entre de novo no painel para poder responder por aqui.' });
+  try {
+    await client.sendMessage(id, texto, req.user.token);
+    brutoCache.delete(id);
+    listaCache.clear();
+    engine.cache.delete(id);
+    engine.invalidate();
+    res.json({ ok: true });
+  } catch (err) {
+    falhaChatwoot(res, err, 'Não foi possível enviar. Confira se você é colaborador desta caixa de entrada no Chatwoot.');
+  }
+});
+
+app.post('/api/conversas/:id/assumir', auth.require, async (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  try {
+    await client.assign(id, req.user.id);
+    listaCache.clear();
+    engine.invalidate();
+    res.json({ ok: true });
+  } catch (err) {
+    falhaChatwoot(res, err, 'Não foi possível assumir a conversa');
+  }
+});
+
+app.post('/api/conversas/:id/reabrir', auth.require, async (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  try {
+    await client.reopen(id);
+    listaCache.clear();
+    engine.invalidate();
+    res.json({ ok: true });
+  } catch (err) {
+    falhaChatwoot(res, err, 'Não foi possível reabrir');
+  }
+});
+
+// Marcações da equipe: marcar pendência, concluir, adiar e "não é pendência"
+app.post('/api/conversas/:id/marcar', auth.require, (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  store.setMark(id, 'manual', { nota: String(req.body?.nota || '').trim().slice(0, 300), por: req.user.name, em: Date.now() });
+  store.setMark(id, 'dispensa', null);
+  engine.invalidate();
+  res.json({ ok: true });
+});
+
+app.post('/api/conversas/:id/concluir', auth.require, (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  store.setMark(id, 'manual', null);
+  store.setMark(id, 'adiar', null);
+  engine.invalidate();
+  res.json({ ok: true });
+});
+
+app.post('/api/conversas/:id/adiar', auth.require, (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  const minutos = Number(req.body?.minutos);
+  if (minutos === 0) {
+    store.setMark(id, 'adiar', null);
+  } else {
+    if (!Number.isFinite(minutos) || minutos < 5 || minutos > 7 * 1440) return res.status(400).json({ erro: 'Tempo inválido' });
+    store.setMark(id, 'adiar', { ate: Date.now() + minutos * 60000, por: req.user.name });
+  }
+  engine.invalidate();
+  res.json({ ok: true });
+});
+
+app.post('/api/conversas/:id/dispensar', auth.require, (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  const p = pendenciaDe(id);
+  if (!p) return res.status(404).json({ erro: 'Esta conversa não está pendente' });
+  store.setMark(id, 'dispensa', { ultimaMsg: p.ultimaMsg, por: req.user.name, em: Date.now() });
+  store.setMark(id, 'manual', null);
+  store.setMark(id, 'adiar', null);
+  engine.invalidate();
+  res.json({ ok: true });
+});
+
+// Áudios, fotos, vídeos e arquivos das conversas
+app.get('/api/midia/:id/:msg/:anexo', auth.require, async (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  try {
+    let anexo = acharAnexo(await mensagensBrutas(id, 80), req.params.msg, req.params.anexo);
+    if (!anexo) anexo = acharAnexo(await mensagensBrutas(id, 400, true), req.params.msg, req.params.anexo);
+    if (!anexo?.data_url) return res.status(404).json({ erro: 'Arquivo não encontrado' });
+    const { arquivo, tipo } = await midia.obter(anexo, tipoMidia(anexo));
+    res.setHeader('Cache-Control', 'private, max-age=86400');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    // Só mídia conhecida abre no navegador; o resto baixa (evita abrir HTML vindo de fora)
+    if (!/^(audio|video|image)\/|^application\/pdf$/.test(tipo) || tipo === 'image/svg+xml') res.setHeader('Content-Disposition', 'attachment');
+    res.type(tipo).sendFile(arquivo);
+  } catch (err) {
+    console.error('[midia]', err.message);
+    res.status(502).json({ erro: 'Não foi possível abrir o arquivo' });
+  }
+});
+
+// ---- Indicadores para o módulo de análise ----
+app.get('/api/indicadores', auth.require, async (req, res) => {
+  try {
+    const agora = await engine.get(60000);
+    const hoje = zonedParts(new Date(), config.timezone).date;
+    const dias = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(`${hoje}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - i);
+      const data = d.toISOString().slice(0, 10);
+      const verificacoes = store.listChecks(data).map((t) => ({ hora: t, total: store.getCheck(data, t)?.totals?.total ?? 0 }));
+      dias.push({ data, verificacoes });
+    }
+    res.json({ totals: agora.totals, adiadas: (agora.adiadas || []).length, ignoradas: agora.ignoredConversations, abertas: agora.openConversations, dias, ia: agora.ia });
+  } catch (err) {
+    falhaChatwoot(res, err);
   }
 });
 
@@ -120,13 +352,13 @@ app.post('/api/ignorados', auth.require, (req, res) => {
     por: req.user.name,
     em: new Date().toISOString(),
   });
-  engine.last = null; // próxima consulta já sai sem ele
+  engine.invalidate(); // próxima consulta já sai sem ele
   res.json({ ok: true });
 });
 
 app.delete('/api/ignorados/:contactId', auth.require, (req, res) => {
   store.removeIgnored(req.params.contactId);
-  engine.last = null;
+  engine.invalidate();
   res.json({ ok: true });
 });
 
@@ -254,6 +486,9 @@ app.get('*', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
 app.listen(config.port, () => {
   console.log(`Painel de pendências rodando na porta ${config.port}${config.demo ? ' (MODO DEMONSTRAÇÃO)' : ''}`);
   scheduler.start();
+  midia.limpar();
+  setInterval(() => midia.limpar(), 12 * 3600000).unref();
+  console.log(ia.ativo ? `[ia] análise inteligente ligada (${ia.model})` : '[ia] sem ANTHROPIC_API_KEY: usando regras por palavra-chave');
   engine.scan().catch((e) => console.error('[inicio] primeira varredura falhou:', e.message));
   if (!config.demo && config.chatwootSetup) {
     prepararChatwoot({ client, config }).catch((e) => console.error('[chatwoot] preparação falhou:', e.message));

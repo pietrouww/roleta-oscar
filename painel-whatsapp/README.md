@@ -1,20 +1,36 @@
-# Painel de Pendências – WhatsApp + Chatwoot
+# Atendimento WhatsApp – Conversas e Pendências (com Chatwoot)
 
-App para iPhone (PWA) que mostra **quais clientes estão esperando retorno** da equipe nos números de WhatsApp conectados ao Chatwoot.
+App para celular e computador (PWA) com dois módulos:
 
-- **Pediu atendente**: o cliente pediu para falar com uma pessoa ("quero falar com um atendente", "isso é um robô?", "tem alguém aí?") e nenhum humano respondeu depois.
-- **Retorno prometido**: alguém da equipe escreveu "vou verificar", "estamos verificando", "já te retorno", "assim que eu tiver te aviso", "um momento"... e não voltou a escrever.
-- **Sem resposta**: o cliente mandou a última mensagem (que não seja só "ok", "obrigado" ou 👍) e ninguém respondeu, nem a IA.
-- **Selo IA**: a conversa teve respostas da inteligência artificial. Uma resposta da IA conta como respondida, **a não ser** que o cliente peça um atendente.
+## Módulo Conversas
+- Todas as conversas dos números conectados, com filtros: **Abertas, Não lidas, Pendentes, Minhas, Resolvidas**, por número e pesquisa.
+- Abre a conversa com as mensagens em balões, **áudios, fotos, vídeos e arquivos**. Os áudios do WhatsApp são convertidos no servidor para tocar no iPhone.
+- **Responder por ali mesmo**: a mensagem sai em nome do atendente logado (texto).
+- Ações: assumir, marcar como pendência (com anotação), adiar, "não é pendência", resolver/reabrir, ignorar contato.
+- No computador, a lista e a conversa ficam lado a lado.
 
-**Fora da verificação:**
-- **Grupos** de WhatsApp são sempre ignorados.
-- **Contatos ignorados**: na conversa pendente, toque em **Ignorar contato** (ideal para fornecedores e quem manda valores todo dia). A lista fica em *Ajustes → Contatos ignorados*, com **Verificar de novo** para desfazer.
-- No Chatwoot, colocar a etiqueta **`ignorar-pendencia`** numa conversa tem o mesmo efeito (só para aquela conversa).
+## Módulo Pendências
+- **Agora**: um cartão por cliente que está esperando, com o **resumo do que ele espera**, o **próximo passo sugerido**, a urgência, há quanto tempo e quem é o responsável. Ordenado por urgência.
+- **Verificações**: o retrato das 08:30, 12:00 e 17:00 (segunda a sábado), com histórico por dia.
+- **Indicadores**: totais, por situação, por responsável, por número e o pico dos últimos 7 dias.
 
-Verificações automáticas às **08:30, 12:00 e 17:00, de segunda a sábado**. O resultado de cada uma fica guardado com o histórico por dia, e a equipe recebe um alerta no celular. Também chega um **alerta na hora** quando alguém pede atendente e quando um retorno prometido passa de 2 horas sem resposta.
+### Como a pendência é decidida
+Com a chave `ANTHROPIC_API_KEY` no `.env`, **a IA (Claude) lê o contexto da conversa** e decide se a "bola está com a equipe":
+- **Pediu atendente**: o cliente quer uma pessoa e nenhum humano respondeu.
+- **Retorno prometido**: a equipe disse que ia ver, calcular, enviar ou retornar (com qualquer frase) e ainda não entregou.
+- **Sem resposta**: pergunta, pedido, reclamação, áudio ou foto sem resposta útil.
+- **Não é pendência**: cliente só agradeceu, equipe está esperando o cliente, oferta de fornecedor, propaganda.
 
-As conversas pendentes também ganham a etiqueta **`pendencia`** no próprio Chatwoot, que sai sozinha quando a conversa é respondida. O motivo (pediu atendente, retorno prometido, sem resposta) aparece no painel.
+Cada conversa só é reanalisada quando chega mensagem nova (o resultado fica guardado), e há um limite por varredura (`AI_MAX_POR_VARREDURA`). Sem a chave, ou se a IA falhar, o painel usa **regras por palavra-chave**. O conteúdo das conversas analisadas é enviado à API da Anthropic.
+
+Por cima da análise entram as **marcações da equipe**:
+- **Marcar como pendência**: fica na lista até alguém concluir, com a anotação do que falta.
+- **Adiar** (1h, 3h, até amanhã 8:30): some da lista e volta sozinha.
+- **Não é pendência**: sai da lista até chegar mensagem nova daquele cliente.
+
+**Fora da análise:** grupos (sempre), **contatos ignorados** (*Ajustes → Contatos ignorados*) e conversas com a etiqueta **`ignorar-pendencia`** no Chatwoot.
+
+Alertas no celular: nas verificações, quando alguém pede atendente e quando um retorno prometido passa de 2 horas. As conversas pendentes também ganham a etiqueta **`pendencia`** no Chatwoot.
 
 Os atendentes entram no painel com o **mesmo e-mail e senha do Chatwoot**.
 
@@ -227,7 +243,9 @@ cd /opt/painel-whatsapp && docker compose up -d --build
 ```
 src/classifier.js   regras de pendência (frases de promessa e de pedido de atendente)
 src/chatwoot.js     comunicação com a API do Chatwoot
-src/pendencias.js   varredura das conversas abertas, cache e etiqueta "pendencia"
+src/ia.js           análise inteligente das conversas (Claude)
+src/pendencias.js   varredura das conversas, IA ou regras, marcações da equipe e etiqueta "pendencia"
+src/midia.js        áudios, fotos e arquivos (cache e conversão de áudio)
 src/scheduler.js    verificações 08:30/12:00/17:00 e alertas imediatos
 src/push.js         notificações no celular
 src/evolution.js    conexão dos números por QR Code (Evolution API)

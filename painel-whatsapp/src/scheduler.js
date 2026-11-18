@@ -32,7 +32,7 @@ export class Scheduler {
   async runCheck(time) {
     const { date } = zonedParts(new Date(), this.config.timezone);
     const r = await this.engine.scan();
-    const snapshot = { date, time, createdAt: new Date().toISOString(), items: r.items, totals: r.totals, inboxes: r.inboxes };
+    const snapshot = { date, time, createdAt: new Date().toISOString(), items: r.items, adiadas: (r.adiadas || []).length, totals: r.totals, inboxes: r.inboxes };
     this.store.saveCheck(date, time, snapshot);
     this.log.info(`[verificacao] ${date} ${time}: ${r.totals.total} pendência(s)`);
 
@@ -47,7 +47,7 @@ export class Scheduler {
     await this.push.sendAll({
       title: `Verificação das ${time}: ${plural(t.total, 'pendência', 'pendências')}`,
       body,
-      url: `/?aba=verificacoes&data=${date}&hora=${time}`,
+      url: `/?aba=pendencias&data=${date}&hora=${time}`,
       tag: `verificacao-${date}-${time}`,
     });
     return snapshot;
@@ -81,9 +81,9 @@ export class Scheduler {
     for (const { item, flag } of fresh) {
       const numero = item.inbox?.name ? ` (${item.inbox.name})` : '';
       const payload = flag.type === 'pediu_atendente'
-        ? { title: `${item.contactName}${numero} pediu atendente`, body: flag.text.slice(0, 140) }
-        : { title: `Retorno atrasado: ${item.contactName}${numero}`, body: `${flag.by || 'Equipe'}: "${flag.text.slice(0, 120)}"` };
-      await this.push.sendAll({ ...payload, url: '/?aba=agora', tag: `conv-${item.id}` });
+        ? { title: `${item.contactName}${numero} pediu atendente`, body: (item.resumo || flag.text).slice(0, 140) }
+        : { title: `Retorno atrasado: ${item.contactName}${numero}`, body: item.resumo || `${flag.by || 'Equipe'}: "${flag.text.slice(0, 120)}"` };
+      await this.push.sendAll({ ...payload, url: `/?conversa=${item.id}`, tag: `conv-${item.id}` });
     }
   }
 

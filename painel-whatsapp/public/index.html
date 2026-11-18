@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pendências</title>
+<title>Atendimento</title>
 <meta name="theme-color" id="cor-tema" content="#FFFFFF">
 <script>
   // Aplica o tema antes de desenhar a tela (sem piscar)
@@ -18,11 +18,11 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Pendências">
+<meta name="apple-mobile-web-app-title" content="Atendimento">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
 <link rel="icon" href="/icons/icon-192.png">
-<link rel="stylesheet" href="/styles.css?v=20261115b">
+<link rel="stylesheet" href="/styles.css?v=20261118a">
 </head>
 <body>
 
@@ -30,7 +30,7 @@
 <section id="login" class="login" hidden>
   <form id="login-form" class="login-box">
     <img src="/icons/icon-192.png" alt="" width="88" height="88" class="login-logo">
-    <h1>Pendências</h1>
+    <h1>Atendimento</h1>
     <p class="sec">Entre com o mesmo e-mail e senha do Chatwoot.</p>
     <p id="demo-hint" class="demo-hint" hidden>Modo demonstração: qualquer e-mail e senha entram.</p>
     <div class="grupo">
@@ -43,154 +43,185 @@
 </section>
 
 <div id="app" class="app" hidden>
-  <header class="topo">
-    <div class="topo-acoes">
-      <span id="topo-info" class="sec pequeno"></span>
-      <button id="btn-atualizar" class="icone-btn" aria-label="Atualizar agora">
-        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg>
-      </button>
-    </div>
-    <h1 id="titulo">Pendências</h1>
-    <label id="busca-box" class="busca">
-      <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
-      <span class="sr">Pesquisar</span>
-      <input id="busca" type="search" placeholder="Pesquisar" autocomplete="off">
-    </label>
-  </header>
-
-  <!-- Aba: agora -->
-  <main id="aba-agora" class="aba" hidden>
-    <p id="conv-atual" class="faixa" role="status" hidden></p>
-    <div id="filtros-tipo" class="pilulas" role="group" aria-label="Filtrar por situação"></div>
-    <div id="filtros-numero" class="pilulas" role="group" aria-label="Filtrar por número"></div>
-    <ul id="lista-agora" class="lista"></ul>
-    <p id="agora-rodape" class="rodape sec pequeno"></p>
-  </main>
-
-  <!-- Aba: verificações -->
-  <main id="aba-verificacoes" class="aba" hidden>
-    <div class="dia">
-      <button id="dia-anterior" class="icone-btn" aria-label="Dia anterior">
-        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg>
-      </button>
-      <span id="dia-label" class="dia-label"></span>
-      <button id="dia-proximo" class="icone-btn" aria-label="Próximo dia">
-        <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg>
-      </button>
-    </div>
-    <div id="horarios" class="pilulas horarios" role="tablist" aria-label="Horário da verificação"></div>
-    <p id="verif-resumo" class="faixa" hidden></p>
-    <ul id="lista-verif" class="lista"></ul>
-  </main>
-
-  <!-- Aba: ajustes -->
-  <main id="aba-ajustes" class="aba ajustes" hidden>
-    <section class="secao perfil">
-      <span id="perfil-avatar" class="avatar avatar-g"></span>
-      <div>
-        <p id="usuario-nome" class="perfil-nome"></p>
-        <p id="usuario-email" class="sec pequeno"></p>
-      </div>
-    </section>
-
-    <div id="sec-numeros" hidden>
-      <h2 class="secao-titulo">Números de WhatsApp</h2>
-      <section id="lista-numeros" class="secao"></section>
-      <section class="secao espaco">
-        <button id="btn-novo-numero" class="linha linha-btn verde-txt">
-          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
-          Conectar novo número
-        </button>
-      </section>
-      <p class="secao-nota sec pequeno">Cada número vira uma caixa de entrada no Chatwoot. As respostas saem com o nome do atendente.</p>
-    </div>
-
-    <h2 class="secao-titulo">Contatos ignorados</h2>
-    <section id="lista-ignorados" class="secao"></section>
-    <p class="secao-nota sec pequeno">Ficam fora da verificação de pendências. Grupos são sempre ignorados. No Chatwoot, a etiqueta <strong>ignorar-pendencia</strong> numa conversa tem o mesmo efeito.</p>
-
-    <h2 class="secao-titulo">Aparência</h2>
-    <section class="secao">
-      <div id="tema-opcoes" class="segmento" role="radiogroup" aria-label="Aparência">
-        <button role="radio" data-tema="auto">Automático</button>
-        <button role="radio" data-tema="claro">Claro</button>
-        <button role="radio" data-tema="escuro">Escuro</button>
-      </div>
-    </section>
-    <p class="secao-nota sec pequeno">Automático acompanha o modo claro/escuro do celular.</p>
-
-    <h2 class="secao-titulo">Notificações</h2>
-    <section class="secao">
-      <div class="linha">
-        <span class="quadrado q-verde" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"></path><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"></path></svg></span>
-        <div class="linha-texto">
-          <p>Alertas no celular</p>
-          <p id="push-status" class="sec pequeno"></p>
-        </div>
-      </div>
-      <div class="linha linha-botoes">
-        <button id="btn-push" class="btn-verde btn-p">Ativar notificações</button>
-        <button id="btn-push-teste" class="btn-contorno btn-p" hidden>Enviar teste</button>
-      </div>
-    </section>
-    <p class="secao-nota sec pequeno">Avisos nas verificações das <span id="horarios-txt"></span> (seg a sáb), quando um cliente pede atendente e quando um retorno prometido atrasa.</p>
-
-    <h2 class="secao-titulo">Instalar no iPhone</h2>
-    <section class="secao">
-      <ol class="passos">
-        <li>Abra este endereço no <strong>Safari</strong>.</li>
-        <li>Toque em <strong>Compartilhar</strong> (quadrado com seta).</li>
-        <li>Escolha <strong>Adicionar à Tela de Início</strong>.</li>
-        <li>Abra pelo ícone e ative as notificações aqui.</li>
-      </ol>
-    </section>
-
-    <h2 class="secao-titulo">Legenda</h2>
-    <section class="secao legenda">
-      <div class="linha"><span class="etq e-atendente">Pediu atendente</span><p class="pequeno">Cliente quer falar com uma pessoa e nenhum humano respondeu.</p></div>
-      <div class="linha"><span class="etq e-promessa">Retorno prometido</span><p class="pequeno">Alguém disse “vou verificar / já te retorno” e não voltou.</p></div>
-      <div class="linha"><span class="etq e-sem">Sem resposta</span><p class="pequeno">O cliente falou por último e ninguém respondeu.</p></div>
-      <div class="linha"><span class="etq e-ia">✦ IA</span><p class="pequeno">A conversa teve resposta da inteligência artificial.</p></div>
-    </section>
-
-    <section class="secao">
-      <button id="btn-sair" class="linha linha-btn vermelho">Sair</button>
-    </section>
-  </main>
-
-  <nav class="abas" aria-label="Navegação">
-    <button class="aba-btn" data-aba="agora">
-      <span class="aba-icone">
-        <svg aria-hidden="true" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"></path><path d="M12 7.5v4l2.5 1.5"></path></svg>
-        <span id="tab-badge" class="aba-badge" hidden></span>
-      </span>
+  <!-- Navegação: barra embaixo no celular, coluna à esquerda no computador -->
+  <nav class="nav" aria-label="Módulos">
+    <button class="nav-btn" data-tela="conversas">
+      <span class="nav-ic"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"></path></svg><span id="badge-conversas" class="nav-badge" hidden></span></span>
+      <span>Conversas</span>
+    </button>
+    <button class="nav-btn" data-tela="pendencias">
+      <span class="nav-ic"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg><span id="badge-pendencias" class="nav-badge alerta" hidden></span></span>
       <span>Pendências</span>
     </button>
-    <button class="aba-btn" data-aba="verificacoes">
-      <span class="aba-icone"><svg aria-hidden="true" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path><path d="M8.5 15l2 2 4-4"></path></svg></span>
-      <span>Verificações</span>
-    </button>
-    <button class="aba-btn" data-aba="ajustes">
-      <span class="aba-icone"><svg aria-hidden="true" width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></span>
+    <button class="nav-btn" data-tela="ajustes">
+      <span class="nav-ic"><svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"></path></svg></span>
       <span>Ajustes</span>
     </button>
   </nav>
+
+  <!-- MÓDULO: CONVERSAS -->
+  <section id="tela-conversas" class="tela" hidden>
+    <header class="topo">
+      <div class="topo-linha"><h1>Conversas</h1><span id="conversas-info" class="sec pequeno"></span></div>
+      <label class="busca">
+        <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
+        <span class="sr">Pesquisar conversas</span>
+        <input id="busca-conversas" type="search" placeholder="Pesquisar nome, telefone ou mensagem" autocomplete="off">
+      </label>
+      <div id="filtros-conversas" class="pilulas" role="group" aria-label="Filtrar conversas"></div>
+      <div id="numeros-conversas" class="pilulas" role="group" aria-label="Filtrar por número"></div>
+    </header>
+    <ul id="lista-conversas" class="lista"></ul>
+  </section>
+
+  <!-- MÓDULO: PENDÊNCIAS -->
+  <section id="tela-pendencias" class="tela" hidden>
+    <header class="topo">
+      <div class="topo-linha">
+        <h1>Pendências</h1>
+        <button id="btn-atualizar" class="icone-btn" aria-label="Analisar agora">
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"></path><path d="M20 4v7h-7"></path></svg>
+        </button>
+      </div>
+      <div id="sub-pendencias" class="segmento" role="tablist" aria-label="Visão">
+        <button role="tab" data-sub="agora">Agora</button>
+        <button role="tab" data-sub="verificacoes">Verificações</button>
+        <button role="tab" data-sub="indicadores">Indicadores</button>
+      </div>
+    </header>
+
+    <div id="sub-agora" class="sub">
+      <p id="conv-atual" class="faixa" role="status" hidden></p>
+      <div id="resumo-agora" class="tiles"></div>
+      <div id="filtros-tipo" class="pilulas" role="group" aria-label="Filtrar por situação"></div>
+      <div id="filtros-numero" class="pilulas" role="group" aria-label="Filtrar por número"></div>
+      <div id="lista-pendencias" class="cartoes"></div>
+      <details id="bloco-adiadas" class="adiadas" hidden>
+        <summary><span id="adiadas-titulo">Adiadas</span></summary>
+        <div id="lista-adiadas" class="cartoes"></div>
+      </details>
+      <p id="agora-rodape" class="rodape sec pequeno"></p>
+    </div>
+
+    <div id="sub-verificacoes" class="sub" hidden>
+      <div class="dia">
+        <button id="dia-anterior" class="icone-btn" aria-label="Dia anterior"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
+        <span id="dia-label" class="dia-label"></span>
+        <button id="dia-proximo" class="icone-btn" aria-label="Próximo dia"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></button>
+      </div>
+      <div id="horarios" class="pilulas horarios" role="tablist" aria-label="Horário da verificação"></div>
+      <p id="verif-resumo" class="faixa" hidden></p>
+      <div id="lista-verif" class="cartoes"></div>
+    </div>
+
+    <div id="sub-indicadores" class="sub" hidden>
+      <div id="indicadores" class="indicadores"></div>
+    </div>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="tela-ajustes" class="tela ajustes" hidden>
+    <header class="topo"><div class="topo-linha"><h1>Ajustes</h1></div></header>
+    <div class="ajustes-corpo">
+      <section class="secao perfil">
+        <span id="perfil-avatar" class="avatar avatar-g"></span>
+        <div>
+          <p id="usuario-nome" class="perfil-nome"></p>
+          <p id="usuario-email" class="sec pequeno"></p>
+        </div>
+      </section>
+
+      <h2 class="secao-titulo">Análise inteligente</h2>
+      <section class="secao"><div class="linha"><div class="linha-texto"><p id="ia-titulo"></p><p id="ia-detalhe" class="sec pequeno"></p></div></div></section>
+
+      <div id="sec-numeros" hidden>
+        <h2 class="secao-titulo">Números de WhatsApp</h2>
+        <section id="lista-numeros" class="secao"></section>
+        <section class="secao espaco">
+          <button id="btn-novo-numero" class="linha linha-btn verde-txt">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            Conectar novo número
+          </button>
+        </section>
+        <p class="secao-nota sec pequeno">Cada número vira uma caixa de entrada no Chatwoot. As respostas saem com o nome do atendente.</p>
+      </div>
+
+      <h2 class="secao-titulo">Contatos ignorados</h2>
+      <section id="lista-ignorados" class="secao"></section>
+      <p class="secao-nota sec pequeno">Ficam fora da análise de pendências. Grupos são sempre ignorados.</p>
+
+      <h2 class="secao-titulo">Aparência</h2>
+      <section class="secao">
+        <div id="tema-opcoes" class="segmento" role="radiogroup" aria-label="Aparência">
+          <button role="radio" data-tema="auto">Automático</button>
+          <button role="radio" data-tema="claro">Claro</button>
+          <button role="radio" data-tema="escuro">Escuro</button>
+        </div>
+      </section>
+
+      <h2 class="secao-titulo">Notificações</h2>
+      <section class="secao">
+        <div class="linha">
+          <div class="linha-texto"><p>Alertas no celular</p><p id="push-status" class="sec pequeno"></p></div>
+        </div>
+        <div class="linha linha-botoes">
+          <button id="btn-push" class="btn-verde btn-p">Ativar notificações</button>
+          <button id="btn-push-teste" class="btn-contorno btn-p" hidden>Enviar teste</button>
+        </div>
+      </section>
+      <p class="secao-nota sec pequeno">Avisos nas verificações das <span id="horarios-txt"></span> (seg a sáb), quando um cliente pede atendente e quando um retorno prometido atrasa. No iPhone: abra no Safari, toque em Compartilhar → Adicionar à Tela de Início, e ative aqui.</p>
+
+      <section class="secao espaco"><button id="btn-sair" class="linha linha-btn vermelho">Sair</button></section>
+    </div>
+  </section>
+
+  <!-- CONVERSA ABERTA -->
+  <section id="chat" class="chat" hidden aria-label="Conversa">
+    <header class="chat-topo">
+      <button id="chat-voltar" class="icone-btn" aria-label="Voltar"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
+      <span id="chat-avatar" class="avatar avatar-p" aria-hidden="true"></span>
+      <div class="chat-quem">
+        <p id="chat-nome" class="chat-nome"></p>
+        <p id="chat-sub" class="sec pequeno"></p>
+      </div>
+      <button id="chat-acoes" class="icone-btn" aria-label="Ações da conversa"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"></circle><circle cx="12" cy="12" r="2"></circle><circle cx="19" cy="12" r="2"></circle></svg></button>
+    </header>
+    <div id="chat-pendencia" class="chat-pendencia" hidden></div>
+    <div id="chat-mensagens" class="chat-mensagens" tabindex="0"></div>
+    <form id="chat-form" class="chat-form">
+      <p id="chat-como" class="sec pequeno"></p>
+      <div class="chat-compor">
+        <label class="sr" for="chat-texto">Mensagem</label>
+        <textarea id="chat-texto" rows="1" placeholder="Mensagem" maxlength="4000"></textarea>
+        <button type="submit" id="chat-enviar" class="enviar" aria-label="Enviar"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4l17.5-7.5a1 1 0 0 0 0-1.8L3.4 3.6a1 1 0 0 0-1.4 1.1L4 11l9 1-9 1-2 6.3a1 1 0 0 0 1.4 1.1z"></path></svg></button>
+      </div>
+    </form>
+  </section>
+
+  <section id="chat-vazio" class="chat-vazio" aria-hidden="true">
+    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"></path></svg>
+    <p>Escolha uma conversa para ver as mensagens</p>
+  </section>
 </div>
 
-<dialog id="qr-dialog" class="folha" aria-labelledby="qr-titulo">
-  <div class="folha-topo">
-    <button id="qr-fechar" class="link-btn">Fechar</button>
-    <h2 id="qr-titulo">Conectar número</h2>
-    <span class="folha-esp"></span>
-  </div>
+<!-- Ações da conversa -->
+<dialog id="folha-acoes" class="folha" aria-labelledby="acoes-titulo">
+  <div class="folha-topo"><button class="link-btn" data-fechar>Fechar</button><h2 id="acoes-titulo">Ações</h2><span></span></div>
+  <div id="acoes-lista" class="folha-corpo acoes"></div>
+</dialog>
 
+<!-- Foto ampliada -->
+<dialog id="foto" class="foto"><button class="foto-fechar" data-fechar aria-label="Fechar foto">✕</button><img id="foto-img" alt="Foto da conversa"></dialog>
+
+<!-- Conectar número (QR Code) -->
+<dialog id="qr-dialog" class="folha" aria-labelledby="qr-titulo">
+  <div class="folha-topo"><button id="qr-fechar" class="link-btn">Fechar</button><h2 id="qr-titulo">Conectar número</h2><span></span></div>
   <form id="qr-passo-nome" class="folha-corpo">
     <p class="sec">Como esse número vai aparecer para a equipe?</p>
     <div class="grupo"><label class="campo"><span>Nome</span><input id="qr-nome" name="nome" maxlength="40" placeholder="Ex.: Comercial" required></label></div>
     <p id="qr-erro-nome" class="erro" role="alert"></p>
     <button type="submit" class="btn-verde">Continuar</button>
   </form>
-
   <div id="qr-passo-qr" class="folha-corpo" hidden>
     <ol class="passos-qr">
       <li>Abra o <strong>WhatsApp Business</strong> no celular desse número.</li>
@@ -198,10 +229,7 @@
       <li>Toque em <strong>Aparelhos conectados</strong> → <strong>Conectar um aparelho</strong>.</li>
       <li>Aponte a câmera para este código.</li>
     </ol>
-    <div class="qr-caixa">
-      <img id="qr-img" alt="QR Code para conectar o WhatsApp" width="264" height="264">
-      <p id="qr-carregando" class="sec pequeno">Gerando código…</p>
-    </div>
+    <div class="qr-caixa"><img id="qr-img" alt="QR Code para conectar o WhatsApp" width="264" height="264"><p id="qr-carregando" class="sec pequeno">Gerando código…</p></div>
     <p id="qr-status" class="sec pequeno centro" role="status">O código se renova sozinho a cada 30 segundos.</p>
     <details class="parear">
       <summary>Está no mesmo celular? Conectar com número de telefone</summary>
@@ -211,15 +239,14 @@
       <p id="qr-codigo" class="codigo" aria-live="polite"></p>
     </details>
   </div>
-
   <div id="qr-passo-ok" class="folha-corpo centro" hidden>
     <svg aria-hidden="true" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#1DAA61" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M7.5 12.5l3 3 6-6.5"></path></svg>
     <p class="grande">Número conectado!</p>
-    <p class="sec pequeno">As novas mensagens desse número já chegam no Chatwoot e entram no painel de pendências.</p>
+    <p class="sec pequeno">As novas mensagens desse número já chegam no Chatwoot e entram na análise.</p>
     <button id="qr-ok" class="btn-verde">Pronto</button>
   </div>
 </dialog>
 
-<script src="/app.js?v=20261115b" type="module"></script>
+<script src="/app.js?v=20261118a" type="module"></script>
 </body>
 </html>

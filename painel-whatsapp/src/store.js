@@ -48,6 +48,21 @@ export class Store {
     this.write('ignorados.json', this.listIgnored().filter((x) => String(x.contactId) !== String(contactId)));
   }
 
+  // Marcações da equipe por conversa: { [conversaId]: { manual, adiar, dispensa } }
+  getMarks() {
+    return this.read('marcacoes.json', {});
+  }
+
+  setMark(convId, tipo, valor) {
+    const all = this.getMarks();
+    const m = { ...(all[convId] || {}) };
+    if (valor == null) delete m[tipo];
+    else m[tipo] = valor;
+    if (Object.keys(m).length) all[convId] = m;
+    else delete all[convId];
+    this.write('marcacoes.json', all);
+  }
+
   // Verificações: verificacoes/AAAA-MM-DD/HHMM.json
   saveCheck(date, time, data) {
     this.write(path.join('verificacoes', date, `${time.replace(':', '')}.json`), data);

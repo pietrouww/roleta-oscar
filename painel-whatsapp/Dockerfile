@@ -1,5 +1,7 @@
 FROM node:22-alpine
 ENV NODE_ENV=production
+# ffmpeg converte os áudios do WhatsApp (ogg/opus) para um formato que toca no iPhone
+RUN apk add --no-cache ffmpeg
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force

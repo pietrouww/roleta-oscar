@@ -8,11 +8,12 @@ export class ChatwootClient {
     this.token = token;
   }
 
-  async request(method, path, body) {
+  /** `token` troca o usuário da chamada (ex.: responder em nome do atendente logado). */
+  async request(method, path, body, token) {
     const res = await fetch(`${this.url}${path}`, {
       method,
       headers: {
-        api_access_token: this.token,
+        api_access_token: token || this.token,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
@@ -40,9 +41,9 @@ export class ChatwootClient {
     }));
   }
 
-  async listConversations(status) {
+  async listConversations(status, maxPages = 40) {
     const out = [];
-    for (let page = 1; page <= 40; page++) {
+    for (let page = 1; page <= maxPages; page++) {
       const r = await this.request(
         'GET',
         this.acc(`/conversations?status=${encodeURIComponent(status)}&assignee_type=all&page=${page}`),
@@ -62,7 +63,26 @@ export class ChatwootClient {
       contactPhone: c.meta?.sender?.phone_number || '',
       contactIdentifier: c.meta?.sender?.identifier || '',
       assigneeName: c.meta?.assignee?.name || '',
+      assigneeId: c.meta?.assignee?.id ?? null,
+      unread: c.unread_count || 0,
+      preview: previaDe(c.last_non_activity_message || (c.messages || []).filter((m) => m.message_type !== 2).pop()),
     }));
+  }
+
+  async sendMessage(conversationId, content, token) {
+    return this.request('POST', this.acc(`/conversations/${conversationId}/messages`), { content, message_type: 'outgoing', private: false }, token);
+  }
+
+  async assign(conversationId, assigneeId) {
+    return this.request('POST', this.acc(`/conversations/${conversationId}/assignments`), { assignee_id: assigneeId });
+  }
+
+  async markRead(conversationId, token) {
+    return this.request('POST', this.acc(`/conversations/${conversationId}/update_last_seen`), {}, token);
+  }
+
+  async reopen(conversationId) {
+    return this.request('POST', this.acc(`/conversations/${conversationId}/toggle_status`), { status: 'open' });
   }
 
   /** Mensagens mais recentes (até `max`), em ordem cronológica, no formato bruto do Chatwoot. */
@@ -131,7 +151,7 @@ export class ChatwootClient {
     if (accounts.length && !conta) return null;
     // O papel (administrator / agent) vem por conta; versões antigas mandam no próprio usuário
     const role = conta?.role || u.role || '';
-    return { id: u.id, name: u.available_name || u.name || u.email, email: u.email, role };
+    return { id: u.id, name: u.available_name || u.name || u.email, email: u.email, role, token: u.access_token || '' };
   }
 }
 
@@ -147,9 +167,10 @@ export function toClassifierMessages(raw, rules) {
     if (x.message_type === 2) continue;
     const text = x.content || '';
     const hasMedia = Array.isArray(x.attachments) && x.attachments.length > 0;
+    const mediaKind = hasMedia ? NOME_MIDIA[tipoMidia(x.attachments[0])] : '';
     const at = (x.created_at || 0) * 1000;
     if (x.message_type === 0) {
-      out.push({ id: x.id, at, dir: 'in', author: 'cliente', name: x.sender?.name || '', text, hasMedia });
+      out.push({ id: x.id, at, dir: 'in', author: 'cliente', name: x.sender?.name || '', text, hasMedia, mediaKind });
       continue;
     }
     const senderType = (x.sender_type || x.sender?.type || '').toLowerCase();
@@ -168,7 +189,76 @@ export function toClassifierMessages(raw, rules) {
       author = 'ia';
       name = 'IA';
     }
-    out.push({ id: x.id, at, dir: 'out', author, name, text, hasMedia });
+    out.push({ id: x.id, at, dir: 'out', author, name, text, hasMedia, mediaKind });
   }
   return out;
+}
+
+const NOME_MIDIA = { audio: 'áudio', imagem: 'imagem', video: 'vídeo', arquivo: 'arquivo', local: 'localização', contato: 'contato' };
+
+export function tipoMidia(a) {
+  const t = String(a?.file_type || '').toLowerCase();
+  if (t === 'audio') return 'audio';
+  if (t === 'image') return 'imagem';
+  if (t === 'video') return 'video';
+  if (t === 'location') return 'local';
+  if (t === 'contact') return 'contato';
+  return 'arquivo';
+}
+
+function previaDe(m) {
+  if (!m) return null;
+  const anexo = (m.attachments || [])[0];
+  return {
+    texto: (m.content || '').slice(0, 160),
+    dir: m.message_type === 0 ? 'in' : 'out',
+    midia: anexo ? tipoMidia(anexo) : '',
+    at: (m.created_at || 0) * 1000,
+  };
+}
+
+function nomeArquivo(a) {
+  try {
+    const nome = decodeURIComponent(new URL(a.data_url).pathname.split('/').pop() || '');
+    if (nome) return nome;
+  } catch { /* sem url */ }
+  return `arquivo-${a.id}`;
+}
+
+/** Mensagens no formato da tela de conversa (com mídias, notas internas e avisos do sistema). */
+export function toDisplayMessages(raw, rules, convId) {
+  const autores = new Map(toClassifierMessages(raw, rules).map((m) => [m.id, m]));
+  return raw.map((x) => {
+    const c = autores.get(x.id);
+    const base = { id: x.id, at: (x.created_at || 0) * 1000, texto: x.content || '' };
+    if (x.message_type === 2) return { ...base, tipo: 'sistema' };
+    const anexos = (x.attachments || []).map((a) => {
+      const tipo = tipoMidia(a);
+      return {
+        id: a.id,
+        tipo,
+        nome: nomeArquivo(a),
+        tamanho: a.file_size || 0,
+        url: a.data_url ? `/api/midia/${convId}/${x.id}/${a.id}` : '',
+        lat: a.coordinates_lat ?? null,
+        lng: a.coordinates_long ?? null,
+        titulo: a.fallback_title || '',
+      };
+    });
+    if (x.private) return { ...base, tipo: 'nota', autor: x.sender?.available_name || x.sender?.name || 'Equipe', anexos };
+    return {
+      ...base,
+      tipo: c?.dir === 'in' ? 'recebida' : 'enviada',
+      autor: c?.dir === 'in' ? '' : c?.name || '',
+      autorTipo: c?.author || '',
+      status: x.status || '',
+      anexos,
+    };
+  });
+}
+
+/** Anexo bruto de uma mensagem (para o servidor buscar o arquivo). */
+export function acharAnexo(raw, messageId, attachmentId) {
+  const m = raw.find((x) => String(x.id) === String(messageId));
+  return (m?.attachments || []).find((a) => String(a.id) === String(attachmentId)) || null;
 }
