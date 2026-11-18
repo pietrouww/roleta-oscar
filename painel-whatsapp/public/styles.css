@@ -1,61 +1,63 @@
 /* App de atendimento. Celular: uma tela por vez com barra embaixo. Computador: menu à esquerda, lista e conversa lado a lado. */
 :root {
+  /* Linguagem Apple (tinta #1d1d1f, parchment #f5f5f7, azul de ação único, sem sombras),
+     mantendo os sinais do WhatsApp: balão enviado verde e contador de não lidas verde. */
   --fundo: #FFFFFF;
-  --fundo-agrupado: #F4F5F7;
+  --fundo-agrupado: #F5F5F7;
   --cartao: #FFFFFF;
-  --texto: #111B21;
-  --sec: #5E6E78;
-  --linha: #E3E7EA;
+  --texto: #1D1D1F;
+  --sec: rgba(0, 0, 0, 0.56);
+  --linha: rgba(0, 0, 0, 0.08);
   --verde: #25D366;
-  --verde-texto: #008069;
-  --verde-escuro: #0A5C36;
-  --pilula: #EEF1F4;
-  --pilula-texto: #4A5A64;
-  --pilula-ativa: #D9FDD3;
-  --papel: #EFEAE2;
+  --verde-texto: #0066CC;   /* cor de ação (links, botões, item ativo) */
+  --verde-escuro: #FFFFFF;  /* texto sobre o filtro selecionado */
+  --pilula: #F5F5F7;
+  --pilula-texto: rgba(0, 0, 0, 0.72);
+  --pilula-ativa: #1D1D1F;
+  --papel: #F5F5F7;
   --balao-in: #FFFFFF;
   --balao-out: #D9FDD3;
-  --nota: #FFF6CC;
-  --vermelho: #C62F3E;
-  --e-atendente-bg: #FDE7E9; --e-atendente: #A3182B;
-  --e-promessa-bg: #FFEBD6; --e-promessa: #8A3B00;
-  --e-sem-bg: #FFF4C2; --e-sem: #6B4E00;
-  --e-ia-bg: #ECE6FF; --e-ia: #4B2BB3;
-  --e-manual-bg: #DCEBFF; --e-manual: #12408A;
+  --nota: #FFF8DB;
+  --vermelho: #D70015;
+  --avatar: #E8E8ED;
+  --avatar-texto: rgba(0, 0, 0, 0.56);
+  --e-atendente-bg: transparent; --e-atendente: #D70015;
+  --e-promessa-bg: transparent; --e-promessa: #B25000;
+  --e-sem-bg: transparent; --e-sem: #8A6A00;
+  --e-ia-bg: transparent; --e-ia: #6E3FD1;
+  --e-manual-bg: transparent; --e-manual: #0066CC;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
   color-scheme: light;
 }
 html.escuro {
-  --fundo: #0B141A;
-  --fundo-agrupado: #0B141A;
-  --cartao: #111B21;
-  --texto: #E9EDEF;
-  --sec: #8E9EA8;
-  --linha: #222D34;
-  --verde-texto: #21C063;
-  --verde-escuro: #D9FDD3;
-  --pilula: #202C33;
-  --pilula-texto: #AEBAC1;
-  --pilula-ativa: #103529;
-  --papel: #0B141A;
-  --balao-in: #202C33;
+  --fundo: #000000;
+  --fundo-agrupado: #000000;
+  --cartao: #1C1C1E;
+  --texto: #F5F5F7;
+  --sec: rgba(235, 235, 245, 0.62);
+  --linha: rgba(255, 255, 255, 0.12);
+  --verde-texto: #2997FF;
+  --verde-escuro: #1D1D1F;
+  --pilula: #1C1C1E;
+  --pilula-texto: rgba(235, 235, 245, 0.78);
+  --pilula-ativa: #F5F5F7;
+  --papel: #000000;
+  --balao-in: #1C1C1E;
   --balao-out: #005C4B;
-  --nota: #3A3210;
-  --vermelho: #F15C6D;
-  --e-atendente-bg: #4A1820; --e-atendente: #FFB3BC;
-  --e-promessa-bg: #43260C; --e-promessa: #FFC48A;
-  --e-sem-bg: #3D3209; --e-sem: #FFE07A;
-  --e-ia-bg: #2B2350; --e-ia: #CDBEFF;
-  --e-manual-bg: #132C52; --e-manual: #A9CBFF;
+  --nota: #332B0A;
+  --vermelho: #FF453A;
+  --avatar: #2C2C2E;
+  --avatar-texto: rgba(235, 235, 245, 0.7);
+  --e-atendente: #FF6961; --e-promessa: #FFB340; --e-sem: #FFD60A; --e-ia: #BF9BFF; --e-manual: #64B5FF;
   color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--fundo); color: var(--texto); }
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
-  font-size: 16px; line-height: 1.35;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-size: 17px; line-height: 1.35; letter-spacing: -0.022em;
   -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
 }
 [hidden] { display: none !important; }
@@ -333,3 +335,93 @@ html.escuro .toast { background: #E9EDEF; color: #111B21; }
 .rel-texto { width: 100%; border: 1px solid var(--linha); border-radius: 12px; padding: 12px; font-size: 15px; line-height: 1.4; background: var(--cartao); resize: vertical; }
 .pino { vertical-align: -2px; margin-right: 4px; color: var(--sec); }
 .conv-linha.fixada { background: color-mix(in srgb, var(--pilula) 55%, transparent); }
+
+/* =====================================================================
+   Acabamento minimalista (Apple): sem sombras, traços finos, um só azul,
+   raios 8 / 18 / pílula, peso 400/600, títulos com tracking negativo.
+   ===================================================================== */
+h1, h2, .cartao-nome, .conv-nome, .chat-nome, .resumo, .perfil-nome, .tile-n, .grande { font-weight: 600; letter-spacing: -0.022em; }
+.topo h1 { font-size: 34px; letter-spacing: -0.028em; }
+.pequeno { font-size: 14px; letter-spacing: -0.016em; }
+.nav-btn, .etq, .tile-l, .meta, .secao-titulo { letter-spacing: -0.01em; }
+.btn-verde, .btn-contorno, .pilula, .acao, .enviar, .icone-btn, .link-btn, .segmento button, .nav-btn { transition: transform 0.12s ease; }
+.btn-verde:active, .btn-contorno:active, .pilula:active, .acao:active, .enviar:active, .icone-btn:active { transform: scale(0.95); }
+:focus-visible { outline: 2px solid #0071E3; outline-offset: 2px; }
+
+/* Botões: pílula azul e pílula fantasma */
+.btn-verde, .btn-contorno { border-radius: 980px; font-weight: 400; font-size: 17px; }
+.btn-verde, html.escuro .btn-verde { background: var(--verde-texto); color: #FFFFFF; }
+.btn-contorno { border: 1px solid var(--verde-texto); }
+.btn-p { font-size: 15px; min-height: 36px; padding: 0 16px; }
+.enviar, html.escuro .enviar { background: var(--verde-texto); color: #FFFFFF; }
+
+/* Filtros: texto simples; o selecionado vira pílula de tinta */
+.pilula { background: transparent; border: 1px solid var(--linha); font-weight: 400; font-size: 15px; border-radius: 980px; }
+.pilula[aria-pressed="true"], .pilula[aria-selected="true"] { border-color: var(--pilula-ativa); font-weight: 400; }
+.horarios .pilula { border-radius: 18px; }
+.busca { border-radius: 980px; background: var(--pilula); height: 38px; padding: 0 14px; }
+.segmento { border-radius: 8px; padding: 2px; }
+.segmento button { border-radius: 6px; font-size: 15px; min-height: 32px; }
+.segmento button[aria-checked="true"], .segmento button[aria-selected="true"],
+html.escuro .segmento button[aria-checked="true"], html.escuro .segmento button[aria-selected="true"] { background: var(--cartao); box-shadow: none; border: 1px solid var(--linha); }
+
+/* Lista de conversas: monograma neutro, etiquetas em texto */
+.avatar { color: var(--avatar-texto); font-weight: 400; }
+.avatar-g { background: var(--avatar); }
+.conv-linha.ativa, .conv-linha.fixada { background: var(--pilula); }
+.conv-hora.nova { color: var(--verde-texto); font-weight: 400; }
+.etqs { gap: 2px 10px; }
+.etq { padding: 0; border-radius: 0; font-size: 13px; font-weight: 400; background: transparent; }
+.e-resp { background: transparent; color: var(--sec); }
+.e-numero { color: var(--sec); padding: 0; }
+html.escuro .e-numero { color: var(--sec); }
+.e-numero::before { background: var(--c); }
+html.escuro .e-numero::before { background: var(--c-d); }
+.u-chip { background: transparent; color: var(--vermelho); font-weight: 600; }
+.bolinha { font-weight: 600; }
+.nav { border-top: 1px solid var(--linha); background: color-mix(in srgb, var(--fundo) 80%, transparent); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); }
+.nav-btn { font-weight: 400; }
+.nav-btn[aria-current="page"] { font-weight: 400; }
+.nav-badge { font-weight: 600; }
+
+/* Cartões e blocos: superfície lisa, raio 18, traço fino */
+.cartao, .tile, .ind, .secao, .acao, .parear, .grupo { border-radius: 18px; }
+.cartao, .ind { padding: 18px 20px; border-left: none; }
+.cartao.u-alta { border-left: none; }
+.tile { padding: 14px 16px; }
+.tile-n { font-size: 28px; letter-spacing: -0.028em; }
+.espera { background: transparent; padding: 0; color: var(--sec); font-weight: 400; font-size: 14px; }
+.espera.atraso { background: transparent; color: var(--vermelho); font-weight: 600; }
+.resumo { font-size: 19px; line-height: 1.25; }
+.passo { font-size: 15px; color: var(--sec); }
+.passo b { font-weight: 600; color: var(--texto); }
+.origem { background: transparent; padding: 0 0 0 12px; border-left: 2px solid var(--linha); border-radius: 0; color: var(--sec); }
+html.escuro .origem { background: transparent; }
+.barra-trilho { height: 6px; }
+.barra { background: var(--texto); }
+.faixa { border-radius: 18px; }
+.faixa-alerta { background: transparent; border: 1px solid var(--vermelho); color: var(--vermelho); }
+.faixa-ok { background: var(--pilula); color: var(--texto); font-weight: 400; }
+.secao-titulo { text-transform: none; font-size: 14px; font-weight: 400; letter-spacing: -0.016em; margin: 20px 0 4px 16px; }
+#tela-pendencias .cartao, #tela-pendencias .tile, #tela-pendencias .ind { border: none; }
+
+/* Conversa: fundo liso, balões sem sombra */
+.chat-mensagens { background-image: none; }
+.balao { box-shadow: none; border-radius: 18px; padding: 8px 12px 6px; font-size: 16px; }
+.balao.in { border-top-left-radius: 18px; border-bottom-left-radius: 6px; }
+.balao.out { border-top-right-radius: 18px; border-bottom-right-radius: 6px; }
+.balao.nota { border: 1px solid var(--linha); }
+.balao .autor { font-weight: 600; font-size: 13px; color: var(--sec); }
+html.escuro .balao.out .autor:not(.autor-ia) { color: rgba(255,255,255,0.75); }
+.aviso-sis { box-shadow: none; background: transparent; }
+.chat-topo, .chat-form { background: color-mix(in srgb, var(--fundo) 86%, transparent); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); }
+.chat-pendencia, .chat-pendencia.u-alta { border-left: none; padding: 10px 16px; }
+.chat-compor textarea { border-radius: 20px; font-size: 17px; }
+.m-foto, .m-video { border-radius: 12px; }
+.m-arquivo { border-radius: 12px; }
+.toast { border-radius: 980px; font-size: 15px; background: #1D1D1F; }
+.folha { border-radius: 18px 18px 0 0; }
+@media (min-width: 900px) { .folha { border-radius: 18px; } }
+.acao { font-size: 17px; }
+.num-dot.ok { background: var(--verde); }
+.pino { color: var(--sec); }

@@ -11,7 +11,6 @@ const TIPO = {
 };
 const URG = { alta: { label: 'Urgente', cls: 'u-alta' }, media: { label: 'Normal', cls: 'u-media' }, baixa: { label: 'Sem pressa', cls: 'u-baixa' } };
 const MIDIA_NOME = { audio: 'Áudio', imagem: 'Foto', video: 'Vídeo', arquivo: 'Arquivo', local: 'Localização', contato: 'Contato' };
-const AVATAR_CORES = ['#0F7A5C', '#2563A8', '#7E3FA0', '#B4363F', '#3D5A80', '#6B4F9E', '#1F6F8B', '#8A5A12'];
 const CHECKS = '<svg aria-hidden="true" width="17" height="11" viewBox="0 0 17 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6l3 3 6-7.5"></path><path d="M7 9l1 1 6-8.5"></path></svg>';
 const IC_PINO = '<svg class="pino" role="img" aria-label="Fixada" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 2.5l6 6-2 .8-3 3 .6 5.2-1.6 1.6-4.4-4.4-5.3 5.3-1.4-.1-.1-1.4 5.3-5.3L5.2 8.8l1.6-1.6 5.2.6 3-3z"></path></svg>';
 const IC_MIDIA = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"></path></svg>';
@@ -96,10 +95,9 @@ function iniciais(nome) {
   const partes = String(nome || '?').trim().split(/\s+/).filter((p) => /\p{L}|\d/u.test(p));
   return ((partes[0]?.[0] || '?') + (partes.length > 1 ? partes[partes.length - 1][0] : '')).toUpperCase();
 }
-function corAvatar(nome) {
-  let h = 0;
-  for (const c of String(nome)) h = (h * 31 + c.codePointAt(0)) >>> 0;
-  return AVATAR_CORES[h % AVATAR_CORES.length];
+// Monograma neutro, como nos Contatos do iPhone
+function corAvatar() {
+  return 'var(--avatar)';
 }
 const etqNumero = (inbox) => (inbox ? `<span class="etq e-numero" style="--c:${esc(inbox.color.fg)};--c-d:${esc(inbox.color.bg)}">${esc(inbox.name)}</span>` : '');
 /** Texto de mensagem: seguro, com links clicáveis e *negrito* do WhatsApp. */
@@ -1016,7 +1014,7 @@ function aplicarTema() {
   const t = lerTema();
   const escuro = t === 'escuro' || (t === 'auto' && midiaEscura.matches);
   document.documentElement.classList.toggle('escuro', escuro);
-  $('#cor-tema').setAttribute('content', escuro ? '#0B141A' : '#FFFFFF');
+  $('#cor-tema').setAttribute('content', escuro ? '#000000' : '#FFFFFF');
   $$('#tema-opcoes button').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.tema === t)));
 }
 $$('#tema-opcoes button').forEach((b) => b.addEventListener('click', () => {

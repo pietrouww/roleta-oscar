@@ -12,7 +12,7 @@
     try { t = localStorage.getItem('tema') || 'claro'; } catch (e) {}
     var escuro = t === 'escuro' || (t === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     if (escuro) document.documentElement.classList.add('escuro');
-    document.getElementById('cor-tema').setAttribute('content', escuro ? '#0B141A' : '#FFFFFF');
+    document.getElementById('cor-tema').setAttribute('content', escuro ? '#000000' : '#FFFFFF');
   })();
 </script>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -22,7 +22,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/icons/icon-180.png">
 <link rel="icon" href="/icons/icon-192.png">
-<link rel="stylesheet" href="/styles.css?v=20261118c">
+<link rel="stylesheet" href="/styles.css?v=20261118d">
 </head>
 <body>
 
@@ -66,7 +66,7 @@
       <label class="busca">
         <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
         <span class="sr">Pesquisar conversas</span>
-        <input id="busca-conversas" type="search" placeholder="Pesquisar nome, telefone ou mensagem" autocomplete="off">
+        <input id="busca-conversas" type="search" placeholder="Pesquisar" autocomplete="off">
       </label>
       <div id="filtros-conversas" class="pilulas" role="group" aria-label="Filtrar conversas"></div>
       <div id="numeros-conversas" class="pilulas" role="group" aria-label="Filtrar por número"></div>
@@ -264,6 +264,6 @@
   </div>
 </dialog>
 
-<script src="/app.js?v=20261118c" type="module"></script>
+<script src="/app.js?v=20261118d" type="module"></script>
 </body>
 </html>
