@@ -158,6 +158,9 @@ async function listarConversas(status) {
   return dados;
 }
 
+const MAX_FIXADAS = 6;
+const lerFixadas = () => store.read('fixadas.json', []).filter(Number.isInteger);
+
 const falhaChatwoot = (res, err, msg = 'Falha ao consultar o Chatwoot') => {
   console.error('[conversas]', err.message);
   res.status(502).json({ erro: msg });
@@ -177,13 +180,21 @@ app.get('/api/conversas', auth.require, async (req, res) => {
   const status = req.query.status === 'resolved' ? 'resolved' : 'open';
   try {
     const [conversas, pend] = await Promise.all([listarConversas(status), engine.get(60000).catch(() => null)]);
+    let fixadas = lerFixadas();
+    if (status === 'open') {
+      // Conversa fixada que foi resolvida libera a vaga
+      const abertas = new Set(conversas.map((c) => c.id));
+      const vivas = fixadas.filter((id) => abertas.has(id));
+      if (vivas.length !== fixadas.length) store.write('fixadas.json', (fixadas = vivas));
+    }
     const pendentes = new Map((pend?.items || []).map((i) => [i.id, i]));
     const adiadas = new Set((pend?.adiadas || []).map((i) => i.id));
     res.json({
       conversas: conversas.map((c) => {
         const p = pendentes.get(c.id);
-        return { ...c, pendente: p ? { tipo: p.primary, urgencia: p.urgencia, minutos: p.waitingMinutes } : null, adiada: adiadas.has(c.id) };
-      }),
+        return { ...c, pendente: p ? { tipo: p.primary, urgencia: p.urgencia, minutos: p.waitingMinutes } : null, adiada: adiadas.has(c.id), fixada: fixadas.includes(c.id) };
+      }).sort((a, b) => Number(b.fixada) - Number(a.fixada)), // fixadas no topo; o resto segue por mais recente
+      maxFixadas: MAX_FIXADAS,
       inboxes: pend?.inboxes || [],
     });
   } catch (err) {
@@ -252,6 +263,25 @@ app.post('/api/conversas/:id/assumir', auth.require, async (req, res) => {
   } catch (err) {
     falhaChatwoot(res, err, 'Não foi possível assumir a conversa');
   }
+});
+
+// Fixar conversas no topo da lista (vale para toda a equipe)
+app.post('/api/conversas/:id/fixar', auth.require, (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  const fixadas = lerFixadas();
+  if (!fixadas.includes(id)) {
+    if (fixadas.length >= MAX_FIXADAS) return res.status(409).json({ erro: `Já há ${MAX_FIXADAS} conversas fixadas. Desafixe uma para fixar outra.` });
+    store.write('fixadas.json', [...fixadas, id]);
+  }
+  res.json({ ok: true });
+});
+
+app.post('/api/conversas/:id/desafixar', auth.require, (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  store.write('fixadas.json', lerFixadas().filter((x) => x !== id));
+  res.json({ ok: true });
 });
 
 app.post('/api/conversas/:id/reabrir', auth.require, async (req, res) => {

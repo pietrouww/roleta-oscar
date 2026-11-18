@@ -331,3 +331,5 @@ html.escuro .toast { background: #E9EDEF; color: #111B21; }
 .sel-todos input, .cartao-sel input { width: 22px; height: 22px; accent-color: var(--verde-texto); }
 .cartao-sel { display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin: -6px -6px -6px -10px; cursor: pointer; }
 .rel-texto { width: 100%; border: 1px solid var(--linha); border-radius: 12px; padding: 12px; font-size: 15px; line-height: 1.4; background: var(--cartao); resize: vertical; }
+.pino { vertical-align: -2px; margin-right: 4px; color: var(--sec); }
+.conv-linha.fixada { background: color-mix(in srgb, var(--pilula) 55%, transparent); }

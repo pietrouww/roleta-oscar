@@ -7,6 +7,7 @@ App para celular e computador (PWA) com dois módulos:
 - Abre a conversa com as mensagens em balões, **áudios, fotos, vídeos e arquivos**. Os áudios do WhatsApp são convertidos no servidor para tocar no iPhone.
 - **Responder por ali mesmo**: a mensagem sai em nome do atendente logado (texto).
 - Ações: assumir, marcar como pendência (com anotação), adiar, "não é pendência", resolver/reabrir, ignorar contato.
+- **Fixar conversas**: até 6 ficam no topo da lista, para toda a equipe (ação *Fixar conversa*). Ao resolver a conversa, a vaga é liberada.
 - No computador, a lista e a conversa ficam lado a lado.
 
 ## Módulo Pendências

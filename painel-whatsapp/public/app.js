@@ -13,6 +13,7 @@ const URG = { alta: { label: 'Urgente', cls: 'u-alta' }, media: { label: 'Normal
 const MIDIA_NOME = { audio: 'Áudio', imagem: 'Foto', video: 'Vídeo', arquivo: 'Arquivo', local: 'Localização', contato: 'Contato' };
 const AVATAR_CORES = ['#0F7A5C', '#2563A8', '#7E3FA0', '#B4363F', '#3D5A80', '#6B4F9E', '#1F6F8B', '#8A5A12'];
 const CHECKS = '<svg aria-hidden="true" width="17" height="11" viewBox="0 0 17 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6l3 3 6-7.5"></path><path d="M7 9l1 1 6-8.5"></path></svg>';
+const IC_PINO = '<svg class="pino" role="img" aria-label="Fixada" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 2.5l6 6-2 .8-3 3 .6 5.2-1.6 1.6-4.4-4.4-5.3 5.3-1.4-.1-.1-1.4 5.3-5.3L5.2 8.8l1.6-1.6 5.2.6 3-3z"></path></svg>';
 const IC_MIDIA = '<svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"></path></svg>';
 
 // Aberto como aba "Pendências" dentro do Chatwoot (Dashboard App)
@@ -217,10 +218,10 @@ function desenharConversas() {
 
   $('#lista-conversas').innerHTML = itens.length ? itens.map((c) => `
     <li class="conv">
-      <button class="conv-linha ${state.chat?.id === c.id ? 'ativa' : ''}" data-abrir="${c.id}">
+      <button class="conv-linha ${state.chat?.id === c.id ? 'ativa' : ''} ${c.fixada ? 'fixada' : ''}" data-abrir="${c.id}">
         <span class="avatar" style="background:${corAvatar(c.contactName)}" aria-hidden="true">${esc(iniciais(c.contactName))}</span>
         <span class="conv-corpo">
-          <span class="conv-l1"><span class="conv-nome">${esc(c.contactName)}</span><span class="conv-hora ${c.unread ? 'nova' : ''}">${quando(c.lastActivityAt)}</span></span>
+          <span class="conv-l1"><span class="conv-nome">${esc(c.contactName)}</span><span class="conv-hora ${c.unread ? 'nova' : ''}">${c.fixada ? IC_PINO : ''}${quando(c.lastActivityAt)}</span></span>
           <span class="conv-l2">${previaHTML(c)}${c.unread ? `<span class="bolinha" aria-label="${c.unread} não lidas">${c.unread}</span>` : ''}</span>
           <span class="etqs">${etqNumero(c.inbox)}${c.pendente ? `<span class="etq ${TIPO[c.pendente.tipo].cls}">${TIPO[c.pendente.tipo].label} · ${tempo(c.pendente.minutos)}</span>` : ''}${c.adiada ? '<span class="etq e-resp">Adiada</span>' : ''}${c.assigneeName ? `<span class="etq e-resp">${esc(c.assigneeName)}</span>` : ''}</span>
         </span>
@@ -422,7 +423,7 @@ function minutosAteAmanha(hora = 8, minuto = 30) {
 
 async function acao(id, tipo, extra = {}) {
   const rota = {
-    assumir: ['assumir'], resolver: ['resolver'], reabrir: ['reabrir'], concluir: ['concluir'], dispensar: ['dispensar'],
+    fixar: ['fixar'], desafixar: ['desafixar'], assumir: ['assumir'], resolver: ['resolver'], reabrir: ['reabrir'], concluir: ['concluir'], dispensar: ['dispensar'],
     adiar: ['adiar', { minutos: extra.minutos }], desadiar: ['adiar', { minutos: 0 }], marcar: ['marcar', { nota: extra.nota }],
   }[tipo];
   await api(`/api/conversas/${id}/${rota[0]}`, { method: 'POST', body: rota[1] || {} });
@@ -465,6 +466,10 @@ function abrirAcoes(id) {
   if (pend?.primary === 'manual' || marca?.manual) b('concluir', 'Concluir marcação', 'Tira a pendência marcada pela equipe');
   else if (!resolvida) b('marcar', 'Marcar como pendência', 'Com uma anotação do que falta fazer');
   if (pend && pend.primary !== 'manual') b('dispensar', 'Não é pendência', 'Tira da lista até chegar mensagem nova');
+  if (!resolvida) {
+    if (item.fixada) b('desafixar', 'Desafixar conversa', 'Tira do topo da lista');
+    else b('fixar', 'Fixar conversa', 'Fica no topo da lista para toda a equipe (até 6)');
+  }
   if (resolvida) b('reabrir', 'Reabrir conversa');
   else b('resolver', 'Marcar conversa como resolvida');
   if (item.contactId != null && !resolvida) b('ignorar', 'Ignorar este contato', 'Fornecedor, mensagens diárias de valores…');
@@ -484,6 +489,8 @@ function abrirAcoes(id) {
     if (a === 'concluir') return executar(id, 'concluir', {}, 'Marcação concluída');
     if (a === 'dispensar') return executar(id, 'dispensar', {}, 'Tirada das pendências');
     if (a === 'reabrir') return executar(id, 'reabrir', {}, 'Conversa reaberta');
+    if (a === 'fixar') return executar(id, 'fixar', {}, 'Conversa fixada');
+    if (a === 'desafixar') return executar(id, 'desafixar', {}, 'Conversa desafixada');
     if (a === 'resolver') {
       if (!confirm('Marcar esta conversa como resolvida?')) return;
       return executar(id, 'resolver', {}, 'Conversa resolvida');
