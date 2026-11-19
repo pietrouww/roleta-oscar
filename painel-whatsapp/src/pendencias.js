@@ -151,6 +151,7 @@ export class PendenciasEngine {
     const adiadas = [];
     const all = [];
     const continuadas = {};
+    const quem = {};
     const ignoradosSet = this.ignorados();
     const etiquetaIgnorar = this.config.labels.ignorar;
     const marcas = this.marcas.getMarks();
@@ -210,6 +211,7 @@ export class PendenciasEngine {
           };
           const result = await this.avaliar(c, messages, now, marcas[c.id], orcamento, ctx);
           all.push({ conv: c, result });
+          if (result.atendimento?.ia) quem[c.id] = result.atendimento;
           if (result.continuouEm) continuadas[c.id] = result.continuouEm;
           if (!result.pending) continue;
           const item = this.toItem(c, result, inboxById.get(c.inboxId));
@@ -244,6 +246,7 @@ export class PendenciasEngine {
       items,
       adiadas,
       continuadas,
+      quem, // conversas em que a IA de atendimento participou: quem respondeu por último e se ela chamou a equipe
       analisando: esperandoIa,
       totals: summarize(items, inboxes),
       inboxes: inboxes.map(({ id, name, phone, color }) => ({ id, name, phone, color })),
@@ -301,7 +304,21 @@ export class PendenciasEngine {
           if (ctx.iaEmFundo) this.filaIa.set(c.id, { messages: paraIa, outros });
           else analise = await this.ia.analisar(c.id, paraIa, now, outros);
         }
-        if (analise) r = this.daAnalise(analise, messages, now);
+        if (analise) {
+          r = this.daAnalise(analise, messages, now);
+          // Rede de segurança: a IA de atendimento disse que ia chamar a equipe e ninguém assumiu.
+          // Mesmo que a análise ache que está tudo respondido, isso fica como pendência.
+          const repasse = regras.flags.find((f) => f.viaIa);
+          if (repasse && !r.pending) {
+            r = {
+              pending: true, flags: [repasse], since: repasse.since, urgencia: 'alta', fonte: 'regras',
+              resumo: 'A IA disse que ia chamar a equipe e ninguém assumiu a conversa',
+              proximoPasso: 'Assumir a conversa e responder o cliente',
+            };
+          } else if (repasse && r.flags[0]) {
+            r.flags[0].viaIa = true;
+          }
+        }
       }
       if (r.pending && !marca.manual && doCliente(r.flags)) {
         // Também vale quando a outra conversa já foi resolvida (não está mais na lista de abertas)
@@ -338,6 +355,7 @@ export class PendenciasEngine {
       continuouEm: r.pending ? null : r.continuouEm || null,
       waitingMinutes: r.pending && r.since ? Math.max(0, Math.round((now - r.since) / 60000)) : 0,
       aiInvolved: regras.aiInvolved,
+      atendimento: regras.atendimento,
       lastHumanName: regras.lastHumanName,
       ultimaMsg: ultimaId,
     };

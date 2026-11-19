@@ -30,6 +30,25 @@ const PROMISE_PATTERNS = [
   /\b(em breve|ja ja) (te |lhe )?(retorno|retornamos|respondo|respondemos|aviso|avisamos)\b/,
 ];
 
+// A IA (assistente virtual) passando a conversa para uma pessoa: "vou te conectar com nosso técnico"
+const HANDOFF_PATTERNS = [
+  /\b(vou|vamos|irei|iremos) (te |lhe |voce )?(conectar|transferir|encaminhar|direcionar|passar|chamar|acionar|repassar)\b.{0,50}\b(tecnico|tecnica|atendente|equipe|especialista|humano|responsavel|time|colega|consultor|consultora|vendedor|vendedora|setor|gerente|laboratorio)\b/,
+  /\b(transferindo|encaminhando|conectando|direcionando|repassando)\b.{0,40}\b(tecnico|tecnica|atendente|equipe|especialista|humano|responsavel|time|colega|consultor|consultora|vendedor|vendedora|setor|gerente|laboratorio)\b/,
+  /\b(um|uma|nosso|nossa|o|a|algum|alguem) (da |do )?(tecnico|tecnica|atendente|especialista|equipe|consultor|consultora|time|nosso time|nossa equipe)\b.{0,40}\b(vai|ira|vao|irao|ja vai|ja vao) (te |lhe )?(atender|responder|retornar|chamar|confirmar|entrar em contato|falar|dar continuidade|continuar|assumir)\b/,
+  /\b(atendimento|conversa) (sera|foi|esta sendo) (transferid[oa]|encaminhad[oa]|direcionad[oa]|repassad[oa])\b/,
+];
+
+/** Nome com que a IA se apresenta ("Eu sou o Steve, assistente da ..."), se houver. */
+export function nomeDaIa(messages) {
+  const re = /\b(?:eu sou|sou|aqui é|aqui e|me chamo)\s+(?:o|a)\s+(\p{L}{2,20}),?\s+(?:o\s+|a\s+|seu\s+|sua\s+)?(?:assistente|atendente virtual)/iu;
+  for (const x of messages) {
+    if (x.dir !== 'out' || x.author !== 'ia') continue;
+    const m = re.exec(x.text || '');
+    if (m) return m[1][0].toUpperCase() + m[1].slice(1);
+  }
+  return '';
+}
+
 const ATTENDANT_PATTERNS = [
   /\b(atendente|atendentes|humano|humana)\b/,
   /\bpessoa (real|de verdade)\b/,
@@ -105,6 +124,11 @@ export function buildMatchers(rules = {}) {
       const n = normalize(text);
       return !!n && attendant.some((re) => re.test(n));
     },
+    /** A IA disse que vai passar a conversa para uma pessoa da equipe? */
+    isHandoff: (text) => {
+      const n = normalize(text).replace(/[*_~]/g, '');
+      return !!n && HANDOFF_PATTERNS.some((re) => re.test(n));
+    },
     /** Mensagem do cliente pede resposta? Retorna 'pergunta' | 'mensagem' | null */
     needsReply: (x) => {
       if (x.hasMedia) return 'midia';
@@ -175,8 +199,19 @@ export function classify(messages, opts = {}) {
       break;
     }
   }
+  // 1b) A IA disse que ia passar para uma pessoa ("vou te conectar com nosso técnico") e ninguém da equipe assumiu
+  let repasse = null;
+  for (let i = msgs.length - 1; i > lastHumanOut; i--) {
+    const x = msgs[i];
+    if (x.dir === 'out' && x.author === 'ia' && m.isHandoff && m.isHandoff(x.text)) {
+      repasse = x;
+      break;
+    }
+  }
   if (attendant) {
-    flags.push({ type: 'pediu_atendente', since: attendant.at, text: attendant.text || '' });
+    flags.push({ type: 'pediu_atendente', since: attendant.at, text: attendant.text || '', ...(repasse ? { viaIa: true } : {}) });
+  } else if (repasse) {
+    flags.push({ type: 'pediu_atendente', since: repasse.at, text: repasse.text || '', viaIa: true, by: 'IA', byAuthor: 'ia' });
   }
 
   // 2) Prometemos retorno e não voltamos a escrever
@@ -188,7 +223,7 @@ export function classify(messages, opts = {}) {
       ? false
       : msgs.slice(promiseIdx + 1).some((x) => x.dir === 'out' && !m.isPromise(x.text));
     // "Vou chamar alguém da equipe" dito pela IA já está coberto por "pediu atendente"
-    const coveredByAttendant = p.author === 'ia' && !!attendant;
+    const coveredByAttendant = p.author === 'ia' && (!!attendant || !!repasse);
     if (!humanAfter && !aiAfter && !coveredByAttendant && now - p.at >= promiseMin) {
       flags.push({ type: 'retorno_prometido', since: p.at, text: p.text || '', by: p.name || '', byAuthor: p.author });
     }
@@ -224,6 +259,15 @@ export function classify(messages, opts = {}) {
   }
 
   const aiInvolved = msgs.some((x) => x.author === 'ia');
+  // Quem está cuidando da conversa: a IA (última resposta de verdade foi dela) ou alguém da equipe
+  const ultimaResposta = lastOut !== -1 ? msgs[lastOut] : null;
+  const atendimento = {
+    por: !ultimaResposta ? null : ultimaResposta.author === 'ia' ? 'ia' : 'equipe',
+    ia: aiInvolved,
+    iaNome: aiInvolved ? nomeDaIa(messages) : '',
+    repasse: !!repasse,
+    repasseEm: repasse ? repasse.at : null,
+  };
   const lastHuman = lastHumanOut !== -1 ? msgs[lastHumanOut] : null;
   const since = flags.length ? Math.min(...flags.map((f) => f.since)) : null;
 
@@ -233,6 +277,7 @@ export function classify(messages, opts = {}) {
     since,
     waitingMinutes: since ? Math.max(0, Math.round((now - since) / 60000)) : 0,
     aiInvolved,
+    atendimento,
     lastHumanName: lastHuman?.name || '',
     lastMessage: msgs.length ? msgs[msgs.length - 1] : null,
   };

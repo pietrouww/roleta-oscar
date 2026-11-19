@@ -9,6 +9,8 @@ const TIPO = {
   retorno_prometido: { label: 'Retorno prometido', cls: 'e-promessa' },
   sem_resposta: { label: 'Sem resposta', cls: 'e-sem' },
 };
+const rotuloPend = (f) => (f.viaIa && (f.type || f.tipo) === 'pediu_atendente' ? 'IA chamou a equipe' : TIPO[f.type || f.tipo].label);
+const nomeIa = (a) => (a?.iaNome ? `IA ${a.iaNome}` : 'IA');
 const URG = { alta: { label: 'Urgente', cls: 'u-alta' }, media: { label: 'Normal', cls: 'u-media' }, baixa: { label: 'Sem pressa', cls: 'u-baixa' } };
 const MIDIA_NOME = { audio: 'Áudio', imagem: 'Foto', video: 'Vídeo', arquivo: 'Arquivo', local: 'Localização', contato: 'Contato' };
 const CHECKS = '<svg aria-hidden="true" width="17" height="11" viewBox="0 0 17 11" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 6l3 3 6-7.5"></path><path d="M7 9l1 1 6-8.5"></path></svg>';
@@ -201,10 +203,11 @@ function desenharConversas() {
     { id: 'abertas', nome: 'Abertas' },
     { id: 'naolidas', nome: 'Não lidas' },
     { id: 'pendentes', nome: 'Pendentes' },
+    { id: 'ia', nome: '✦ Com a IA' },
     { id: 'minhas', nome: 'Minhas' },
     { id: 'resolvidas', nome: 'Resolvidas' },
   ];
-  const conta = { naolidas: lista.filter((c) => c.unread).length, pendentes: lista.filter((c) => c.pendente).length };
+  const conta = { naolidas: lista.filter((c) => c.unread).length, pendentes: lista.filter((c) => c.pendente).length, ia: lista.filter((c) => c.atendimento?.por === 'ia').length };
   setHTML($('#filtros-conversas'), filtros.map((f) =>
     `<button class="pilula" data-f="${f.id}" aria-pressed="${state.fConv === f.id}">${f.nome}${conta[f.id] && state.fConv !== 'resolvidas' ? ` <span class="n">${conta[f.id]}</span>` : ''}</button>`).join(''));
 
@@ -217,6 +220,7 @@ function desenharConversas() {
   const itens = lista.filter((c) =>
     (state.fConv !== 'naolidas' || c.unread)
     && (state.fConv !== 'pendentes' || c.pendente)
+    && (state.fConv !== 'ia' || c.atendimento?.por === 'ia')
     && (state.fConv !== 'minhas' || c.assigneeId === meu)
     && (state.fConvNumero === 'todos' || String(c.inbox.id) === String(state.fConvNumero))
     && (!q || [c.contactName, c.contactPhone, fone(c.contactPhone), c.preview?.texto, c.assigneeName].join(' ').toLowerCase().includes(q)));
@@ -234,7 +238,7 @@ function desenharConversas() {
         <span class="conv-corpo">
           <span class="conv-l1"><span class="conv-nome">${esc(c.contactName)}</span><span class="conv-hora ${c.unread ? 'nova' : ''}">${c.fixada ? IC_PINO : ''}${quando(c.lastActivityAt)}</span></span>
           <span class="conv-l2">${previaHTML(c)}${c.unread ? `<span class="bolinha" aria-label="${c.unread} não lidas">${c.unread}</span>` : ''}</span>
-          <span class="etqs">${etqNumero(c.inbox)}${c.pendente ? `<span class="etq ${TIPO[c.pendente.tipo].cls}">${TIPO[c.pendente.tipo].label} · ${tempo(c.pendente.minutos)}</span>` : ''}${c.adiada ? '<span class="etq e-resp">Adiada</span>' : ''}${c.continuouEm && !c.pendente ? `<span class="etq e-resp">Continuou no ${esc(c.continuouEm.nome || 'outro número')}</span>` : ''}${c.assigneeName ? `<span class="etq e-resp">${esc(c.assigneeName)}</span>` : ''}</span>
+          <span class="etqs">${etqNumero(c.inbox)}${c.pendente ? `<span class="etq ${TIPO[c.pendente.tipo].cls}">${rotuloPend(c.pendente)} · ${tempo(c.pendente.minutos)}</span>` : ''}${c.atendimento?.por === 'ia' && !c.pendente?.viaIa ? `<span class="etq e-ia">✦ ${esc(nomeIa(c.atendimento))} atendendo</span>` : ''}${c.adiada ? '<span class="etq e-resp">Adiada</span>' : ''}${c.continuouEm && !c.pendente ? `<span class="etq e-resp">Continuou no ${esc(c.continuouEm.nome || 'outro número')}</span>` : ''}${c.assigneeName ? `<span class="etq e-resp">${esc(c.assigneeName)}</span>` : ''}</span>
         </span>
       </button>
     </li>`).join('') : `<li>${vazio('Nenhuma conversa', q ? 'Nada encontrado com essa pesquisa.' : 'Nada com esse filtro.')}</li>`);
@@ -293,7 +297,7 @@ function acharConversa(id) {
 const chatGuardado = new Map(); // id -> { mensagens, pendencia, marca, url, temMais, continuouEm, max }
 function guardarChat(ch) {
   chatGuardado.delete(ch.id);
-  chatGuardado.set(ch.id, { mensagens: ch.mensagens, pendencia: ch.pendencia, marca: ch.marca, url: ch.url, temMais: ch.temMais, continuouEm: ch.continuouEm, max: ch.max });
+  chatGuardado.set(ch.id, { mensagens: ch.mensagens, pendencia: ch.pendencia, marca: ch.marca, url: ch.url, temMais: ch.temMais, continuouEm: ch.continuouEm, atendimento: ch.atendimento, max: ch.max });
   if (chatGuardado.size > 40) chatGuardado.delete(chatGuardado.keys().next().value);
 }
 const buscasChat = new Map(); // "id:max" -> { p, at }: pedido em curso ou recém-chegado (pré-busca ao tocar)
@@ -319,7 +323,7 @@ async function abrirChat(id, dica = null) {
   limparCompositor();
   const conv = acharConversa(id) || dica || { id, contactName: `Conversa ${id}`, contactPhone: '' };
   const g = chatGuardado.get(id);
-  state.chat = { id, conv, mensagens: [], pendencia: g?.pendencia || null, marca: g?.marca || {}, url: g?.url || '', temMais: g?.temMais || false, continuouEm: g?.continuouEm || null, max: g?.max || 80 };
+  state.chat = { id, conv, mensagens: [], pendencia: g?.pendencia || null, marca: g?.marca || {}, url: g?.url || '', temMais: g?.temMais || false, continuouEm: g?.continuouEm || null, atendimento: g?.atendimento || conv?.atendimento || null, max: g?.max || 80 };
   $('#chat').hidden = false;
   $('#app').classList.add('tem-chat');
   $('#chat-nome').textContent = conv.contactName;
@@ -439,7 +443,12 @@ function desenharFaixaPendencia() {
   const p = state.chat.pendencia;
   if (!p) {
     const outro = state.chat.continuouEm;
-    el.hidden = !outro;
+    const at = state.chat.atendimento;
+    el.hidden = !outro && at?.por !== 'ia';
+    if (!outro && at?.por === 'ia') {
+      el.className = 'chat-pendencia';
+      el.innerHTML = `<div class="cp-topo"><span class="sec pequeno"><b style="color:var(--e-ia)">✦ ${esc(nomeIa(at))}</b> está respondendo esta conversa. Ninguém da equipe escreveu depois dela.</span></div>`;
+    }
     if (outro) {
       el.className = 'chat-pendencia';
       el.innerHTML = `<div class="cp-topo"><span class="sec pequeno">O cliente continuou esta conversa pelo número <b>${esc(outro.nome || 'de outro setor')}</b>. Aqui não conta como pendência.</span>
@@ -451,7 +460,7 @@ function desenharFaixaPendencia() {
   el.hidden = false;
   el.className = `chat-pendencia ${URG[p.urgencia]?.cls || ''}`;
   el.innerHTML = `
-    <div class="cp-topo"><span class="etq ${TIPO[p.primary].cls}">${TIPO[p.primary].label}</span><span class="sec pequeno">${adiada ? `Adiada até ${mesmoDia(p.adiadaAte, Date.now()) ? '' : `${diaTexto(p.adiadaAte).toLowerCase()} `}${hhmm(p.adiadaAte)}` : `aguardando há ${tempo(p.waitingMinutes)}`}</span></div>
+    <div class="cp-topo"><span class="etq ${TIPO[p.primary].cls}">${rotuloPend(p.flags.find((f) => f.type === p.primary) || { type: p.primary })}</span><span class="sec pequeno">${adiada ? `Adiada até ${mesmoDia(p.adiadaAte, Date.now()) ? '' : `${diaTexto(p.adiadaAte).toLowerCase()} `}${hhmm(p.adiadaAte)}` : `aguardando há ${tempo(p.waitingMinutes)}`}</span></div>
     ${p.resumo ? `<p class="cp-resumo">${esc(p.resumo)}</p>` : ''}
     ${p.proximoPasso ? `<p class="sec pequeno"><b>Próximo passo:</b> ${esc(p.proximoPasso)}</p>` : ''}`;
 }
@@ -468,6 +477,7 @@ async function atualizarChat(primeira = false, manterTopo = false) {
     ch.marca = r.marca;
     ch.url = r.url;
     ch.continuouEm = r.continuouEm || null;
+    ch.atendimento = r.atendimento || null;
     if (primeira) ch.mensagens = [];
     desenharMensagens(r.mensagens);
     if (manterTopo) $('#chat-mensagens').scrollTop = 0;
@@ -920,7 +930,7 @@ function origemHTML(item) {
   const f = item.flags.find((x) => x.type !== 'manual') || item.flags[0];
   if (!f?.text) return '';
   if (f.type === 'manual') return `<p class="origem"><span class="sec">Anotação de ${esc(f.by || 'equipe')}:</span> ${esc(f.text)}</p>`;
-  const quem = f.type === 'retorno_prometido' ? (f.byAuthor === 'ia' ? '✦ IA' : f.by || 'Equipe') : 'Cliente';
+  const quem = f.type === 'retorno_prometido' || (f.viaIa && f.byAuthor === 'ia') ? (f.byAuthor === 'ia' ? '✦ IA' : f.by || 'Equipe') : 'Cliente';
   return `<p class="origem"><span class="sec">${esc(quem)} · ${quando(f.since)}${mesmoDia(f.since, Date.now()) ? '' : ` ${hhmm(f.since)}`}:</span> “${esc(f.text.slice(0, 220))}”</p>`;
 }
 
@@ -938,7 +948,7 @@ function cartao(item, { acoes = true, selecionavel = false } = {}) {
       <div class="cartao-quem"><p class="cartao-nome">${esc(item.contactName)}</p><p class="sec pequeno">${[esc(fone(item.contactPhone)), item.assigneeName ? `Resp.: ${esc(item.assigneeName)}` : 'Sem responsável'].filter(Boolean).join(' · ')}</p></div>
       <span class="espera ${item.waitingMinutes >= 120 ? 'atraso' : ''}">${adiada ? `até ${hhmm(item.adiadaAte)}` : tempo(item.waitingMinutes)}</span>
     </div>
-    <div class="etqs">${etqNumero(item.inbox)}${item.flags.map((f) => `<span class="etq ${TIPO[f.type].cls}">${TIPO[f.type].label}</span>`).join('')}${MOTIVO[motivo] ? `<span class="etq e-resp">${MOTIVO[motivo]}</span>` : ''}${item.urgencia === 'alta' ? '<span class="etq u-chip">Urgente</span>' : ''}${fonte}</div>
+    <div class="etqs">${etqNumero(item.inbox)}${item.flags.map((f) => `<span class="etq ${TIPO[f.type].cls}">${rotuloPend(f)}</span>`).join('')}${MOTIVO[motivo] ? `<span class="etq e-resp">${MOTIVO[motivo]}</span>` : ''}${item.urgencia === 'alta' ? '<span class="etq u-chip">Urgente</span>' : ''}${fonte}</div>
     ${item.resumo ? `<p class="resumo">${esc(item.resumo)}</p>` : ''}
     ${item.proximoPasso ? `<p class="passo"><b>Próximo passo:</b> ${esc(item.proximoPasso)}</p>` : ''}
     ${origemHTML(item)}
@@ -1096,7 +1106,7 @@ function textoRelatorio(itens, snap) {
   itens.forEach((i, n) => {
     const f = i.flags.find((x) => x.type !== 'manual') || i.flags[0] || {};
     const motivo = { pergunta: 'pergunta', pedido: 'pedido', midia: 'áudio/foto' }[i.motivo || i.flags.find((x) => x.motivo)?.motivo] || '';
-    const sit = i.flags.map((x) => TIPO[x.type].label.toLowerCase()).join(' e ');
+    const sit = i.flags.map((x) => rotuloPend(x).toLowerCase().replace(/^ia /, 'IA ')).join(' e ');
     const digitos = String(i.contactPhone || '').replace(/\D/g, '');
     linhas.push(`${n + 1}. *${i.contactName}*${i.contactPhone ? ` — ${fone(i.contactPhone)}` : ''}`);
     linhas.push(`   ${i.inbox ? `Número: ${i.inbox.name} · ` : ''}${sit}${motivo ? ` (${motivo})` : ''} há ${tempo(i.waitingMinutes)}`);

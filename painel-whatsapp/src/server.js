@@ -34,6 +34,7 @@ const ia = config.demo
   : new Analisador({ apiKey: config.ia.apiKey, geminiKey: config.ia.geminiKey, provedor: config.ia.provedor, model: config.ia.model, effort: config.ia.effort, timeZone: config.timezone, store });
 const msgs = new CacheMensagens(client);
 const engine = new PendenciasEngine({ client, config, ia, marcas: store, ignorados: () => store.ignoredIds(), mensagens: msgs });
+if (!config.demo) ia.ehAuto = engine.matchers.isAutoReply;
 const hostDe = (u) => { try { return new URL(u).host; } catch { return ''; } };
 const midia = new Midia({
   dir: config.dataDir,
@@ -204,7 +205,9 @@ app.get('/api/conversas', auth.require, async (req, res) => {
         const p = pendentes.get(c.id);
         return {
           ...c,
-          pendente: p ? { tipo: p.primary, urgencia: p.urgencia, minutos: p.waitingMinutes } : null,
+          pendente: p ? { tipo: p.primary, urgencia: p.urgencia, minutos: p.waitingMinutes, viaIa: p.flags.some((f) => f.viaIa && f.type === 'pediu_atendente') } : null,
+          // A IA de atendimento participou desta conversa: quem respondeu por último e se ela chamou a equipe
+          atendimento: pend?.quem?.[c.id] || null,
           adiada: adiadas.has(c.id),
           fixada: fixadas.includes(c.id),
           continuouEm: pend?.continuadas?.[c.id] || null,
@@ -250,6 +253,7 @@ app.get('/api/conversas/:id', auth.require, async (req, res) => {
       temMais: !completo || raw.length > max,
       pendencia: pendenciaDe(id),
       continuouEm: engine.last?.continuadas?.[id] || null,
+      atendimento: engine.last?.quem?.[id] || null,
       marca: store.getMarks()[id] || {},
       url: config.chatwoot.publicUrl ? `${config.chatwoot.publicUrl}/app/accounts/${config.chatwoot.accountId}/conversations/${id}` : '',
     });
