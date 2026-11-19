@@ -156,11 +156,30 @@ export class DemoChatwootClient {
       }));
   }
 
-  async sendMessage(id, content) {
+  async listCanned() {
+    this.rapidas ||= [
+      { id: 1, atalho: 'endereco', texto: 'Estamos na Rua das Flores, 100 - Centro. Atendemos de segunda a sexta, das 9h às 18h, e sábado até as 13h.' },
+      { id: 2, atalho: 'pix', texto: 'Olá, {{contact.name}}! Nossa chave Pix é o CNPJ 00.000.000/0001-00. Assim que pagar, mande o comprovante por aqui.' },
+      { id: 3, atalho: 'pronto', texto: 'Seu aparelho está pronto para retirada. 😊' },
+    ];
+    return this.rapidas;
+  }
+
+  async createCanned({ atalho, texto }) {
+    const r = { id: Date.now(), atalho, texto };
+    (await this.listCanned()).push(r);
+    return r;
+  }
+
+  async deleteCanned(id) {
+    this.rapidas = (await this.listCanned()).filter((x) => x.id !== Number(id));
+  }
+
+  async sendMessage(id, content, token, { nota = false } = {}) {
     const c = this.conversations.find((x) => x.id === Number(id));
     if (!c) throw new Error('Conversa não encontrada');
     c.messages.push({
-      id: this.nextId(), message_type: 1, created_at: Math.round(Date.now() / 1000), content, private: false,
+      id: this.nextId(), message_type: 1, created_at: Math.round(Date.now() / 1000), content, private: !!nota,
       sender_type: 'User', sender: { name: this.usuario || 'Atendente', type: 'user' }, attachments: [], status: 'sent',
     });
   }

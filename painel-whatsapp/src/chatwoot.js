@@ -68,8 +68,24 @@ export class ChatwootClient {
     return r?.payload || [];
   }
 
-  async sendMessage(conversationId, content, token) {
-    return this.request('POST', this.acc(`/conversations/${conversationId}/messages`), { content, message_type: 'outgoing', private: false }, token);
+  /** Envia um texto ao cliente; com `nota`, grava uma nota interna (só a equipe vê, não vai para o WhatsApp). */
+  async sendMessage(conversationId, content, token, { nota = false } = {}) {
+    return this.request('POST', this.acc(`/conversations/${conversationId}/messages`), { content, message_type: 'outgoing', private: !!nota }, token);
+  }
+
+  // Respostas rápidas (as "respostas prontas" do Chatwoot): atalho + texto
+  async listCanned() {
+    const r = await this.request('GET', this.acc('/canned_responses'));
+    return (Array.isArray(r) ? r : r?.payload || []).map((x) => ({ id: x.id, atalho: x.short_code || '', texto: x.content || '' }));
+  }
+
+  async createCanned({ atalho, texto }) {
+    const x = await this.request('POST', this.acc('/canned_responses'), { short_code: atalho, content: texto });
+    return { id: x?.id, atalho: x?.short_code || atalho, texto: x?.content || texto };
+  }
+
+  async deleteCanned(id) {
+    return this.request('DELETE', this.acc(`/canned_responses/${id}`));
   }
 
   /**

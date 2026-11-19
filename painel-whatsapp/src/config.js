@@ -31,6 +31,26 @@ const bool = (k, d) => {
 };
 const list = (k, d = '') => env(k, d).split(',').map((s) => s.trim()).filter(Boolean);
 
+/**
+ * Horários das verificações. Aceita horários soltos ("08:30,12:00") e faixas com intervalo em minutos
+ * ("08:00-18:00/60" = de hora em hora das 8h às 18h). Devolve a lista em ordem, sem repetição.
+ */
+export function expandirHorarios(itens) {
+  const out = new Set();
+  for (const item of itens) {
+    const f = /^(\d{2}):(\d{2})-(\d{2}):(\d{2})\/(\d{1,3})$/.exec(item);
+    if (!f) {
+      out.add(item);
+      continue;
+    }
+    const ini = Number(f[1]) * 60 + Number(f[2]);
+    const fim = Number(f[3]) * 60 + Number(f[4]);
+    const passo = Math.max(5, Number(f[5]));
+    for (let t = ini; t <= fim && t < 1440; t += passo) out.add(`${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`);
+  }
+  return [...out].sort();
+}
+
 export const config = {
   demo: bool('DEMO', false),
   port: int('PORT', 3100),
@@ -80,7 +100,8 @@ export const config = {
   },
 
   checks: {
-    times: list('CHECK_TIMES', '08:30,12:00,17:00'),
+    // De hora em hora, das 8h às 18h. Também aceita horários soltos: 08:30,12:00,17:00
+    times: expandirHorarios(list('CHECK_TIMES', '08:00-18:00/60')),
     days: env('CHECK_DAYS', '1-6'), // 1=segunda ... 6=sábado (formato cron)
   },
 
@@ -131,7 +152,7 @@ export function validateConfig() {
     if (!config.chatwoot.token) problems.push('CHATWOOT_API_TOKEN não definido');
   }
   for (const t of config.checks.times) {
-    if (!/^\d{2}:\d{2}$/.test(t)) problems.push(`Horário inválido em CHECK_TIMES: ${t}`);
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(t)) problems.push(`Horário inválido em CHECK_TIMES: ${t}`);
   }
   return problems;
 }

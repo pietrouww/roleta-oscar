@@ -332,11 +332,15 @@ async function abrirChat(id, dica = null) {
   $('#chat-sub').textContent = [fone(conv.contactPhone), conv.inbox?.name].filter(Boolean).join(' · ');
   $('#chat-texto').value = '';
   campo.style.height = 'auto';
+  definirNota(false);
+  fecharRapidas();
   const pode = state.me.usuario.podeResponder;
   $('#chat-como').textContent = pode ? `Respondendo como ${state.me.usuario.name}` : 'Para responder por aqui, saia e entre de novo no painel.';
   $('#chat-texto').disabled = !pode;
   $('#chat-enviar').disabled = !pode;
   $('#chat-anexar').disabled = !pode;
+  $('#chat-rapidas-btn').disabled = !pode;
+  $('#chat-nota').hidden = !pode;
   $('#chat-mic').disabled = !pode;
   atualizarBotoesEnvio();
   if (g) {
@@ -524,11 +528,14 @@ $('#chat-form').addEventListener('submit', async (e) => {
     return;
   }
   if (!texto) return;
+  const nota = modoNota;
+  definirNota(false);
+  fecharRapidas();
   $('#chat-enviar').disabled = true;
   // A mensagem aparece na hora, como "Enviando…", e é confirmada quando o servidor responde
   const caixa = $('#chat-mensagens');
   const temp = document.createElement('div');
-  temp.className = 'balao out enviando';
+  temp.className = `balao ${nota ? 'nota' : 'out'} enviando`;
   temp.dataset.temp = '1';
   temp.innerHTML = `<span class="autor">${esc(state.me.usuario.name)}</span><span class="m-texto">${textoMsg(texto)}</span><span class="meta">Enviando…</span>`;
   caixa.querySelector('.carregando')?.remove();
@@ -538,7 +545,7 @@ $('#chat-form').addEventListener('submit', async (e) => {
   campo.style.height = 'auto';
   ch.enviando = (ch.enviando || 0) + 1;
   try {
-    await api(`/api/conversas/${ch.id}/mensagens`, { method: 'POST', body: { texto } });
+    await api(`/api/conversas/${ch.id}/mensagens`, { method: 'POST', body: { texto, nota } });
     ch.enviando--;
     if (state.chat === ch) {
       await atualizarChat();
@@ -556,6 +563,120 @@ $('#chat-form').addEventListener('submit', async (e) => {
   }
 });
 
+// ---------- Nota interna (só a equipe vê; não vai para o WhatsApp) ----------
+let modoNota = false;
+function definirNota(v) {
+  modoNota = !!v;
+  $('#chat-nota').setAttribute('aria-pressed', String(modoNota));
+  $('#chat-nota').textContent = modoNota ? 'Cancelar nota' : 'Nota interna';
+  $('#chat-form').classList.toggle('modo-nota', modoNota);
+  if (state.me) $('#chat-como').textContent = modoNota ? 'Nota interna: só a equipe vê, o cliente não recebe' : (state.me.usuario.podeResponder ? `Respondendo como ${state.me.usuario.name}` : 'Para responder por aqui, saia e entre de novo no painel.');
+  atualizarBotoesEnvio();
+}
+$('#chat-nota').addEventListener('click', () => {
+  definirNota(!modoNota);
+  if (modoNota) campo.focus();
+});
+
+// ---------- Respostas rápidas: toque no raio ou digite "/" e o atalho ----------
+let rapidas = null; // lista carregada do servidor
+let rapidasAbertas = false;
+async function lerRapidas(forcar = false) {
+  if (!rapidas || forcar) rapidas = (await api('/api/respostas-rapidas')).respostas;
+  return rapidas;
+}
+function fecharRapidas() {
+  rapidasAbertas = false;
+  $('#chat-rapidas').hidden = true;
+  $('#chat-rapidas-btn').setAttribute('aria-expanded', 'false');
+}
+function desenharRapidas(filtro = '') {
+  const f = filtro.toLowerCase();
+  const lista = (rapidas || []).filter((r) => !f || r.atalho.toLowerCase().includes(f) || r.texto.toLowerCase().includes(f));
+  const el = $('#chat-rapidas');
+  el.hidden = false;
+  rapidasAbertas = true;
+  $('#chat-rapidas-btn').setAttribute('aria-expanded', 'true');
+  setHTML(el, `${lista.length
+    ? lista.slice(0, 30).map((r) => `<button type="button" class="rapida" role="option" data-rapida-id="${r.id}"><span class="rapida-atalho">/${esc(r.atalho)}</span><span class="rapida-texto">${esc(r.texto.replace(/\s+/g, ' ').slice(0, 120))}</span></button>`).join('')
+    : `<p class="sec pequeno rapida-vazio">${rapidas?.length ? 'Nenhuma resposta com esse atalho.' : 'Nenhuma resposta rápida ainda.'}</p>`}
+    <button type="button" class="link-btn rapida-gerenciar" data-rapidas-gerenciar>Criar ou apagar respostas…</button>`);
+}
+async function abrirRapidas(filtro = '') {
+  try {
+    await lerRapidas();
+    desenharRapidas(filtro);
+  } catch (err) {
+    toast(err.message);
+  }
+}
+function usarRapida(r) {
+  const nome = (state.chat?.conv?.contactName || '').trim().split(/\s+/)[0] || '';
+  campo.value = r.texto.replace(/\{\{\s*contact\.name\s*\}\}|\{nome\}/gi, /^[+\d\s()-]*$/.test(nome) ? '' : nome).replace(/ +([,!.])/g, '$1');
+  campo.dispatchEvent(new Event('input'));
+  fecharRapidas();
+  campo.focus();
+}
+$('#chat-rapidas-btn').addEventListener('click', () => (rapidasAbertas ? fecharRapidas() : abrirRapidas()));
+$('#chat-rapidas').addEventListener('click', (e) => {
+  if (e.target.closest('[data-rapidas-gerenciar]')) return abrirGerenciarRapidas();
+  const b = e.target.closest('[data-rapida-id]');
+  const r = b && (rapidas || []).find((x) => String(x.id) === b.dataset.rapidaId);
+  if (r) usarRapida(r);
+});
+campo.addEventListener('input', () => {
+  const m = /^\/([\p{L}\p{N}_-]*)$/u.exec(campo.value);
+  if (m) abrirRapidas(m[1]);
+  else if (rapidasAbertas && campo.value) fecharRapidas();
+});
+campo.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && rapidasAbertas) fecharRapidas();
+});
+
+function desenharGerenciarRapidas() {
+  setHTML($('#rapidas-lista'), (rapidas || []).length
+    ? rapidas.map((r) => `<div class="rapida-linha"><div><p class="rapida-atalho">/${esc(r.atalho)}</p><p class="sec pequeno">${esc(r.texto)}</p></div><button type="button" class="link-btn vermelho" data-rapida-apagar="${r.id}" aria-label="Apagar /${esc(r.atalho)}">Apagar</button></div>`).join('')
+    : '<p class="sec pequeno">Nenhuma resposta salva ainda.</p>');
+}
+async function abrirGerenciarRapidas() {
+  fecharRapidas();
+  try {
+    await lerRapidas(true);
+  } catch (err) {
+    return toast(err.message);
+  }
+  desenharGerenciarRapidas();
+  $('#rapidas-dialog').showModal();
+}
+$('#rapidas-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await api('/api/respostas-rapidas', { method: 'POST', body: { atalho: $('#rapida-atalho').value, texto: $('#rapida-texto').value } });
+    $('#rapidas-form').reset();
+    await lerRapidas(true);
+    desenharGerenciarRapidas();
+    toast('Resposta salva');
+  } catch (err) {
+    toast(err.message);
+  }
+});
+$('#rapidas-lista').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-rapida-apagar]');
+  if (!b) return;
+  if (b.dataset.certeza !== '1') { // segundo toque confirma
+    b.dataset.certeza = '1';
+    b.textContent = 'Apagar mesmo?';
+    return;
+  }
+  try {
+    await api(`/api/respostas-rapidas/${b.dataset.rapidaApagar}`, { method: 'DELETE' });
+    await lerRapidas(true);
+    desenharGerenciarRapidas();
+  } catch (err) {
+    toast(err.message);
+  }
+});
+
 // ---------- Anexos (foto, vídeo, arquivo) e áudio gravado ----------
 const MAX_ARQUIVO = 40 * 1024 * 1024;
 const PARTE = 512 * 1024;
@@ -569,9 +690,10 @@ const mmss = (ms) => `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) %
 /** Como no WhatsApp: microfone com o campo vazio; seta de enviar quando há texto ou anexo. */
 function atualizarBotoesEnvio() {
   const temConteudo = campo.value.trim() !== '' || anexos.length > 0;
-  $('#chat-mic').hidden = !podeGravar || temConteudo;
-  $('#chat-enviar').hidden = podeGravar && !temConteudo;
-  campo.placeholder = anexos.length ? 'Legenda (opcional)' : 'Mensagem';
+  $('#chat-mic').hidden = !podeGravar || temConteudo || modoNota;
+  $('#chat-enviar').hidden = podeGravar && !temConteudo && !modoNota;
+  $('#chat-anexar').hidden = modoNota;
+  campo.placeholder = modoNota ? 'Nota para a equipe' : anexos.length ? 'Legenda (opcional)' : 'Mensagem';
 }
 
 function desenharAnexos() {
@@ -806,7 +928,7 @@ async function executar(id, tipo, extra, mensagem) {
 }
 
 function recarregarListas(forcar = false) {
-  const tarefas = [carregarPendencias(forcar)];
+  const tarefas = [carregarPendencias(forcar).then(() => (state.tela === 'pendencias' && state.sub === 'verificacoes' ? carregarVerificadas() : null))];
   if (state.tela === 'conversas') tarefas.push(carregarConversas(true));
   return Promise.all(tarefas);
 }
@@ -892,7 +1014,7 @@ function abrirSub(sub) {
     desenharPendencias(); // mostra na hora o que já tem
     carregarPendencias();
   }
-  if (sub === 'verificacoes') carregarDia(state.dia, state.hora);
+  if (sub === 'verificacoes') carregarVerificadas();
   if (sub === 'indicadores') carregarIndicadores();
 }
 $$('#sub-pendencias button').forEach((b) => b.addEventListener('click', () => abrirSub(b.dataset.sub)));
@@ -901,7 +1023,7 @@ $('#btn-atualizar').addEventListener('click', async () => {
   const b = $('#btn-atualizar');
   b.classList.add('girando');
   try {
-    if (state.sub === 'verificacoes') await carregarDia(state.dia, state.hora);
+    if (state.sub === 'verificacoes') await carregarPendencias(true).then(carregarVerificadas);
     else if (state.sub === 'indicadores') await carregarPendencias(true).then(carregarIndicadores);
     else await carregarPendencias(true);
   } finally {
@@ -949,6 +1071,7 @@ function cartao(item, { acoes = true, selecionavel = false } = {}) {
       <span class="espera ${item.waitingMinutes >= 120 ? 'atraso' : ''}">${adiada ? `até ${hhmm(item.adiadaAte)}` : tempo(item.waitingMinutes)}</span>
     </div>
     <div class="etqs">${etqNumero(item.inbox)}${item.flags.map((f) => `<span class="etq ${TIPO[f.type].cls}">${rotuloPend(f)}</span>`).join('')}${MOTIVO[motivo] ? `<span class="etq e-resp">${MOTIVO[motivo]}</span>` : ''}${item.urgencia === 'alta' ? '<span class="etq u-chip">Urgente</span>' : ''}${fonte}</div>
+    ${item.verificacao ? `<p class="sec pequeno verif-linha">Pendente desde a verificação de ${esc(diaHora(item.verificacao.primeira))}${item.verificacao.vezes > 1 ? ` · já passou por ${item.verificacao.vezes} verificações` : ''}</p>` : ''}
     ${item.resumo ? `<p class="resumo">${esc(item.resumo)}</p>` : ''}
     ${item.proximoPasso ? `<p class="passo"><b>Próximo passo:</b> ${esc(item.proximoPasso)}</p>` : ''}
     ${origemHTML(item)}
@@ -1020,89 +1143,80 @@ function desenharPendencias() {
 }
 
 // ---------- Verificações ----------
-function somarDias(iso, n) {
-  const d = new Date(`${iso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + n);
-  return d.toISOString().slice(0, 10);
+// Uma lista só: tudo o que já passou por alguma verificação e continua pendente agora.
+const diaHora = (iso) => {
+  const t = new Date(iso).getTime();
+  return `${diaTexto(t) === 'Hoje' ? 'hoje' : quando(t).toLowerCase()} às ${hhmm(t)}`;
+};
+
+/** "de hora em hora, das 08:00 às 18:00" quando os horários são regulares; senão, a lista. */
+function horariosTexto(h) {
+  if (!h?.length) return '';
+  if (h.length < 4) return h.join(', ');
+  const min = h.map((x) => Number(x.slice(0, 2)) * 60 + Number(x.slice(3)));
+  const passo = min[1] - min[0];
+  if (!min.every((m, i) => i === 0 || m - min[i - 1] === passo)) return h.join(', ');
+  const cada = passo === 60 ? 'de hora em hora' : passo % 60 === 0 ? `a cada ${passo / 60} horas` : `a cada ${passo} minutos`;
+  return `${cada}, das ${h[0]} às ${h[h.length - 1]}`;
 }
 
-async function carregarDia(dia, horaEscolhida) {
+async function carregarVerificadas() {
   let r;
   try {
-    r = await api(`/api/verificacoes${dia ? `?data=${dia}` : ''}`);
+    r = await api('/api/verificacoes/pendentes');
   } catch (err) {
-    $('#lista-verif').innerHTML = vazio('Erro', err.message);
+    if (!state.verif) $('#lista-verif').innerHTML = vazio('Erro', err.message);
     return;
   }
-  state.dia = r.data;
-  const label = new Date(`${r.data}T12:00:00Z`).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
-  $('#dia-label').textContent = r.data === r.hoje ? `Hoje, ${label}` : label.charAt(0).toUpperCase() + label.slice(1);
-  $('#dia-proximo').disabled = r.data >= r.hoje;
-  state.verif = null;
-  state.sel.clear();
-  $('#verif-barra').hidden = true;
-  if (!r.horarios.length) {
-    $('#horarios').innerHTML = '';
-    $('#verif-resumo').hidden = true;
-    $('#lista-verif').innerHTML = vazio('Sem verificações neste dia', 'As verificações acontecem de segunda a sábado.');
-    return;
-  }
-  const feitas = r.horarios.filter((h) => h.status === 'feita');
-  const escolhida = horaEscolhida && r.horarios.some((h) => h.time === horaEscolhida) ? horaEscolhida : (feitas.length ? feitas[feitas.length - 1].time : r.horarios[0].time);
-  state.hora = escolhida;
-  const sub = { feita: 'feita', agendada: 'agendada', nao_executada: 'não executada' };
-  $('#horarios').innerHTML = r.horarios.map((h) => `<button class="pilula" role="tab" data-h="${h.time}" aria-selected="${h.time === escolhida}"><span class="h">${h.time}</span><span class="s">${sub[h.status]}</span></button>`).join('');
-  $$('#horarios .pilula').forEach((b) => b.addEventListener('click', () => carregarDia(state.dia, b.dataset.h)));
-  const st = r.horarios.find((h) => h.time === escolhida).status;
-  if (st !== 'feita') {
-    $('#verif-resumo').hidden = true;
-    $('#lista-verif').innerHTML = st === 'agendada'
-      ? vazio(`Próxima verificação às ${escolhida}`, 'A equipe recebe um aviso no celular quando a lista ficar pronta.')
-      : vazio('Verificação não executada', 'O servidor estava desligado neste horário.');
-    return;
-  }
-  try {
-    const snap = await api(`/api/verificacoes/${r.data}/${escolhida.replace(':', '')}`);
-    state.verif = snap;
-    const t = snap.totals;
-    $('#verif-resumo').hidden = false;
-    $('#verif-resumo').textContent = t.total
-      ? `Às ${snap.time}: ${t.total} cliente${t.total > 1 ? 's' : ''} aguardando${t.urgentes ? `, ${t.urgentes} urgente${t.urgentes > 1 ? 's' : ''}` : ''}`
-      : `Às ${snap.time}, todas as conversas estavam respondidas`;
-    const lista = $('#lista-verif');
-    lista.innerHTML = snap.items.length ? snap.items.map((i) => cartao({ urgencia: 'media', ...i }, { acoes: false, selecionavel: true })).join('') : vazio('Nenhuma pendência', 'Tudo respondido neste horário.');
-    ligarCartoes(lista);
-    // Seleção para o relatório da recepção
-    $('#verif-barra').hidden = !snap.items.length;
-    const atualizarBarra = () => {
-      const n = state.sel.size;
-      $('#btn-relatorio').disabled = !n;
-      $('#btn-relatorio').textContent = n ? `Gerar relatório (${n})` : 'Gerar relatório';
-      $('#sel-todos').checked = snap.items.length > 0 && snap.items.every((i) => state.sel.has(i.id));
-    };
-    lista.querySelectorAll('[data-sel]').forEach((c) => c.addEventListener('change', () => {
-      const id = Number(c.dataset.sel);
-      if (c.checked) state.sel.add(id);
-      else state.sel.delete(id);
-      atualizarBarra();
-    }));
-    $('#sel-todos').onchange = (e) => {
-      for (const i of snap.items) (e.target.checked ? state.sel.add(i.id) : state.sel.delete(i.id));
-      lista.querySelectorAll('[data-sel]').forEach((c) => { c.checked = e.target.checked; });
-      atualizarBarra();
-    };
-    atualizarBarra();
-  } catch (err) {
-    $('#lista-verif').innerHTML = vazio('Erro', err.message);
-  }
+  if (state.sub !== 'verificacoes') return;
+  state.verif = { ...r, items: r.itens };
+  const ids = new Set(r.itens.map((i) => i.id));
+  for (const id of [...state.sel]) if (!ids.has(id)) state.sel.delete(id); // quem saiu da lista sai da seleção
+  const n = r.itens.length;
+  const partes = [];
+  if (r.ultima) partes.push(`Última verificação ${diaHora(r.ultima.at)}`);
+  if (r.proxima) partes.push(`próxima ${r.proxima.date === new Date().toLocaleDateString('en-CA') ? '' : `${diaTexto(new Date(`${r.proxima.date}T12:00:00`).getTime()).toLowerCase()} `}às ${r.proxima.time}`);
+  $('#verif-resumo').hidden = false;
+  $('#verif-resumo').className = `faixa ${n ? 'faixa-alerta' : 'faixa-ok'}`;
+  $('#verif-resumo').innerHTML = `${n
+    ? `<b>${n} cliente${n > 1 ? 's' : ''}</b> já verificado${n > 1 ? 's' : ''} e ainda aguardando`
+    : r.ultima ? 'Nada pendente das verificações: tudo respondido' : 'Ainda não houve verificação'}${partes.length ? `<br><span class="pequeno">${esc(partes.join(' · '))}</span>` : ''}`;
+  const lista = $('#lista-verif');
+  const extra = [
+    r.aindaNaoVerificadas && `${r.aindaNaoVerificadas} pendência${r.aindaNaoVerificadas > 1 ? 's novas entram' : ' nova entra'} na próxima verificação (já ${r.aindaNaoVerificadas > 1 ? 'aparecem' : 'aparece'} em Agora)`,
+    r.adiadas && `${r.adiadas} adiada${r.adiadas > 1 ? 's' : ''}`,
+  ].filter(Boolean).join(' · ');
+  if (setHTML(lista, (n ? r.itens.map((i) => cartao(i, { selecionavel: true })).join('') : vazio(r.ultima ? 'Tudo em dia' : 'Sem verificações ainda', r.ultima ? 'Nenhum cliente das verificações anteriores continua esperando.' : `As verificações acontecem ${horariosTexto(r.horarios)}.`))
+    + (extra ? `<p class="rodape sec pequeno">${esc(extra)}</p>` : ''))) ligarCartoes(lista);
+  $('#verif-barra').hidden = !n;
+  atualizarBarraVerif();
 }
-$('#dia-anterior').addEventListener('click', () => carregarDia(somarDias(state.dia, -1)));
-$('#dia-proximo').addEventListener('click', () => carregarDia(somarDias(state.dia, 1)));
+
+function atualizarBarraVerif() {
+  const itens = state.verif?.items || [];
+  const n = state.sel.size;
+  $('#btn-relatorio').disabled = !n;
+  $('#btn-relatorio').textContent = n ? `Gerar relatório (${n})` : 'Gerar relatório';
+  $('#sel-todos').checked = itens.length > 0 && itens.every((i) => state.sel.has(i.id));
+}
+$('#lista-verif').addEventListener('change', (e) => {
+  const c = e.target.closest('[data-sel]');
+  if (!c) return;
+  const id = Number(c.dataset.sel);
+  if (c.checked) state.sel.add(id);
+  else state.sel.delete(id);
+  atualizarBarraVerif();
+});
+$('#sel-todos').addEventListener('change', (e) => {
+  for (const i of state.verif?.items || []) (e.target.checked ? state.sel.add(i.id) : state.sel.delete(i.id));
+  $$('#lista-verif [data-sel]').forEach((c) => { c.checked = e.target.checked; });
+  atualizarBarraVerif();
+});
 
 // ---------- Relatório para a recepção ----------
-function textoRelatorio(itens, snap) {
-  const [, m, d] = snap.date.split('-');
-  const linhas = ['*Clientes aguardando resposta*', `Verificação de ${d}/${m} às ${snap.time} · ${itens.length} cliente${itens.length > 1 ? 's' : ''}`, ''];
+function textoRelatorio(itens, v) {
+  const agora = new Date();
+  const linhas = ['*Clientes aguardando resposta*', `${agora.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })} às ${hhmm(agora.getTime())} · ${itens.length} cliente${itens.length > 1 ? 's' : ''}${v?.ultima ? ` · última verificação ${diaHora(v.ultima.at)}` : ''}`, ''];
   itens.forEach((i, n) => {
     const f = i.flags.find((x) => x.type !== 'manual') || i.flags[0] || {};
     const motivo = { pergunta: 'pergunta', pedido: 'pedido', midia: 'áudio/foto' }[i.motivo || i.flags.find((x) => x.motivo)?.motivo] || '';
@@ -1114,6 +1228,7 @@ function textoRelatorio(itens, snap) {
     if (i.proximoPasso) linhas.push(`   Próximo passo: ${i.proximoPasso}`);
     const txt = String(f.text || '').replace(/\s+/g, ' ').trim();
     if (txt && !i.resumo) linhas.push(`   Última mensagem: "${txt.length > 140 ? `${txt.slice(0, 140)}…` : txt}"`);
+    if (i.verificacao) linhas.push(`   Pendente desde a verificação de ${diaHora(i.verificacao.primeira)}${i.verificacao.vezes > 1 ? ` (${i.verificacao.vezes} verificações)` : ''}`);
     if (i.assigneeName || i.lastHumanName) linhas.push(`   Atendente: ${i.assigneeName || i.lastHumanName}`);
     if (digitos) linhas.push(`   Chamar: https://wa.me/${digitos}`);
     linhas.push('');
@@ -1180,7 +1295,7 @@ async function carregarIndicadores() {
         <div class="tile"><span class="tile-n">${r.abertas}</span><span class="tile-l">conversas abertas</span></div>
       </div>
       ${t.total ? barras('Por situação', porTipo) + barras('Por responsável', t.porAtendente) + (t.porNumero.length > 1 ? barras('Por número', t.porNumero) : '') : vazio('Tudo em dia', 'Nenhuma pendência para analisar agora.')}
-      ${temHistorico ? barras('Pico de pendências nas verificações (7 dias)', dias) : '<section class="ind"><h2>Últimos 7 dias</h2><p class="sec pequeno">O histórico aparece depois das primeiras verificações (08:30, 12:00 e 17:00).</p></section>'}`;
+      ${temHistorico ? barras('Pico de pendências nas verificações (7 dias)', dias) : '<section class="ind"><h2>Últimos 7 dias</h2><p class="sec pequeno">O histórico aparece depois das primeiras verificações.</p></section>'}`;
   } catch (err) {
     el.innerHTML = vazio('Não foi possível carregar', err.message);
   }
@@ -1461,15 +1576,12 @@ async function iniciar() {
   $('#usuario-nome').textContent = u.name;
   $('#usuario-email').textContent = u.email;
   $('#perfil-avatar').textContent = iniciais(u.name);
-  $('#horarios-txt').textContent = state.me.horarios.join(', ');
+  $('#horarios-txt').textContent = horariosTexto(state.me.horarios);
   const p = new URLSearchParams(location.search);
-  if (p.get('data')) {
-    state.dia = p.get('data');
-    state.hora = p.get('hora');
-    state.sub = 'verificacoes';
-  }
   const aba = p.get('aba');
-  const inicial = EMBUTIDO || aba === 'pendencias' || aba === 'verificacoes' || aba === 'agora' ? 'pendencias' : aba === 'ajustes' ? 'ajustes' : 'conversas';
+  if (aba === 'verificacoes' || p.get('data')) state.sub = 'verificacoes'; // aviso de verificação no celular
+  // O app abre em Pendências; "?conversa=" (aviso de um cliente) e "?aba=conversas" abrem em Conversas
+  const inicial = aba === 'ajustes' ? 'ajustes' : (aba === 'conversas' || p.get('conversa')) && !EMBUTIDO ? 'conversas' : 'pendencias';
   irPara(inicial);
   if (inicial !== 'pendencias') carregarPendencias();
   const conversa = Number(p.get('conversa'));
@@ -1486,7 +1598,11 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').cat
 const visivel = () => !document.hidden && state.me;
 setInterval(() => { if (visivel() && state.chat && !state.chat.enviando) atualizarChat(); }, 5000);
 setInterval(() => { if (visivel() && state.tela === 'conversas') carregarConversas(); }, 10000);
-setInterval(() => { if (visivel()) carregarPendencias(); }, 60000);
+setInterval(() => {
+  if (!visivel()) return;
+  carregarPendencias();
+  if (state.tela === 'pendencias' && state.sub === 'verificacoes') carregarVerificadas();
+}, 60000);
 document.addEventListener('visibilitychange', () => {
   if (!visivel()) return;
   if (state.chat) atualizarChat();

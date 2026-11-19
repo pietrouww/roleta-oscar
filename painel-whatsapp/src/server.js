@@ -271,7 +271,7 @@ app.post('/api/conversas/:id/mensagens', auth.require, async (req, res) => {
   const token = tokenDe(req);
   if (!token) return res.status(409).json({ erro: 'Para responder por aqui, saia do painel (Ajustes → Sair) e entre de novo uma vez.' });
   try {
-    await client.sendMessage(id, texto, token);
+    await client.sendMessage(id, texto, token, { nota: req.body?.nota === true });
     listaCache.clear();
     engine.cache.delete(id);
     engine.invalidate();
@@ -498,7 +498,54 @@ app.delete('/api/ignorados/:contactId', auth.require, (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Respostas rápidas (atalho + texto), guardadas no Chatwoot como "respostas prontas" ----
+let rapidasCache = null; // { at, lista }
+app.get('/api/respostas-rapidas', auth.require, async (req, res) => {
+  try {
+    if (!rapidasCache || Date.now() - rapidasCache.at > 60000) rapidasCache = { at: Date.now(), lista: await client.listCanned() };
+    res.json({ respostas: [...rapidasCache.lista].sort((a, b) => a.atalho.localeCompare(b.atalho)) });
+  } catch (err) {
+    falhaChatwoot(res, err, 'Não foi possível ler as respostas rápidas');
+  }
+});
+
+app.post('/api/respostas-rapidas', auth.require, async (req, res) => {
+  const atalho = String(req.body?.atalho || '').trim().toLowerCase().replace(/^\/+/, '').replace(/\s+/g, '-').slice(0, 40);
+  const texto = String(req.body?.texto || '').trim();
+  if (!/^[\p{L}\p{N}_-]{1,40}$/u.test(atalho)) return res.status(400).json({ erro: 'Dê um nome curto ao atalho, sem espaços (ex.: endereco)' });
+  if (!texto) return res.status(400).json({ erro: 'Escreva o texto da resposta' });
+  if (texto.length > 4000) return res.status(400).json({ erro: 'Texto longo demais' });
+  try {
+    const r = await client.createCanned({ atalho, texto });
+    rapidasCache = null;
+    res.json({ resposta: r });
+  } catch (err) {
+    falhaChatwoot(res, err, 'Não foi possível salvar. Já existe um atalho com esse nome?');
+  }
+});
+
+app.delete('/api/respostas-rapidas/:id', auth.require, async (req, res) => {
+  if (!/^\d+$/.test(req.params.id)) return res.status(400).json({ erro: 'Resposta inválida' });
+  try {
+    await client.deleteCanned(Number(req.params.id));
+    rapidasCache = null;
+    res.json({ ok: true });
+  } catch (err) {
+    falhaChatwoot(res, err, 'Não foi possível apagar');
+  }
+});
+
 // ---- Verificações agendadas ----
+// O que já passou por alguma verificação e continua pendente agora (é o que a aba Verificações mostra)
+app.get('/api/verificacoes/pendentes', auth.require, async (req, res) => {
+  try {
+    const agora = await engine.rapido(60000);
+    res.json({ ...scheduler.verificadasPendentes(agora), atualizadoEm: agora.updatedAt, horarios: config.checks.times });
+  } catch (err) {
+    falhaChatwoot(res, err);
+  }
+});
+
 app.get('/api/verificacoes', auth.require, (req, res) => {
   const today = zonedParts(new Date(), config.timezone).date;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(req.query.data || '') ? req.query.data : today;

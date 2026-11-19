@@ -452,3 +452,31 @@ html.escuro .balao.out .autor:not(.autor-ia) { color: rgba(255,255,255,0.75); }
 .grav-dica { flex: 1; }
 .m-previa { max-width: 200px; max-height: 200px; border-radius: 12px; display: block; margin-bottom: 4px; }
 @media (prefers-reduced-motion: reduce) { .grav-ponto { animation: none; } }
+
+/* Verificações: linha que diz desde quando a pendência vem aparecendo */
+.verif-linha { margin: 2px 0 0; }
+.faixa .pequeno { font-weight: 400; }
+
+/* Nota interna e respostas rápidas */
+.chat-linha-como { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 28px; }
+.chat-linha-como p { margin: 0; }
+.chat-linha-como .link-btn { white-space: nowrap; min-height: 28px; }
+.chat-linha-como .link-btn[hidden] { display: none; }
+.modo-nota textarea { background: #FFF6D6; border-color: #E6C35C; color: #3A3000; }
+html.escuro .modo-nota textarea { background: #3A3312; border-color: #8A7426; color: #FFF1C2; }
+.balao.nota.enviando { opacity: .7; }
+.chat-rapidas { max-height: min(46vh, 320px); overflow-y: auto; border: 1px solid var(--linha); border-radius: 14px; background: var(--cartao); display: flex; flex-direction: column; }
+.chat-rapidas[hidden] { display: none; }
+.rapida { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 14px; min-height: 44px; border: 0; border-bottom: 1px solid var(--linha); background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.rapida:hover, .rapida:focus-visible { background: var(--pilula); }
+.rapida-atalho { font-weight: 600; color: var(--verde-texto); margin: 0; }
+.rapida-texto { font-size: 14px; color: var(--sec); }
+.rapida-vazio { padding: 12px 14px; margin: 0; }
+.rapida-gerenciar { align-self: flex-start; padding: 10px 14px; min-height: 44px; }
+.rapidas-form { display: flex; flex-direction: column; gap: 6px; margin: 12px 0 16px; }
+.rapidas-form label { font-size: 14px; font-weight: 600; }
+.rapidas-form input, .rapidas-form textarea { border: 1px solid var(--linha); border-radius: 12px; background: var(--cartao); color: inherit; padding: 10px 12px; font: inherit; font-size: 16px; }
+.rapidas-form button { margin-top: 6px; }
+.rapidas-lista { display: flex; flex-direction: column; }
+.rapida-linha { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--linha); }
+.rapida-linha p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }

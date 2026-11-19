@@ -7,12 +7,15 @@ App para celular e computador (PWA) com dois módulos:
 - Abre a conversa com as mensagens em balões, **áudios, fotos, vídeos e arquivos**. Os áudios do WhatsApp são convertidos no servidor para tocar no iPhone.
 - **Responder por ali mesmo**: a mensagem sai em nome do atendente logado (texto).
 - Ações: assumir, marcar como pendência (com anotação), adiar, "não é pendência", resolver/reabrir, ignorar contato.
+- **Respostas rápidas**: toque no raio ou digite `/` e o atalho. São as "respostas prontas" do Chatwoot; dá para criar e apagar pelo painel. `{{contact.name}}` vira o primeiro nome do cliente.
+- **Nota interna**: anotação que só a equipe vê (não vai para o WhatsApp).
+- **IA do WhatsApp**: a lista mostra "IA atendendo" quando a última resposta foi do assistente virtual, tem o filtro "Com a IA", e a conversa vira pendência urgente "IA chamou a equipe" quando a IA diz que vai passar para uma pessoa e ninguém assume.
 - **Fixar conversas**: até 6 ficam no topo da lista, para toda a equipe (ação *Fixar conversa*). Ao resolver a conversa, a vaga é liberada.
 - No computador, a lista e a conversa ficam lado a lado.
 
 ## Módulo Pendências
 - **Agora**: um cartão por cliente que está esperando, com o **resumo do que ele espera**, o **próximo passo sugerido**, a urgência, há quanto tempo e quem é o responsável. Ordenado por urgência.
-- **Verificações**: o retrato das 08:30, 12:00 e 17:00 (segunda a sábado), com histórico por dia.
+- **Verificações**: de hora em hora, das 8h às 18h (segunda a sábado). A aba mostra uma lista só: os clientes que já passaram por alguma verificação e **continuam aguardando**, com desde quando e por quantas verificações já passaram. Dá para selecionar e gerar o relatório para a recepção.
 - **Indicadores**: totais, por situação, por responsável, por número e o pico dos últimos 7 dias.
 
 ### Como a pendência é decidida
@@ -209,7 +212,7 @@ Não ative também a "Assinatura de mensagem" do Chatwoot, senão o nome sai dua
 
 | Variável | Padrão | O que faz |
 |---|---|---|
-| `CHECK_TIMES` | `08:30,12:00,17:00` | Horários das verificações |
+| `CHECK_TIMES` | `08:00-18:00/60` | Horários das verificações. Faixa com intervalo em minutos (`08:00-18:00/60` = de hora em hora) ou horários soltos (`08:30,12:00,17:00`) |
 | `CHECK_DAYS` | `1-6` | Dias (1=segunda … 6=sábado) |
 | `WAIT_MIN_MINUTES` | `15` | Tempo para "sem resposta" virar pendência |
 | `PROMISE_MIN_MINUTES` | `30` | Tempo para "vou verificar" sem retorno virar pendência |
@@ -247,7 +250,7 @@ src/chatwoot.js     comunicação com a API do Chatwoot
 src/ia.js           análise inteligente das conversas (Claude)
 src/pendencias.js   varredura das conversas, IA ou regras, marcações da equipe e etiqueta "pendencia"
 src/midia.js        áudios, fotos e arquivos (cache e conversão de áudio)
-src/scheduler.js    verificações 08:30/12:00/17:00 e alertas imediatos
+src/scheduler.js    verificações de hora em hora, acompanhamento do que continua pendente e alertas imediatos
 src/push.js         notificações no celular
 src/evolution.js    conexão dos números por QR Code (Evolution API)
 public/             app (PWA) que roda no iPhone

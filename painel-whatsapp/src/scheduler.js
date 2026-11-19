@@ -1,4 +1,5 @@
-// Verificações agendadas (08:30, 12:00, 17:00 de segunda a sábado) e alertas contínuos.
+// Verificações agendadas (de hora em hora, de segunda a sábado) e alertas contínuos.
+// Cada verificação anota quais conversas continuam pendentes desde as anteriores (verificadas.json).
 import cron from 'node-cron';
 import { zonedParts, parseDays, inWindow } from './time.js';
 
@@ -28,29 +29,87 @@ export class Scheduler {
     this.log.info(`[agenda] verificações ${this.config.checks.times.join(', ')} (dias ${this.config.checks.days}, ${this.config.timezone}); alertas a cada ${every} min`);
   }
 
-  /** Verificação oficial de um horário: salva o retrato e avisa a equipe. */
+  /**
+   * Acompanhamento entre verificações: para cada conversa pendente, desde qual verificação ela vem
+   * aparecendo e em quantas já apareceu. Sai da lista quando deixa de estar pendente.
+   */
+  acompanhamento() {
+    let a = this.store.read('verificadas.json', null);
+    if (!a) {
+      // Primeira vez: monta a partir das verificações já guardadas (últimos 3 dias)
+      a = { conv: {}, ultima: null };
+      for (const dia of this.store.listCheckDays().slice(-3)) {
+        for (const hora of this.store.listChecks(dia)) {
+          const snap = this.store.getCheck(dia, hora);
+          if (snap) a = avancar(a, snap.items || [], [], { date: dia, time: hora, at: snap.createdAt || `${dia}T${hora}:00` });
+        }
+      }
+      this.store.write('verificadas.json', a);
+    }
+    return a;
+  }
+
+  /** Verificação oficial de um horário: salva o retrato, atualiza o acompanhamento e avisa a equipe. */
   async runCheck(time) {
     const { date } = zonedParts(new Date(), this.config.timezone);
     const r = await this.engine.scan();
     const snapshot = { date, time, createdAt: new Date().toISOString(), items: r.items, adiadas: (r.adiadas || []).length, totals: r.totals, inboxes: r.inboxes };
+    const antes = this.acompanhamento(); // lido antes de guardar esta verificação, para ela não contar duas vezes
     this.store.saveCheck(date, time, snapshot);
-    this.log.info(`[verificacao] ${date} ${time}: ${r.totals.total} pendência(s)`);
+    const a = avancar(antes, r.items, r.adiadas || [], { date, time, at: snapshot.createdAt });
+    this.store.write('verificadas.json', a);
+    const { novas, resolvidas } = a.ultima;
+    this.log.info(`[verificacao] ${date} ${time}: ${r.totals.total} pendência(s), ${novas} nova(s), ${resolvidas} resolvida(s)`);
 
     const t = r.totals;
+    // De hora em hora só avisa quando há o que fazer (ou quando a lista acabou de zerar)
+    if (t.total === 0 && !resolvidas) return snapshot;
+    const continuam = t.total - novas;
     const body = t.total === 0
       ? 'Nenhuma conversa pendente. Tudo respondido!'
       : [
-          t.pediuAtendente && plural(t.pediuAtendente, 'pediu atendente', 'pediram atendente'),
-          t.retornoPrometido && plural(t.retornoPrometido, 'retorno prometido', 'retornos prometidos'),
-          t.semResposta && plural(t.semResposta, 'sem resposta', 'sem resposta'),
+          novas && plural(novas, 'nova', 'novas'),
+          continuam && plural(continuam, 'continua desde a verificação anterior', 'continuam desde a verificação anterior'),
+          t.urgentes && plural(t.urgentes, 'urgente', 'urgentes'),
         ].filter(Boolean).join(' · ');
     await this.push.sendAll({
       title: `Verificação das ${time}: ${plural(t.total, 'pendência', 'pendências')}`,
       body,
-      url: `/?aba=pendencias&data=${date}&hora=${time}`,
-      tag: `verificacao-${date}-${time}`,
+      url: '/?aba=verificacoes',
+      tag: 'verificacao', // a de agora substitui a da hora anterior na tela do celular
     });
     return snapshot;
+  }
+
+  /** O que já passou por alguma verificação e continua pendente agora. */
+  verificadasPendentes(agora) {
+    const a = this.acompanhamento();
+    const itens = (agora.items || [])
+      .filter((i) => a.conv[i.id])
+      .map((i) => ({ ...i, verificacao: a.conv[i.id] }))
+      .sort((x, y) => new Date(x.verificacao.primeira) - new Date(y.verificacao.primeira));
+    return {
+      itens,
+      ultima: a.ultima,
+      proxima: this.proxima(),
+      // Pendentes de agora que ainda não passaram por nenhuma verificação (entram na próxima)
+      aindaNaoVerificadas: (agora.items || []).filter((i) => !a.conv[i.id]).length,
+      adiadas: (agora.adiadas || []).filter((i) => a.conv[i.id]).length,
+    };
+  }
+
+  /** Próxima verificação agendada: { date, time } (procura até 8 dias à frente). */
+  proxima(now = new Date()) {
+    const hoje = zonedParts(now, this.config.timezone);
+    for (let d = 0; d <= 8; d++) {
+      const dia = new Date(`${hoje.date}T12:00:00Z`);
+      dia.setUTCDate(dia.getUTCDate() + d);
+      if (!this.days.has(dia.getUTCDay())) continue;
+      const date = dia.toISOString().slice(0, 10);
+      const time = this.config.checks.times.find((t) => d > 0 || t > hoje.time);
+      if (time) return { date, time };
+    }
+    return null;
   }
 
   /** A cada poucos minutos: avisa na hora quando alguém pede atendente ou uma promessa de retorno atrasa. */
@@ -100,4 +159,23 @@ export class Scheduler {
       return { time: t, status };
     });
   }
+}
+
+/** Avança o acompanhamento com o resultado de uma verificação. */
+export function avancar(anterior, itens, adiadas, quando) {
+  const antes = anterior?.conv || {};
+  const conv = {};
+  let novas = 0;
+  for (const i of itens) {
+    const a = antes[i.id];
+    if (a) conv[i.id] = { primeira: a.primeira, vezes: a.vezes + 1, ultima: quando.at };
+    else {
+      conv[i.id] = { primeira: quando.at, vezes: 1, ultima: quando.at };
+      novas++;
+    }
+  }
+  // Adiada continua pendente: mantém o histórico, sem contar esta verificação
+  for (const i of adiadas) if (antes[i.id] && !conv[i.id]) conv[i.id] = antes[i.id];
+  const resolvidas = Object.keys(antes).filter((id) => !conv[id]).length;
+  return { conv, ultima: { date: quando.date, time: quando.time, at: quando.at, total: itens.length, novas, resolvidas } };
 }

@@ -72,6 +72,13 @@ export class Store {
     return this.read(path.join('verificacoes', date, `${time.replace(':', '')}.json`), null);
   }
 
+  /** Dias (AAAA-MM-DD) que têm verificações guardadas, do mais antigo para o mais novo. */
+  listCheckDays() {
+    const d = path.join(this.dir, 'verificacoes');
+    if (!fs.existsSync(d)) return [];
+    return fs.readdirSync(d).filter((f) => /^\d{4}-\d{2}-\d{2}$/.test(f)).sort();
+  }
+
   listChecks(date) {
     const d = path.join(this.dir, 'verificacoes', date);
     if (!fs.existsSync(d)) return [];

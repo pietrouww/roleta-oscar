@@ -104,12 +104,6 @@
     </div>
 
     <div id="sub-verificacoes" class="sub" hidden>
-      <div class="dia">
-        <button id="dia-anterior" class="icone-btn" aria-label="Dia anterior"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
-        <span id="dia-label" class="dia-label"></span>
-        <button id="dia-proximo" class="icone-btn" aria-label="Próximo dia"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></button>
-      </div>
-      <div id="horarios" class="pilulas horarios" role="tablist" aria-label="Horário da verificação"></div>
       <p id="verif-resumo" class="faixa" hidden></p>
       <div id="verif-barra" class="verif-barra" hidden>
         <label class="sel-todos"><input type="checkbox" id="sel-todos"> Selecionar todos</label>
@@ -193,7 +187,11 @@
     <div id="chat-pendencia" class="chat-pendencia" hidden></div>
     <div id="chat-mensagens" class="chat-mensagens" tabindex="0"></div>
     <form id="chat-form" class="chat-form">
-      <p id="chat-como" class="sec pequeno"></p>
+      <div class="chat-linha-como">
+        <p id="chat-como" class="sec pequeno"></p>
+        <button type="button" id="chat-nota" class="link-btn pequeno" aria-pressed="false">Nota interna</button>
+      </div>
+      <div id="chat-rapidas" class="chat-rapidas" role="listbox" aria-label="Respostas rápidas" hidden></div>
       <div id="chat-anexos" class="chat-anexos" hidden></div>
       <div id="chat-gravando" class="chat-gravando" hidden>
         <button type="button" id="grav-cancelar" class="icone-btn grav-lixo" aria-label="Cancelar gravação"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M6 7l1 13h10l1-13"></path><path d="M10 11v6"></path><path d="M14 11v6"></path></svg></button>
@@ -205,6 +203,7 @@
       <div class="chat-compor" id="chat-compor">
         <input type="file" id="chat-arquivo" hidden multiple accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip">
         <button type="button" id="chat-anexar" class="icone-btn anexar" aria-label="Anexar foto, vídeo ou arquivo"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5l-8.5 8.5a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"></path></svg></button>
+        <button type="button" id="chat-rapidas-btn" class="icone-btn anexar" aria-label="Respostas rápidas" aria-expanded="false"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4.5 13.5H11L10 22l8.5-11.5H12L13 2z"></path></svg></button>
         <label class="sr" for="chat-texto">Mensagem</label>
         <textarea id="chat-texto" rows="1" placeholder="Mensagem" maxlength="4000"></textarea>
         <button type="button" id="chat-mic" class="enviar" aria-label="Gravar áudio" hidden><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0 0 14 0"></path><path d="M12 18v3"></path></svg></button>
@@ -225,11 +224,27 @@
   <div id="acoes-lista" class="folha-corpo acoes"></div>
 </dialog>
 
+<!-- Respostas rápidas: criar e apagar -->
+<dialog id="rapidas-dialog" class="folha" aria-labelledby="rapidas-titulo">
+  <div class="folha-topo"><button class="link-btn" data-fechar>Fechar</button><h2 id="rapidas-titulo">Respostas rápidas</h2><span></span></div>
+  <div class="folha-corpo">
+    <p class="sec pequeno">Textos prontos para o dia a dia. Na conversa, toque no raio ou digite / e o atalho. Use {{contact.name}} para o nome do cliente.</p>
+    <form id="rapidas-form" class="rapidas-form">
+      <label for="rapida-atalho">Atalho</label>
+      <input id="rapida-atalho" type="text" maxlength="40" placeholder="endereco" autocomplete="off" autocapitalize="none" required>
+      <label for="rapida-texto">Texto</label>
+      <textarea id="rapida-texto" rows="4" maxlength="4000" placeholder="Estamos na Rua..." required></textarea>
+      <button type="submit" class="btn-verde">Salvar resposta</button>
+    </form>
+    <div id="rapidas-lista" class="rapidas-lista"></div>
+  </div>
+</dialog>
+
 <!-- Relatório para a recepção -->
 <dialog id="rel-dialog" class="folha" aria-labelledby="rel-titulo">
   <div class="folha-topo"><button class="link-btn" data-fechar>Fechar</button><h2 id="rel-titulo">Relatório para a recepção</h2><span></span></div>
   <div class="folha-corpo">
-    <p class="sec pequeno">Clientes selecionados que estavam sem resposta. Envie para a recepção entrar em contato.</p>
+    <p class="sec pequeno">Clientes selecionados que continuam aguardando. Envie para a recepção entrar em contato.</p>
     <label class="sr" for="rel-texto">Texto do relatório</label>
     <textarea id="rel-texto" class="rel-texto" rows="14"></textarea>
     <button id="rel-whats" class="btn-verde">Enviar pelo WhatsApp</button>
