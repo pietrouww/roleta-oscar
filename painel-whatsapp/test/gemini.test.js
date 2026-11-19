@@ -32,7 +32,7 @@ test('escolhe o serviço pela chave que existe ou por AI_PROVIDER', () => {
   assert.equal(escolherProvedor({ apiKey: 'a', geminiKey: 'g', provedor: 'Gemini' }), 'gemini');
   assert.equal(escolherProvedor({}), 'anthropic');
   assert.equal(new Analisador({ logger: quieto }).ativo, false, 'sem chave nenhuma fica desligada');
-  assert.equal(new Analisador({ geminiKey: 'g', model: 'claude-opus-5-5', logger: quieto }).model, 'gemini-3.5-flash', 'modelo do Claude esquecido no .env não vale para o Gemini');
+  assert.equal(new Analisador({ geminiKey: 'g', model: 'claude-opus-5-5', logger: quieto }).model, 'gemini-3.5-flash-lite', 'modelo do Claude esquecido no .env não vale para o Gemini');
   assert.equal(new Analisador({ geminiKey: 'g', model: 'gemini-3.1-flash-lite', logger: quieto }).model, 'gemini-3.1-flash-lite');
 });
 
@@ -43,30 +43,30 @@ test('Gemini: monta o pedido, lê a resposta e guarda em cache', async () => {
   assert.equal(r.tipo, 'retorno_prometido');
   assert.equal(r.indice, 1);
   const p = f.pedidos[0];
-  assert.match(p.url, /\/v1beta\/models\/gemini-3\.5-flash:generateContent$/);
+  assert.match(p.url, /\/v1beta\/models\/gemini-3\.5-flash-lite:generateContent$/);
   assert.equal(p.headers['x-goog-api-key'], 'chave-de-teste');
   assert.doesNotMatch(p.url, /chave-de-teste/, 'a chave vai no cabeçalho, nunca no endereço');
   assert.match(p.corpo.systemInstruction.parts[0].text, /esperando alguma coisa da equipe/);
   assert.match(p.corpo.contents[0].parts[0].text, /\[1\] .* CLIENTE: Vocês conseguem/);
-  const formato = p.corpo.generationConfig.responseFormat.text;
-  assert.equal(formato.mimeType, 'application/json');
-  assert.deepEqual(formato.schema.required.slice(0, 2), ['pendente', 'tipo']);
-  assert.equal(formato.schema.additionalProperties, undefined);
+  const g = p.corpo.generationConfig;
+  assert.equal(g.responseMimeType, 'application/json');
+  assert.deepEqual(g.responseJsonSchema.required.slice(0, 2), ['pendente', 'tipo']);
+  assert.equal(g.responseJsonSchema.additionalProperties, undefined);
   await ia.analisar(7, msgs, agora);
   assert.equal(f.pedidos.length, 1, 'segunda vez vem do cache');
   assert.deepEqual(ia.status().provedor, 'gemini');
 });
 
-test('Gemini: resposta embrulhada em ```json e formato antigo da API', async () => {
+test('Gemini: resposta embrulhada em ```json e troca de formato se a API recusar', async () => {
   assert.deepEqual(extrairJson('```json\n{"a":1}\n```'), { a: 1 });
   assert.throws(() => extrairJson('sem json'));
-  const f = fetchFalso([erro(400, 'Invalid JSON payload received. Unknown name "responseFormat" at \'generation_config\''), ok('```json\n' + JSON.stringify(analise) + '\n```')]);
+  const f = fetchFalso([erro(400, 'Invalid JSON payload received. Unknown name "responseJsonSchema" at \'generation_config\''), ok('```json\n' + JSON.stringify(analise) + '\n```')]);
   const ia = gemini(f);
   const r = await ia.analisar(8, msgs, agora);
   assert.equal(r.pendente, true);
-  assert.equal(f.pedidos[1].corpo.generationConfig.responseMimeType, 'application/json');
-  assert.ok(f.pedidos[1].corpo.generationConfig.responseJsonSchema);
-  assert.equal(f.pedidos[1].corpo.generationConfig.responseFormat, undefined);
+  assert.equal(f.pedidos[1].corpo.generationConfig.responseFormat.text.mimeType, 'application/json');
+  assert.ok(f.pedidos[1].corpo.generationConfig.responseFormat.text.schema);
+  assert.equal(f.pedidos[1].corpo.generationConfig.responseMimeType, undefined);
 });
 
 test('Gemini: chave inválida, modelo inexistente e bloqueio caem para as regras', async () => {

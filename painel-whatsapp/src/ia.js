@@ -4,7 +4,7 @@
 // Sem chave (ou se a chamada falhar), o painel volta para as regras por palavra-chave.
 import Anthropic from '@anthropic-ai/sdk';
 
-export const MODELO_PADRAO = { anthropic: 'claude-opus-5-5', gemini: 'gemini-3.5-flash' };
+export const MODELO_PADRAO = { anthropic: 'claude-opus-5-5', gemini: 'gemini-3.5-flash-lite' };
 
 /** Qual serviço de IA usar: o pedido em AI_PROVIDER ou, sem isso, o que tiver chave. */
 export function escolherProvedor({ provedor = '', apiKey = '', geminiKey = '' } = {}) {
@@ -124,7 +124,9 @@ export class ClienteGemini {
     this.fetch = fetchFn;
     this.timeout = timeout;
     this.base = base;
-    this.formatoNovo = true; // generationConfig.responseFormat; se a API recusar, usa o formato anterior
+    // A API aceita hoje responseMimeType + responseJsonSchema; a documentação já mostra responseFormat.
+    // Começa pelo que funciona e troca sozinho se a API passar a recusar.
+    this.formatoNovo = false;
   }
 
   corpo({ sistema, texto, esquema }) {
@@ -158,8 +160,9 @@ export class ClienteGemini {
       if (resp.ok) return this.texto(dados);
 
       const msg = String(dados?.error?.message || '');
-      if (resp.status === 400 && this.formatoNovo && /responseFormat|response_format|Unknown name|Invalid JSON payload/i.test(msg)) {
-        this.formatoNovo = false; // esta versão da API ainda usa o formato anterior
+      if (resp.status === 400 && !this.trocouFormato && /responseFormat|response_format|responseMimeType|responseJsonSchema|response_mime_type|response_json_schema|Unknown name|Invalid JSON payload/i.test(msg)) {
+        this.formatoNovo = !this.formatoNovo; // esta versão da API usa o outro formato de saída
+        this.trocouFormato = true;
         continue;
       }
       if (resp.status === 401 || resp.status === 403 || /API key/i.test(msg)) throw new ErroIA('auth', msg, resp.status);
