@@ -24,7 +24,7 @@ export class ErroIA extends Error {
 }
 
 // Muda quando as instruções da análise mudam: o que estava guardado é refeito com as novas
-const VERSAO_REGRAS = 'r2';
+const VERSAO_REGRAS = 'r3';
 
 export const TIPOS = ['pediu_atendente', 'retorno_prometido', 'sem_resposta', 'nenhuma'];
 export const URGENCIAS = ['alta', 'media', 'baixa'];
@@ -48,6 +48,7 @@ Sua tarefa: dizer se, NESTE MOMENTO, o cliente está esperando alguma coisa da e
 
 A conversa vem numerada, em ordem cronológica. CLIENTE é quem procurou a empresa. ATENDENTE é uma pessoa da equipe.
 IA é o assistente virtual da empresa, que conversa sozinho com o cliente (tira dúvidas, passa preço e prazo). A resposta da IA conta como resposta quando resolve o que o cliente perguntou.
+Quando a ÚLTIMA mensagem da conversa é da IA e ela respondeu o que foi perguntado (passou preço, prazo, endereço, condições), mesmo terminando com uma pergunta ao cliente ("Quer agendar?"), NÃO é pendência: a vez é do cliente. Nesse caso use pendente=false e tipo "nenhuma".
 Mas a IA não conserta, não agenda de fato e não decide pela equipe. Fica PENDENTE, com tipo "pediu_atendente" e urgência "alta", quando:
 - a IA disse que vai chamar, conectar, transferir ou encaminhar para um técnico, atendente ou para a equipe, ou que alguém vai confirmar ou retornar, e nenhum ATENDENTE escreveu depois;
 - o cliente pediu uma pessoa, reclamou da IA ou mostrou que a resposta dela não resolveu;

@@ -267,6 +267,8 @@ export function classify(messages, opts = {}) {
     iaNome: aiInvolved ? nomeDaIa(messages) : '',
     repasse: !!repasse,
     repasseEm: repasse ? repasse.at : null,
+    // A IA respondeu e o cliente não escreveu depois: a vez é do cliente
+    respondeuPorUltimo: msgs.length > 0 && msgs[msgs.length - 1].dir === 'out' && msgs[msgs.length - 1].author === 'ia',
   };
   const lastHuman = lastHumanOut !== -1 ? msgs[lastHumanOut] : null;
   const since = flags.length ? Math.min(...flags.map((f) => f.since)) : null;

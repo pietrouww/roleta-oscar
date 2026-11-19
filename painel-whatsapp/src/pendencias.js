@@ -318,6 +318,13 @@ export class PendenciasEngine {
           } else if (repasse && r.flags[0]) {
             r.flags[0].viaIa = true;
           }
+          // A IA de atendimento respondeu por último (passou preço, prazo, endereço) e o cliente não escreveu
+          // depois: não é "sem resposta". A análise às vezes erra isso; a ordem das mensagens não deixa dúvida.
+          // Continua valendo quando a análise aponta outra coisa (a IA prometeu retorno ou chamou a equipe).
+          const at = regras.atendimento;
+          if (r.pending && !regras.pending && !marca.manual && at?.respondeuPorUltimo && !at.repasse && r.flags.every((f) => f.type === 'sem_resposta')) {
+            r = { pending: false, flags: [], since: null, urgencia: null, resumo: 'Respondida pela IA; aguardando o cliente', proximoPasso: '', fonte: 'regras' };
+          }
         }
       }
       if (r.pending && !marca.manual && doCliente(r.flags)) {

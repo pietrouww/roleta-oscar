@@ -114,3 +114,31 @@ test('motor: IA chamou a equipe vira pendência mesmo se a análise disser que e
   assert.match(r.items[0].resumo, /IA disse que ia chamar a equipe/);
   assert.equal(r.quem[70].repasse, true);
 });
+
+// Caso real: cliente pergunta o preço, a IA responde com o valor e devolve uma pergunta. A análise
+// inteligente marcou "sem resposta"; pela ordem das mensagens a vez é do cliente, então não é pendência.
+const PRECO = 'Bom dia, Ary! Para o **iPhone 14 Pro Max**, a troca da tampa traseira de vidro é **R$ 599,00**. Peça com qualidade da original. Quer agendar para trazer o aparelho e fazermos a avaliação?';
+const semResposta = { pendente: true, tipo: 'sem_resposta', urgencia: 'media', resumo: 'Cliente perguntou o preço da troca da tampa traseira', proximoPasso: 'Responder o cliente', indice: 0 };
+
+test('motor: IA respondeu o preço por último não é "sem resposta", mesmo que a análise diga que é', async () => {
+  const mensagens = [bruta(1, 59, 'bom dia, qual o preço pra troca da tampa traseira de vidro do iphone 14 pro max?', 0), bruta(2, 58, PRECO, 1, 'CE4300000000000000AA')];
+  const r = await motor({ analise: semResposta, mensagens }).scan();
+  assert.equal(r.items.length, 0);
+  assert.equal(r.quem[70].por, 'ia');
+  assert.equal(r.quem[70].respondeuPorUltimo, true);
+});
+
+test('motor: se o cliente escreveu depois da IA, a análise continua valendo', async () => {
+  const mensagens = [bruta(1, 59, 'qual o preço da tampa traseira?', 0), bruta(2, 58, PRECO, 1, 'CE4300000000000000AA'), bruta(3, 30, 'Quero sim, tem horário hoje às 15h?', 0)];
+  const r = await motor({ analise: { ...semResposta, indice: 2 }, mensagens }).scan();
+  assert.equal(r.items.length, 1);
+  assert.equal(r.items[0].primary, 'sem_resposta');
+});
+
+test('motor: análise que aponta promessa ou pedido de atendente não é derrubada pela resposta da IA', async () => {
+  const mensagens = [bruta(1, 59, 'tem a peça?', 0), bruta(2, 58, 'Preciso checar o estoque com o pessoal, um instante.', 1, 'CE4300000000000000AA')];
+  const promessa = { pendente: true, tipo: 'retorno_prometido', urgencia: 'media', resumo: 'IA ficou de checar o estoque', proximoPasso: 'Confirmar a peça', indice: 1 };
+  const r = await motor({ analise: promessa, mensagens }).scan();
+  assert.equal(r.items.length, 1);
+  assert.equal(r.items[0].primary, 'retorno_prometido');
+});
