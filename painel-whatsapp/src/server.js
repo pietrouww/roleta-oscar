@@ -31,7 +31,7 @@ const client = config.demo
   : new ChatwootClient(config.chatwoot);
 const ia = config.demo
   ? new DemoAnalisador()
-  : new Analisador({ apiKey: config.ia.apiKey, model: config.ia.model, effort: config.ia.effort, timeZone: config.timezone, store });
+  : new Analisador({ apiKey: config.ia.apiKey, geminiKey: config.ia.geminiKey, provedor: config.ia.provedor, model: config.ia.model, effort: config.ia.effort, timeZone: config.timezone, store });
 const msgs = new CacheMensagens(client);
 const engine = new PendenciasEngine({ client, config, ia, marcas: store, ignorados: () => store.ignoredIds(), mensagens: msgs });
 const hostDe = (u) => { try { return new URL(u).host; } catch { return ''; } };
@@ -620,7 +620,7 @@ app.listen(config.port, () => {
   scheduler.start();
   midia.limpar();
   setInterval(() => midia.limpar(), 12 * 3600000).unref();
-  console.log(ia.ativo ? `[ia] análise inteligente ligada (${ia.model})` : '[ia] sem ANTHROPIC_API_KEY: usando regras por palavra-chave');
+  console.log(ia.ativo ? `[ia] análise inteligente ligada (${ia.model})` : '[ia] sem chave de IA (GEMINI_API_KEY ou ANTHROPIC_API_KEY): usando regras por palavra-chave');
   engine.scan({ iaEmFundo: true }).catch((e) => console.error('[inicio] primeira varredura falhou:', e.message));
   if (!config.demo && config.chatwootSetup) {
     prepararChatwoot({ client, config }).catch((e) => console.error('[chatwoot] preparação falhou:', e.message));

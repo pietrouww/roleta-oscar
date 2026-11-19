@@ -1212,7 +1212,7 @@ function abrirAjustes() {
   $('#ia-titulo').textContent = ia.ativa ? (ia.pausada ? 'Em pausa: usando regras por palavra-chave' : 'Ligada: a IA lê o contexto de cada conversa') : 'Desligada: usando regras por palavra-chave';
   $('#ia-detalhe').textContent = ia.ativa
     ? [ia.modelo && `Modelo: ${ia.modelo}`, ia.ultimoErro].filter(Boolean).join(' · ')
-    : 'Para ligar, o administrador coloca a chave ANTHROPIC_API_KEY no arquivo .env do servidor.';
+    : 'Para ligar, o administrador coloca a chave da IA (GEMINI_API_KEY ou ANTHROPIC_API_KEY) no arquivo .env do servidor.';
   const podeQr = state.me.usuario.admin && state.me.qrcode;
   $('#sec-numeros').hidden = !podeQr;
   if (podeQr) carregarNumeros();

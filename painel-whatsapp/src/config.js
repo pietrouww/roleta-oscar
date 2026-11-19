@@ -66,10 +66,14 @@ export const config = {
   chatwootSetup: bool('CHATWOOT_SETUP', true),
   dashboardAppTitle: env('DASHBOARD_APP_TITLE', 'Pendências'),
 
-  // Análise inteligente das conversas (Claude). Sem chave, o painel usa as regras por palavra-chave.
+  // Análise inteligente das conversas (Gemini ou Claude). Sem chave, o painel usa as regras por palavra-chave.
   ia: {
     apiKey: env('ANTHROPIC_API_KEY', ''),
-    model: env('AI_MODEL', 'claude-opus-5-5'),
+    geminiKey: env('GEMINI_API_KEY', env('GOOGLE_API_KEY', '')),
+    // 'gemini' ou 'anthropic'. Vazio = usa o serviço que tiver chave.
+    provedor: env('AI_PROVIDER', ''),
+    // Vazio = modelo padrão do serviço escolhido
+    model: env('AI_MODEL', ''),
     effort: env('AI_EFFORT', 'low'),
     maxDias: int('AI_MAX_DIAS', 14),
     maxPorVarredura: int('AI_MAX_POR_VARREDURA', 40),

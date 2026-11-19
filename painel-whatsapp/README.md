@@ -16,13 +16,13 @@ App para celular e computador (PWA) com dois módulos:
 - **Indicadores**: totais, por situação, por responsável, por número e o pico dos últimos 7 dias.
 
 ### Como a pendência é decidida
-Com a chave `ANTHROPIC_API_KEY` no `.env`, **a IA (Claude) lê o contexto da conversa** e decide se a "bola está com a equipe":
+Com uma chave de IA no `.env` (`GEMINI_API_KEY`, do Google, ou `ANTHROPIC_API_KEY`, do Claude), **a IA lê o contexto da conversa** e decide se a "bola está com a equipe":
 - **Pediu atendente**: o cliente quer uma pessoa e nenhum humano respondeu.
 - **Retorno prometido**: a equipe disse que ia ver, calcular, enviar ou retornar (com qualquer frase) e ainda não entregou.
 - **Sem resposta**: pergunta, pedido, reclamação, áudio ou foto sem resposta útil.
 - **Não é pendência**: cliente só agradeceu, equipe está esperando o cliente, oferta de fornecedor, propaganda.
 
-Cada conversa só é reanalisada quando chega mensagem nova (o resultado fica guardado), e há um limite por varredura (`AI_MAX_POR_VARREDURA`). Sem a chave, ou se a IA falhar, o painel usa **regras por palavra-chave**. O conteúdo das conversas analisadas é enviado à API da Anthropic.
+Cada conversa só é reanalisada quando chega mensagem nova (o resultado fica guardado), e há um limite por varredura (`AI_MAX_POR_VARREDURA`). Sem a chave, ou se a IA falhar, o painel usa **regras por palavra-chave**. O conteúdo das conversas analisadas é enviado à API do serviço escolhido (Google ou Anthropic). No plano gratuito do Gemini o Google pode usar esse conteúdo para melhorar os produtos dele; no plano pago, não. No Gemini os pedidos vão um de cada vez, com intervalo, para caber no limite por minuto; ao bater o limite do dia o painel segue pelas regras e tenta de novo depois.
 
 Por cima da análise entram as **marcações da equipe**:
 - **Marcar como pendência**: fica na lista até alguém concluir, com a anotação do que falta.

@@ -1,7 +1,27 @@
-// Análise inteligente das conversas com Claude: lê o contexto e decide se o cliente está
+// Análise inteligente das conversas: a IA lê o contexto e decide se o cliente está
 // esperando algo da equipe, por quê, com que urgência e qual o próximo passo.
-// Sem ANTHROPIC_API_KEY (ou se a chamada falhar), o painel volta para as regras por palavra-chave.
+// Funciona com o Gemini (Google, GEMINI_API_KEY) ou com o Claude (Anthropic, ANTHROPIC_API_KEY).
+// Sem chave (ou se a chamada falhar), o painel volta para as regras por palavra-chave.
 import Anthropic from '@anthropic-ai/sdk';
+
+export const MODELO_PADRAO = { anthropic: 'claude-opus-5-5', gemini: 'gemini-3.5-flash' };
+
+/** Qual serviço de IA usar: o pedido em AI_PROVIDER ou, sem isso, o que tiver chave. */
+export function escolherProvedor({ provedor = '', apiKey = '', geminiKey = '' } = {}) {
+  const p = String(provedor).toLowerCase().trim();
+  if (['gemini', 'google'].includes(p)) return 'gemini';
+  if (['anthropic', 'claude'].includes(p)) return 'anthropic';
+  return !apiKey && geminiKey ? 'gemini' : 'anthropic';
+}
+
+/** Erro de uma chamada à IA, já classificado (chave, modelo, limite, recusa ou outro). */
+export class ErroIA extends Error {
+  constructor(tipo, mensagem, status) {
+    super(mensagem);
+    this.tipo = tipo;
+    this.status = status;
+  }
+}
 
 export const TIPOS = ['pediu_atendente', 'retorno_prometido', 'sem_resposta', 'nenhuma'];
 export const URGENCIAS = ['alta', 'media', 'baixa'];
@@ -86,20 +106,105 @@ export function montarTranscricao(messages, { now, timeZone, limite = 30, outros
   return `Agora: ${fmt.format(new Date(now))}\n\n${linhas.join('\n')}${blocos.length ? `\n\n${blocos.join('\n\n')}` : ''}`;
 }
 
+const semExtras = (esquema) => JSON.parse(JSON.stringify(esquema, (k, v) => (k === 'additionalProperties' ? undefined : v)));
+
+/** Tira o JSON de dentro da resposta (alguns modelos embrulham em ```json ... ```). */
+export function extrairJson(texto) {
+  const t = String(texto || '').trim();
+  const ini = t.indexOf('{');
+  const fim = t.lastIndexOf('}');
+  if (ini === -1 || fim <= ini) throw new Error('a IA não devolveu JSON');
+  return JSON.parse(t.slice(ini, fim + 1));
+}
+
+/** Chamada direta à API do Gemini (Google AI Studio), sem biblioteca extra. */
+export class ClienteGemini {
+  constructor({ apiKey, fetchFn = globalThis.fetch, timeout = 60_000, base = 'https://generativelanguage.googleapis.com/v1beta' }) {
+    this.apiKey = apiKey;
+    this.fetch = fetchFn;
+    this.timeout = timeout;
+    this.base = base;
+    this.formatoNovo = true; // generationConfig.responseFormat; se a API recusar, usa o formato anterior
+  }
+
+  corpo({ sistema, texto, esquema }) {
+    const schema = semExtras(esquema);
+    const generationConfig = this.formatoNovo
+      ? { responseFormat: { text: { mimeType: 'application/json', schema } } }
+      : { responseMimeType: 'application/json', responseJsonSchema: schema };
+    return {
+      systemInstruction: { parts: [{ text: sistema }] },
+      contents: [{ role: 'user', parts: [{ text: texto }] }],
+      generationConfig: { ...generationConfig, temperature: 0.2, maxOutputTokens: 8192 },
+    };
+  }
+
+  /** Devolve o texto (JSON) da resposta. Lança ErroIA já classificado. */
+  async gerar({ model, sistema, texto, esquema }) {
+    for (let tentativa = 0; ; tentativa++) {
+      let resp;
+      try {
+        resp = await this.fetch(`${this.base}/models/${encodeURIComponent(model)}:generateContent`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-goog-api-key': this.apiKey },
+          body: JSON.stringify(this.corpo({ sistema, texto, esquema })),
+          signal: AbortSignal.timeout(this.timeout),
+        });
+      } catch (err) {
+        if (tentativa < 1) continue;
+        throw new ErroIA('api', `sem resposta do Gemini (${err.name === 'TimeoutError' ? 'demorou demais' : 'rede'})`);
+      }
+      const dados = await resp.json().catch(() => ({}));
+      if (resp.ok) return this.texto(dados);
+
+      const msg = String(dados?.error?.message || '');
+      if (resp.status === 400 && this.formatoNovo && /responseFormat|response_format|Unknown name|Invalid JSON payload/i.test(msg)) {
+        this.formatoNovo = false; // esta versão da API ainda usa o formato anterior
+        continue;
+      }
+      if (resp.status === 401 || resp.status === 403 || /API key/i.test(msg)) throw new ErroIA('auth', msg, resp.status);
+      if (resp.status === 404) throw new ErroIA('modelo', msg, resp.status);
+      if (resp.status === 429) throw new ErroIA('limite', msg, resp.status);
+      if (resp.status >= 500 && tentativa < 1) continue;
+      throw new ErroIA('api', msg, resp.status);
+    }
+  }
+
+  texto(dados) {
+    const c = dados?.candidates?.[0];
+    const bloqueio = dados?.promptFeedback?.blockReason;
+    if (bloqueio || !c || ['SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'RECITATION', 'SPII'].includes(c.finishReason)) {
+      throw new ErroIA('recusa', `o modelo não analisou (${bloqueio || c?.finishReason || 'sem resposta'})`);
+    }
+    return (c.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || '').join('');
+  }
+}
+
 export class Analisador {
-  constructor({ apiKey, model = 'claude-opus-5-5', effort = 'low', timeZone = 'America/Sao_Paulo', store = null, logger = console, client = null }) {
-    this.model = model;
+  constructor({ apiKey, geminiKey = '', provedor = '', model = '', effort = 'low', timeZone = 'America/Sao_Paulo', store = null, logger = console, client = null, fetchFn, intervaloMs }) {
+    this.provedor = escolherProvedor({ provedor, apiKey, geminiKey });
+    const gemini = this.provedor === 'gemini';
+    // Um modelo de um serviço não serve no outro (ex.: AI_MODEL=claude-... esquecido no .env)
+    const doOutro = gemini ? /^claude/i.test(model) : /^gemini/i.test(model);
+    this.model = model && !doOutro ? model : MODELO_PADRAO[this.provedor];
     this.effort = effort;
     this.timeZone = timeZone;
     this.store = store;
     this.log = logger;
-    this.client = client || (apiKey ? new Anthropic({ apiKey, maxRetries: 2, timeout: 60_000 }) : null);
+    if (client) this.client = client;
+    else if (gemini) this.client = geminiKey ? new ClienteGemini({ apiKey: geminiKey, fetchFn }) : null;
+    else this.client = apiKey ? new Anthropic({ apiKey, maxRetries: 2, timeout: 60_000 }) : null;
+    // No Gemini as chamadas vão uma de cada vez, com intervalo: o plano gratuito limita pedidos por minuto
+    this.intervaloMs = intervaloMs ?? (gemini ? 4500 : 0);
+    this.vez = Promise.resolve();
+    this.limites = 0;
+    this.proximaEm = 0;
     this.cache = new Map(Object.entries(store?.read('ia-cache.json', {}) || {}));
     this.falhas = 0;
     this.pausadaAte = 0;
     this.ultimoErro = '';
     this.chamadas = 0;
-    this.usarFallbacks = /^claude-(opus-5-5|fable|mythos)/.test(model);
+    this.usarFallbacks = !gemini && /^claude-(opus-5-5|fable|mythos)/.test(this.model);
     this.sujo = false;
   }
 
@@ -114,6 +219,7 @@ export class Analisador {
   status() {
     return {
       ativa: this.ativo,
+      provedor: this.ativo ? this.provedor : '',
       modelo: this.ativo ? this.model : '',
       pausada: this.ativo && !this.disponivel,
       ultimoErro: this.ultimoErro,
@@ -138,31 +244,61 @@ export class Analisador {
     if (pronto) return pronto;
     if (!this.disponivel) return null;
 
-    const pedido = {
+    const transcricao = montarTranscricao(messages, { now, timeZone: this.timeZone, outros });
+    try {
+      const texto = await this.naVez(() => {
+        if (!this.disponivel) return null; // entrou em pausa enquanto esperava a vez
+        this.chamadas++;
+        return this.provedor === 'gemini' ? this.pedirGemini(transcricao) : this.pedirClaude(transcricao);
+      });
+      if (texto == null) return null;
+      const resultado = normalizar(extrairJson(texto), messages.length);
+      this.cache.set(String(convId), { chave: chaveDe(messages, outros), resultado });
+      this.sujo = true;
+      this.falhas = 0;
+      this.limites = 0;
+      this.ultimoErro = '';
+      return resultado;
+    } catch (err) {
+      if (err instanceof ErroIA && err.tipo === 'recusa') {
+        this.log.error(`[ia] conversa ${convId}: o modelo recusou analisar; usando as regras`);
+        return null;
+      }
+      this.registrarFalha(err);
+      return null;
+    }
+  }
+
+  /** Uma chamada por vez, com intervalo mínimo entre elas (quando configurado). */
+  naVez(fn) {
+    if (!this.intervaloMs) return fn();
+    const r = this.vez.then(async () => {
+      const espera = this.proximaEm - Date.now();
+      if (espera > 0) await new Promise((ok) => setTimeout(ok, espera));
+      try {
+        return await fn();
+      } finally {
+        this.proximaEm = Date.now() + this.intervaloMs;
+      }
+    });
+    this.vez = r.catch(() => {});
+    return r;
+  }
+
+  async pedirClaude(transcricao) {
+    const resposta = await this.chamar({
       model: this.model,
       max_tokens: 2000,
       system: SISTEMA,
       output_config: { effort: this.effort, format: { type: 'json_schema', schema: ESQUEMA } },
-      messages: [{ role: 'user', content: montarTranscricao(messages, { now, timeZone: this.timeZone, outros }) }],
-    };
-    try {
-      this.chamadas++;
-      const resposta = await this.chamar(pedido);
-      if (resposta.stop_reason === 'refusal') {
-        this.log.error(`[ia] conversa ${convId}: o modelo recusou analisar; usando as regras`);
-        return null;
-      }
-      const texto = (resposta.content || []).find((b) => b.type === 'text')?.text || '';
-      const resultado = normalizar(JSON.parse(texto), messages.length);
-      this.cache.set(String(convId), { chave: chaveDe(messages, outros), resultado });
-      this.sujo = true;
-      this.falhas = 0;
-      this.ultimoErro = '';
-      return resultado;
-    } catch (err) {
-      this.registrarFalha(err);
-      return null;
-    }
+      messages: [{ role: 'user', content: transcricao }],
+    });
+    if (resposta.stop_reason === 'refusal') throw new ErroIA('recusa', 'recusa');
+    return (resposta.content || []).find((b) => b.type === 'text')?.text || '';
+  }
+
+  pedirGemini(transcricao) {
+    return this.client.gerar({ model: this.model, sistema: SISTEMA, texto: transcricao, esquema: ESQUEMA });
   }
 
   async chamar(pedido) {
@@ -180,7 +316,25 @@ export class Analisador {
 
   registrarFalha(err) {
     this.falhas++;
-    if (err instanceof Anthropic.AuthenticationError) {
+    const chave = this.provedor === 'gemini' ? 'GEMINI_API_KEY' : 'ANTHROPIC_API_KEY';
+    if (err instanceof ErroIA) {
+      if (err.tipo === 'auth') {
+        this.ultimoErro = `Chave da API inválida (${chave})`;
+        this.pausadaAte = Date.now() + 30 * 60000;
+      } else if (err.tipo === 'modelo') {
+        this.ultimoErro = `Modelo "${this.model}" indisponível para esta chave`;
+        this.pausadaAte = Date.now() + 30 * 60000;
+      } else if (err.tipo === 'limite') {
+        // Limite por minuto passa logo; se insistir, é o limite do dia: espera mais para não gastar pedidos à toa
+        this.limites++;
+        const longo = this.limites >= 3;
+        this.ultimoErro = longo ? 'Limite de uso da IA atingido; o painel segue pelas regras e tenta de novo em 1 hora' : 'Limite de uso da IA atingido; tentando de novo em alguns minutos';
+        this.pausadaAte = Date.now() + (longo ? 60 : 2) * 60000;
+      } else {
+        this.ultimoErro = `Erro da API (${err.status ?? 'rede'})`;
+        if (this.falhas >= 5) this.pausadaAte = Date.now() + 10 * 60000;
+      }
+    } else if (err instanceof Anthropic.AuthenticationError) {
       this.ultimoErro = 'Chave da API inválida (ANTHROPIC_API_KEY)';
       this.pausadaAte = Date.now() + 30 * 60000;
     } else if (err instanceof Anthropic.PermissionDeniedError || err instanceof Anthropic.NotFoundError) {
