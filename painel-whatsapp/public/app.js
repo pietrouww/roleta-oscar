@@ -1071,7 +1071,7 @@ function cartao(item, { acoes = true, selecionavel = false } = {}) {
       <span class="espera ${item.waitingMinutes >= 120 ? 'atraso' : ''}">${adiada ? `até ${hhmm(item.adiadaAte)}` : tempo(item.waitingMinutes)}</span>
     </div>
     <div class="etqs">${etqNumero(item.inbox)}${item.flags.map((f) => `<span class="etq ${TIPO[f.type].cls}">${rotuloPend(f)}</span>`).join('')}${MOTIVO[motivo] ? `<span class="etq e-resp">${MOTIVO[motivo]}</span>` : ''}${item.urgencia === 'alta' ? '<span class="etq u-chip">Urgente</span>' : ''}${fonte}</div>
-    ${item.verificacao ? `<p class="sec pequeno verif-linha">Pendente desde a verificação de ${esc(diaHora(item.verificacao.primeira))}${item.verificacao.vezes > 1 ? ` · já passou por ${item.verificacao.vezes} verificações` : ''}</p>` : ''}
+    ${item.verificacao ? `<p class="sec pequeno verif-linha">${item.since ? `Aguardando desde ${esc(diaHora(item.since))} · ` : ''}${item.verificacao.vezes > 1 ? `já passou por ${item.verificacao.vezes} verificações` : `vista na verificação de ${esc(diaHora(item.verificacao.primeira))}`}</p>` : ''}
     ${item.resumo ? `<p class="resumo">${esc(item.resumo)}</p>` : ''}
     ${item.proximoPasso ? `<p class="passo"><b>Próximo passo:</b> ${esc(item.proximoPasso)}</p>` : ''}
     ${origemHTML(item)}
@@ -1228,7 +1228,7 @@ function textoRelatorio(itens, v) {
     if (i.proximoPasso) linhas.push(`   Próximo passo: ${i.proximoPasso}`);
     const txt = String(f.text || '').replace(/\s+/g, ' ').trim();
     if (txt && !i.resumo) linhas.push(`   Última mensagem: "${txt.length > 140 ? `${txt.slice(0, 140)}…` : txt}"`);
-    if (i.verificacao) linhas.push(`   Pendente desde a verificação de ${diaHora(i.verificacao.primeira)}${i.verificacao.vezes > 1 ? ` (${i.verificacao.vezes} verificações)` : ''}`);
+    if (i.verificacao) linhas.push(`   ${i.since ? `Aguardando desde ${diaHora(i.since)}` : `Pendente desde a verificação de ${diaHora(i.verificacao.primeira)}`}${i.verificacao.vezes > 1 ? ` (${i.verificacao.vezes} verificações)` : ''}`);
     if (i.assigneeName || i.lastHumanName) linhas.push(`   Atendente: ${i.assigneeName || i.lastHumanName}`);
     if (digitos) linhas.push(`   Chamar: https://wa.me/${digitos}`);
     linhas.push('');
