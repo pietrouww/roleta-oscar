@@ -8,6 +8,7 @@ import { Analisador } from './ia.js';
 import { Midia } from './midia.js';
 import { DemoChatwootClient, DemoEvolutionClient, DemoAnalisador, prepararMidiaDemo } from './demo.js';
 import { EvolutionClient, slug } from './evolution.js';
+import { Nomes } from './nomes.js';
 import { PendenciasEngine, ehSistema } from './pendencias.js';
 import { CacheMensagens } from './mensagens.js';
 import { Store } from './store.js';
@@ -160,7 +161,7 @@ async function listarConversas(status) {
     .map((x) => {
       const i = porId.get(x.inboxId);
       return {
-        id: x.id, status: x.status, contactId: x.contactId, contactName: x.contactName, contactPhone: x.contactPhone,
+        id: x.id, status: x.status, contactId: x.contactId, contactName: x.contactName, contactPhone: x.contactPhone, contactIdentifier: x.contactIdentifier,
         assigneeName: x.assigneeName, assigneeId: x.assigneeId, unread: x.unread, preview: x.preview, lastActivityAt: x.lastActivityAt,
         inbox: { id: i.id, name: i.name, color: i.color },
       };
@@ -356,6 +357,25 @@ app.post('/api/conversas/:id/assumir', auth.require, async (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     falhaChatwoot(res, err, 'Não foi possível assumir a conversa');
+  }
+});
+
+// Renomear o contato (o nome que aparece para a equipe; não muda nada no WhatsApp do cliente)
+app.post('/api/conversas/:id/contato', auth.require, async (req, res) => {
+  const id = idConv(req, res);
+  if (!id) return;
+  const nome = String(req.body?.nome || '').replace(/\s+/g, ' ').trim();
+  if (nome.length < 2 || nome.length > 80) return res.status(400).json({ erro: 'Escreva um nome com 2 a 80 letras' });
+  try {
+    const todas = [...(await listarConversas('open')), ...(await listarConversas('resolved'))];
+    const conv = todas.find((c) => c.id === id);
+    if (!conv?.contactId) return res.status(404).json({ erro: 'Não achei o contato desta conversa' });
+    await client.updateContact(conv.contactId, { name: nome });
+    listaCache.clear();
+    engine.invalidate();
+    res.json({ ok: true, nome });
+  } catch (err) {
+    falhaChatwoot(res, err, 'Não foi possível renomear o contato');
   }
 });
 
@@ -665,6 +685,25 @@ app.post('/api/demo/verificar', auth.require, async (req, res) => {
 });
 
 app.get('*', (req, res) => res.sendFile(path.join(publicDir, 'index.html')));
+
+// Nome dos contatos: de tempos em tempos, dá nome a quem aparece só com o número (agenda dos celulares,
+// cadastro externo e nome de perfil). Não mexe em quem já tem nome.
+const nomes = new Nomes({ evolution, client, dataDir: config.dataDir, logger: console });
+async function preencherNomes() {
+  try {
+    const feitos = await nomes.preencher(await listarConversas('open'));
+    if (feitos) {
+      listaCache.clear();
+      engine.invalidate();
+    }
+  } catch (err) {
+    console.error(`[nomes] ${err.message}`);
+  }
+}
+if (!config.demo && evolution.configured) {
+  setTimeout(preencherNomes, 30_000).unref();
+  setInterval(preencherNomes, 3 * 60_000).unref();
+}
 
 app.listen(config.port, () => {
   console.log(`Painel de pendências rodando na porta ${config.port}${config.demo ? ' (MODO DEMONSTRAÇÃO)' : ''}`);

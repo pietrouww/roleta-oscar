@@ -56,6 +56,11 @@ export class ChatwootClient {
   }
 
   /** Todas as conversas de um contato (abertas e resolvidas, de qualquer número). */
+  /** Muda dados do contato (hoje, o nome que aparece para a equipe). */
+  async updateContact(contactId, { name }) {
+    return this.request('PUT', this.acc(`/contacts/${contactId}`), { name });
+  }
+
   async listContactConversations(contactId) {
     const r = await this.request('GET', this.acc(`/contacts/${contactId}/conversations`));
     return (r?.payload || []).map(conversaDe);

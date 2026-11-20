@@ -44,6 +44,22 @@ export class EvolutionClient {
     return data;
   }
 
+  /** Contatos que o WhatsApp do celular entrega (agenda do aparelho e nomes de perfil). */
+  async contacts(instanceName) {
+    const r = await this.request('POST', `/chat/findContacts/${encodeURIComponent(instanceName)}`, { where: {} });
+    return Array.isArray(r) ? r : r?.contacts || [];
+  }
+
+  /** Últimas mensagens trocadas com um contato (jid no formato 5541...@s.whatsapp.net). */
+  async recentMessages(instanceName, jid, quantas = 20) {
+    const r = await this.request('POST', `/chat/findMessages/${encodeURIComponent(instanceName)}`, {
+      where: { key: { remoteJid: jid, remoteJidAlt: jid } },
+      page: 1,
+      offset: quantas,
+    });
+    return r?.messages?.records || (Array.isArray(r) ? r : []);
+  }
+
   /** Lista de números conectados (ou não) na Evolution. */
   async list() {
     const r = await this.request('GET', '/instance/fetchInstances');

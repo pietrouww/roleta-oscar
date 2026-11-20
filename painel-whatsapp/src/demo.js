@@ -198,6 +198,10 @@ export class DemoChatwootClient {
     });
   }
 
+  async updateContact(contactId, { name }) {
+    for (const c of this.conversations) if (c.id + 5000 === Number(contactId)) c.name = name;
+  }
+
   async assign(id) {
     const c = this.conversations.find((x) => x.id === Number(id));
     if (c) c.assignee = this.usuario || 'Atendente';
@@ -240,6 +244,14 @@ export class DemoChatwootClient {
 
 // Evolution API de mentira: mostra um QR Code ilustrativo e "conecta" depois de alguns segundos.
 export class DemoEvolutionClient {
+  async contacts() {
+    return [];
+  }
+
+  async recentMessages() {
+    return [];
+  }
+
   constructor() {
     this.configured = true;
     this.instances = new Map([

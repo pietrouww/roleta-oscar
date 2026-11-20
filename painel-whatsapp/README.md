@@ -9,6 +9,7 @@ App para celular e computador (PWA) com dois módulos:
 - Ações: assumir, marcar como pendência (com anotação), adiar, "não é pendência", resolver/reabrir, ignorar contato.
 - **Respostas rápidas**: toque no raio ou digite `/` e o atalho. São as "respostas prontas" do Chatwoot; dá para criar e apagar pelo painel. `{{contact.name}}` vira o primeiro nome do cliente.
 - **Nota interna**: anotação que só a equipe vê (não vai para o WhatsApp).
+- **Nome dos contatos**: quem aparece só com o número (ou ponto, ou emojis) ganha nome sozinho, a cada 3 minutos. O painel procura na agenda dos celulares conectados, depois no cadastro externo (arquivo `nomes-externos.json` na pasta de dados, no formato `{ "41999998888": "Nome" }`) e por fim no nome de perfil do WhatsApp. Nunca troca um nome que já existe. Também dá para mudar à mão em Ações → "Renomear contato".
 - **IA do WhatsApp**: a lista mostra "IA atendendo" quando a última resposta foi do assistente virtual, tem o filtro "Com a IA", e a conversa vira pendência urgente "IA chamou a equipe" quando a IA diz que vai passar para uma pessoa e ninguém assume.
 - **Fixar conversas**: até 6 ficam no topo da lista, para toda a equipe (ação *Fixar conversa*). Ao resolver a conversa, a vaga é liberada.
 - No computador, a lista e a conversa ficam lado a lado.

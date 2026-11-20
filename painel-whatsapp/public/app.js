@@ -943,6 +943,7 @@ function abrirAcoes(id) {
   const botoes = [];
   const b = (acaoId, rotulo, detalhe = '', cls = '') => botoes.push(`<button class="acao ${cls}" data-acao="${acaoId}"><span>${rotulo}</span>${detalhe ? `<small class="sec">${detalhe}</small>` : ''}</button>`);
   if (!resolvida) b('assumir', 'Assumir conversa', 'Você vira o responsável');
+  b('renomear', 'Renomear contato', 'Muda o nome que aparece para a equipe');
   if (pend && !adiada) {
     b('adiar60', 'Adiar 1 hora', 'Some da lista e volta depois');
     b('adiar180', 'Adiar 3 horas');
@@ -968,6 +969,23 @@ function abrirAcoes(id) {
     const a = el.dataset.acao;
     folha.close();
     if (a === 'assumir') return executar(id, 'assumir', {}, 'Conversa assumida');
+    if (a === 'renomear') {
+      const atual = item.contactName || (state.chat?.id === id ? state.chat.conv?.contactName : '') || '';
+      const nome = prompt('Nome do contato', /\p{L}{2}/u.test(atual) ? atual : '');
+      if (nome === null || !nome.trim()) return;
+      try {
+        const r = await api(`/api/conversas/${id}/contato`, { method: 'POST', body: { nome } });
+        if (state.chat?.id === id) {
+          if (state.chat.conv) state.chat.conv.contactName = r.nome;
+          $('#chat-nome').textContent = r.nome;
+        }
+        toast('Contato renomeado');
+        await recarregarListas(true);
+      } catch (err) {
+        toast(err.message);
+      }
+      return;
+    }
     if (a === 'adiar60') return executar(id, 'adiar', { minutos: 60 }, 'Adiada por 1 hora');
     if (a === 'adiar180') return executar(id, 'adiar', { minutos: 180 }, 'Adiada por 3 horas');
     if (a === 'adiarAmanha') return executar(id, 'adiar', { minutos: minutosAteAmanha() }, 'Adiada até amanhã 8:30');
